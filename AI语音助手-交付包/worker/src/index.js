@@ -44,7 +44,14 @@ function checkProxyToken(request, env) {
 
   const provided = request.headers.get('X-Proxy-Token')
   if (provided !== expected) {
-    return json({ error: 'Unauthorized', detail: 'invalid or missing X-Proxy-Token' }, 401)
+    return json(
+      {
+        error: 'Unauthorized',
+        code: 'PROXY_AUTH_FAILED',
+        detail: 'invalid or missing X-Proxy-Token',
+      },
+      401,
+    )
   }
   return null
 }
@@ -61,7 +68,10 @@ async function checkRateLimit(request, env) {
   const raw = await kv.get(windowKey)
   const count = raw ? parseInt(raw, 10) : 0
   if (count >= maxPerMinute) {
-    return json({ error: 'Rate limit exceeded', detail: 'too many requests' }, 429)
+    return json(
+      { error: 'Rate limit exceeded', code: 'RATE_LIMITED', detail: 'too many requests' },
+      429,
+    )
   }
 
   await kv.put(windowKey, String(count + 1), { expirationTtl: 120 })
@@ -89,7 +99,14 @@ export default {
 
       const apiKey = env.OPENAI_API_KEY
       if (!apiKey) {
-        return json({ error: 'Proxy error', detail: 'OPENAI_API_KEY not configured' }, 500)
+        return json(
+          {
+            error: 'Proxy error',
+            code: 'OPENAI_NOT_CONFIGURED',
+            detail: 'OPENAI_API_KEY not configured',
+          },
+          500,
+        )
       }
 
       let body
@@ -122,12 +139,23 @@ export default {
 
         if (!response.ok) {
           const detail = data?.error?.message || 'OpenAI request failed'
-          return json({ error: 'OpenAI error', detail }, response.status)
+          const isAuthError = response.status === 401 || response.status === 403
+          return json(
+            {
+              error: 'OpenAI error',
+              code: isAuthError ? 'OPENAI_AUTH_FAILED' : 'OPENAI_UPSTREAM_ERROR',
+              detail,
+            },
+            502,
+          )
         }
 
         const content = data?.choices?.[0]?.message?.content
         if (!content) {
-          return json({ error: 'OpenAI error', detail: 'empty response' }, 502)
+          return json(
+            { error: 'OpenAI error', code: 'OPENAI_UPSTREAM_ERROR', detail: 'empty response' },
+            502,
+          )
         }
 
         return json({ content })

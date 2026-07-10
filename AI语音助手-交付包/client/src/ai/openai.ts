@@ -1,5 +1,6 @@
 import { getApiBase } from '../config/apiBase'
 import { getProxyAuthHeaders } from '../config/proxyAuth'
+import { getProxyErrorMessage, type ProxyErrorBody } from '../config/proxyErrors'
 
 export type ChatRole = 'user' | 'assistant' | 'system'
 
@@ -8,20 +9,12 @@ export interface ChatMessage {
   content: string
 }
 
-interface ChatResponse {
+interface ChatResponse extends ProxyErrorBody {
   content?: string
-  error?: string
-  detail?: string
 }
 
 function getErrorMessage(status: number, body: ChatResponse): string {
-  if (status === 401 || status === 403) {
-    return '云端鉴权失败，当前安装包与服务器 Token 不一致，请联系客服获取新版安装包'
-  }
-  if (status === 429) return '请求过于频繁，请稍后再试'
-  if (status === 422) return body.detail || '请求格式错误'
-  if (status >= 500) return '服务端异常，请稍后重试'
-  return body.detail || body.error || `请求失败 (${status})`
+  return getProxyErrorMessage(status, body)
 }
 
 export async function askAI(messages: ChatMessage[], signal?: AbortSignal): Promise<string> {

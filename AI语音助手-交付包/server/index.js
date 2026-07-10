@@ -68,11 +68,27 @@ function withVoiceSystemPrompt(messages) {
   return [{ role: 'system', content: VOICE_SYSTEM_PROMPT }, ...messages]
 }
 
+function mapOpenAiError(response, detail) {
+  const isAuthError = response.status === 401 || response.status === 403
+  return {
+    status: 502,
+    body: {
+      error: 'OpenAI error',
+      code: isAuthError ? 'OPENAI_AUTH_FAILED' : 'OPENAI_UPSTREAM_ERROR',
+      detail,
+    },
+  }
+}
+
 function checkProxyToken(req, res) {
   if (!PROXY_AUTH_TOKEN) return true
   const provided = req.get('X-Proxy-Token')
   if (provided !== PROXY_AUTH_TOKEN) {
-    res.status(401).json({ error: 'Unauthorized', detail: 'invalid or missing X-Proxy-Token' })
+    res.status(401).json({
+      error: 'Unauthorized',
+      code: 'PROXY_AUTH_FAILED',
+      detail: 'invalid or missing X-Proxy-Token',
+    })
     return false
   }
   return true
@@ -126,12 +142,17 @@ app.post('/api/chat', async (req, res) => {
 
     if (!response.ok) {
       const detail = data?.error?.message || 'OpenAI request failed'
-      return res.status(response.status).json({ error: 'OpenAI error', detail })
+      const mapped = mapOpenAiError(response, detail)
+      return res.status(mapped.status).json(mapped.body)
     }
 
     const content = data?.choices?.[0]?.message?.content
     if (!content) {
-      return res.status(502).json({ error: 'OpenAI error', detail: 'empty response' })
+      return res.status(502).json({
+        error: 'OpenAI error',
+        code: 'OPENAI_UPSTREAM_ERROR',
+        detail: 'empty response',
+      })
     }
 
     return res.json({ content })

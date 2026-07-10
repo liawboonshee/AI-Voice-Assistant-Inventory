@@ -93,7 +93,11 @@ export default function App() {
         setSetupRequired(true)
         if (result.authFailure) {
           setSetupMessage(
-            '云端已连通，但鉴权未配对。请联系客服获取新版安装包，或请管理员核对 Worker 的 PROXY_AUTH_TOKEN',
+            '云端已连通，但安装包 Token 未配对。请联系客服获取新版安装包，或核对 Worker 的 PROXY_AUTH_TOKEN',
+          )
+        } else if (result.openaiFailure) {
+          setSetupMessage(
+            '云端已连通，但 AI 服务 Key 无效。请在 Cloudflare Worker 更新 OPENAI_API_KEY 后重试',
           )
         } else {
           setSetupMessage('无法连接云端服务，请检查网络或在设置中修改 Proxy 地址')

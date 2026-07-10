@@ -56,7 +56,12 @@ export function SettingsPanel({ open, onClose, onSaved, onClearHistory }: Props)
     } else if (result.authFailure) {
       setStatus('fail')
       setMessage(
-        '地址可达，但 Token 不匹配。需更新安装包或核对 Worker 的 PROXY_AUTH_TOKEN；也可临时关闭 Worker 门禁验证',
+        '地址可达，但 Token 不匹配。需更新安装包或核对 Worker 的 PROXY_AUTH_TOKEN',
+      )
+    } else if (result.openaiFailure) {
+      setStatus('fail')
+      setMessage(
+        '地址与 Token 正常，但 Worker 的 OPENAI_API_KEY 无效。请在 Cloudflare 更新 Key 并 redeploy',
       )
     } else {
       setStatus('fail')
@@ -78,6 +83,8 @@ export function SettingsPanel({ open, onClose, onSaved, onClearHistory }: Props)
       setStatus('fail')
       if (result.authFailure) {
         setMessage('保存失败：Token 不匹配，需更新安装包或核对 Worker 鉴权配置')
+      } else if (result.openaiFailure) {
+        setMessage('保存失败：Worker 的 OPENAI_API_KEY 无效，请更新后重试')
       } else {
         setMessage(`保存失败：${result.error}`)
       }

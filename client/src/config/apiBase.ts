@@ -1,6 +1,12 @@
 import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 import { getProxyAuthHeaders } from './proxyAuth'
+import {
+  getProxyErrorMessage,
+  isOpenAiAuthFailure,
+  isProxyAuthFailure,
+  type ProxyErrorBody,
+} from './proxyErrors'
 
 const STORAGE_KEY = 'voice_ai_api_base'
 const DEFAULT_BASE = 'http://localhost:3001'
@@ -80,11 +86,17 @@ export type HealthCheckResult = { ok: true } | { ok: false; error: string }
 
 export type ChatProbeResult =
   | { ok: true }
-  | { ok: false; error: string; authFailure?: boolean }
+  | { ok: false; error: string; authFailure?: boolean; openaiFailure?: boolean }
 
 export type ConnectivityCheckResult =
   | { ok: true }
-  | { ok: false; error: string; authFailure?: boolean; healthOk?: boolean }
+  | {
+      ok: false
+      error: string
+      authFailure?: boolean
+      openaiFailure?: boolean
+      healthOk?: boolean
+    }
 
 export async function checkApiHealth(baseUrl?: string): Promise<HealthCheckResult> {
   const base = normalizeBase(baseUrl ?? (await getApiBase()))
@@ -112,21 +124,18 @@ export async function checkApiChatProbe(baseUrl?: string): Promise<ChatProbeResu
       body: JSON.stringify({ messages: [{ role: 'user', content: 'ping' }] }),
     })
 
-    if (response.status === 401 || response.status === 403) {
-      return {
-        ok: false,
-        authFailure: true,
-        error: '云端鉴权失败，当前安装包与服务器 Token 不一致，请联系客服获取新版',
-      }
-    }
+    const body = (await response.json().catch(() => ({}))) as ProxyErrorBody & { content?: string }
 
     if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { detail?: string; error?: string }
-      return { ok: false, error: body.detail || body.error || `HTTP ${response.status}` }
+      const message = getProxyErrorMessage(response.status, body)
+      return {
+        ok: false,
+        error: message,
+        authFailure: isProxyAuthFailure(response.status, body),
+        openaiFailure: isOpenAiAuthFailure(response.status, body),
+      }
     }
-
-    const body = (await response.json().catch(() => null)) as { content?: string } | null
-    if (body?.content) return { ok: true }
+    if (body.content) return { ok: true }
     return { ok: false, error: '对话接口响应异常' }
   } catch (err) {
     const message = err instanceof Error ? err.message : '网络请求失败'
@@ -143,7 +152,13 @@ export async function checkApiConnectivity(baseUrl?: string): Promise<Connectivi
 
   const chat = await checkApiChatProbe(baseUrl)
   if (!chat.ok) {
-    return { ok: false, error: chat.error, authFailure: chat.authFailure, healthOk: true }
+    return {
+      ok: false,
+      error: chat.error,
+      authFailure: chat.authFailure,
+      openaiFailure: chat.openaiFailure,
+      healthOk: true,
+    }
   }
 
   return { ok: true }

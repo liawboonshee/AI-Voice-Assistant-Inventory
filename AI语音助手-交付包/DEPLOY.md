@@ -28,7 +28,17 @@ Invoke-RestMethod -Uri "https://voice-ai-proxy.xxx.workers.dev/api/chat" -Method
 # 期望: 200 且返回 content 字段
 ```
 
-> **客户若设置了 `PROXY_AUTH_TOKEN`，必须私下告知维护方**，否则 APK 对话会 401，表现为「说了没反应」。App 首启与设置页「测试连接」现已同时检测 `/health` 与 `/api/chat`。
+> **客户若设置了 `PROXY_AUTH_TOKEN`，必须私下告知维护方**，否则 APK 对话会 401。Token 当前已配对为 `boonshee2026proxy`。
+
+## 1.1 三层探针验收（必做，不能只看 health）
+
+```powershell
+.\VERIFY_WORKER.ps1 -WorkerUrl "https://voice-ai-proxy.boonshee-ai.workers.dev" -ProxyToken "boonshee2026proxy"
+```
+
+期望：health PASS、无 Token 被拒绝、带 Token 的 chat **200 + content**。
+
+若第 3 层提示 OPENAI_API_KEY 无效，请客户在 Cloudflare 更新 Key 并 redeploy。
 
 ## 2. 配置 GitHub Secrets
 

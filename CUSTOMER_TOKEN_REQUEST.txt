@@ -1,21 +1,25 @@
-【发给客户 — 排查「没反应」后请确认 Token】
+【发给客户 — 当前状态与待办】
 
-您好，我们已定位原因：
+您好，远程检验结果：
 
-您的云端地址 https://voice-ai-proxy.boonshee-ai.workers.dev 在线正常（/health 通过），
-但对话接口启用了访问 Token（PROXY_AUTH_TOKEN），当前 APK 尚未配对，
-所以会出现「说了话没回复 / 没反应」。
+1. 云端地址 https://voice-ai-proxy.boonshee-ai.workers.dev 在线正常
+2. Token boonshee2026proxy 已与 APK 配对成功
+3. 当前阻塞：Worker 里的 OPENAI_API_KEY 无效，需在 Cloudflare 更新
 
-请您二选一：
+【请您在 Cloudflare 执行】
 
-方案 A（推荐）：私下发我们 Worker 里设置的 PROXY_AUTH_TOKEN 原值，
-我们马上重打配对版 APK 给您。
+cd worker
+npx wrangler secret put OPENAI_API_KEY
+# 粘贴 platform.openai.com 上有效的 API Key（确认有余额、未撤销）
+npx wrangler deploy
 
-方案 B（临时验证）：在 Cloudflare 删除 PROXY_AUTH_TOKEN 后重新 deploy，
-用现有 APK 试 10 分钟；验证完建议恢复 Token。
+若 Worker 代码有更新包，请一并 deploy 最新 worker/src/index.js（错误提示已优化）。
 
-【客户 30 秒自检】
-1. 打开 App → 设置 → 点「测试连接」
-2. 文字框输入「你好」点发送 — 若提示鉴权失败，即证实此问题
-3. 确认已点 🎤，顶部显示「聆听中」
-4. 若曾装旧版：设置 →「恢复默认」→ 保存
+【更新完成后自测】
+1. 安装最新 APK
+2. 设置 → 测试连接（应显示含对话接口成功）
+3. 输入「你好」或点麦克风说话
+
+【维护方验证命令】
+.\VERIFY_WORKER.ps1 -WorkerUrl "https://voice-ai-proxy.boonshee-ai.workers.dev" -ProxyToken "boonshee2026proxy"
+三层全绿方可最终交付。
