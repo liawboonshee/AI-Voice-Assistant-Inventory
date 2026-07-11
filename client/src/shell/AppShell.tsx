@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import VoiceApp from '../voice/VoiceApp';
 import BottomTabBar, { TabKey } from './BottomTabBar';
 
