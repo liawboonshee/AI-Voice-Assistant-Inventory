@@ -27,6 +27,21 @@ export function isValidProxyUrl(url: string): boolean {
   return /^https?:\/\/.+/i.test(url.trim())
 }
 
+/** 是否为本地调试地址（真机上不可用） */
+export function isLocalhostBase(url: string): boolean {
+  try {
+    const { hostname } = new URL(url.trim())
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '10.0.2.2'
+  } catch {
+    return false
+  }
+}
+
+/** 原生 App 使用了 localhost 默认地址，说明 APK 构建时未注入云端 URL */
+export function isMisconfiguredNativeBase(url: string): boolean {
+  return Capacitor.isNativePlatform() && isLocalhostBase(url)
+}
+
 async function readStoredBase(): Promise<string | null> {
   if (Capacitor.isNativePlatform()) {
     const { value } = await Preferences.get({ key: STORAGE_KEY })

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { speak, stopSpeaking } from '../utils/tts'
+import { combineAbortSignals, createTimeoutSignal, isTimeoutAbort } from '../utils/withTimeout'
 import { getVoiceAdapter } from './voiceAdapter'
 import type { VoicePhase } from './types'
 
 const RESTART_DELAY_MS = 300
 const MAX_EMPTY_RECOGNITIONS = 3
+const API_TIMEOUT_MS = 60_000
 
 interface State {
   phase: VoicePhase
@@ -58,6 +60,7 @@ export function useVoiceSession({ onSend, onInputPreview }: Options) {
   const onInputPreviewRef = useRef(onInputPreview)
   const abortControllerRef = useRef<AbortController | null>(null)
   const emptyRecognitionCountRef = useRef(0)
+  const turnIdRef = useRef(0)
 
   useEffect(() => {
     phaseRef.current = state.phase
@@ -76,6 +79,19 @@ export function useVoiceSession({ onSend, onInputPreview }: Options) {
   }, [onInputPreview])
 
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  const isTurnActive = (turnId: number) =>
+    sessionActiveRef.current && turnIdRef.current === turnId
+
+  const startListeningInternalRef = useRef<() => Promise<void>>(async () => {})
+
+  const resumeAfterSpeaking = async () => {
+    dispatch({ type: 'SET_PHASE', phase: 'idle' })
+    if (autoVoiceRef.current && sessionActiveRef.current) {
+      await delay(RESTART_DELAY_MS)
+      if (sessionActiveRef.current) await startListeningInternalRef.current()
+    }
+  }
 
   const startListeningInternal = useCallback(async () => {
     if (!sessionActiveRef.current) return
@@ -100,8 +116,9 @@ export function useVoiceSession({ onSend, onInputPreview }: Options) {
         onInputPreviewRef.current?.(partial)
       },
       onFinal: (finalText) => {
+        const turnId = turnIdRef.current
         void (async () => {
-          if (!sessionActiveRef.current) return
+          if (!isTurnActive(turnId)) return
 
           const trimmed = finalText.trim()
           dispatch({ type: 'SET_PARTIAL', text: trimmed })
@@ -117,9 +134,9 @@ export function useVoiceSession({ onSend, onInputPreview }: Options) {
               sessionActiveRef.current = false
               return
             }
-            if (autoVoiceRef.current && sessionActiveRef.current) {
+            if (autoVoiceRef.current && isTurnActive(turnId)) {
               await delay(RESTART_DELAY_MS)
-              if (sessionActiveRef.current) await startListeningInternal()
+              if (isTurnActive(turnId)) await startListeningInternal()
             } else {
               dispatch({ type: 'SET_PHASE', phase: 'idle' })
             }
@@ -136,35 +153,47 @@ export function useVoiceSession({ onSend, onInputPreview }: Options) {
           }
 
           await adapterRef.current.stop()
+          if (!isTurnActive(turnId)) return
+
           dispatch({ type: 'SET_PHASE', phase: 'thinking' })
 
           abortControllerRef.current?.abort()
           abortControllerRef.current = new AbortController()
-          const signal = abortControllerRef.current.signal
+          const userSignal = abortControllerRef.current.signal
+          const { signal: timeoutSignal, clear: clearTimeoutTimer } = createTimeoutSignal(API_TIMEOUT_MS)
+          const signal = combineAbortSignals([userSignal, timeoutSignal])
 
           try {
             const reply = await onSendRef.current(trimmed, signal)
-            if (!sessionActiveRef.current || signal.aborted) return
+            clearTimeoutTimer()
+            if (!isTurnActive(turnId) || userSignal.aborted) return
 
             dispatch({ type: 'SET_PHASE', phase: 'speaking' })
             dispatch({ type: 'SET_PARTIAL', text: '' })
             onInputPreviewRef.current?.('')
 
-            await speak(reply)
-            if (!sessionActiveRef.current) return
-
-            if (autoVoiceRef.current) {
-              await delay(RESTART_DELAY_MS)
-              if (sessionActiveRef.current) await startListeningInternal()
-            } else {
-              dispatch({ type: 'SET_PHASE', phase: 'idle' })
+            try {
+              await speak(reply)
+            } finally {
+              clearTimeoutTimer()
+              if (!isTurnActive(turnId) || userSignal.aborted) {
+                dispatch({ type: 'SET_PHASE', phase: 'idle' })
+                return
+              }
+              await resumeAfterSpeaking()
             }
           } catch (err) {
-            if (signal.aborted) {
+            clearTimeoutTimer()
+            if (userSignal.aborted && !isTimeoutAbort(signal)) {
               dispatch({ type: 'SET_PHASE', phase: 'idle' })
               return
             }
-            const message = err instanceof Error ? err.message : '语音对话失败，请重试'
+            const message =
+              isTimeoutAbort(signal) || isTimeoutAbort(userSignal)
+                ? '请求超时，请重试'
+                : err instanceof Error
+                  ? err.message
+                  : '语音对话失败，请重试'
             dispatch({ type: 'SET_ERROR', message })
             sessionActiveRef.current = false
           }
@@ -177,7 +206,10 @@ export function useVoiceSession({ onSend, onInputPreview }: Options) {
     })
   }, [])
 
+  startListeningInternalRef.current = startListeningInternal
+
   const stopSession = useCallback(async () => {
+    turnIdRef.current += 1
     sessionActiveRef.current = false
     abortControllerRef.current?.abort()
     abortControllerRef.current = null
@@ -191,6 +223,7 @@ export function useVoiceSession({ onSend, onInputPreview }: Options) {
   const start = useCallback(async () => {
     if (phaseRef.current === 'thinking' || phaseRef.current === 'speaking') return
 
+    turnIdRef.current += 1
     sessionActiveRef.current = true
     stopSpeaking()
     await adapterRef.current.stop()
@@ -208,11 +241,9 @@ export function useVoiceSession({ onSend, onInputPreview }: Options) {
     }
 
     stopSpeaking()
+    dispatch({ type: 'SET_PHASE', phase: 'idle' })
 
-    if (!sessionActiveRef.current || !autoVoiceRef.current) {
-      dispatch({ type: 'SET_PHASE', phase: 'idle' })
-      return
-    }
+    if (!sessionActiveRef.current || !autoVoiceRef.current) return
 
     await delay(RESTART_DELAY_MS)
     if (sessionActiveRef.current) await startListeningInternal()

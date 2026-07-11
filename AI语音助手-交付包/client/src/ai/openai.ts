@@ -1,6 +1,7 @@
 import { getApiBase } from '../config/apiBase'
 import { getProxyAuthHeaders } from '../config/proxyAuth'
 import { getProxyErrorMessage, type ProxyErrorBody } from '../config/proxyErrors'
+import { isTimeoutAbort } from '../utils/withTimeout'
 
 export type ChatRole = 'user' | 'assistant' | 'system'
 
@@ -29,6 +30,9 @@ export async function askAI(messages: ChatMessage[], signal?: AbortSignal): Prom
       signal,
     })
   } catch (err) {
+    if (isTimeoutAbort(signal)) {
+      throw new Error('请求超时，请重试')
+    }
     if (signal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
       throw new Error('请求已取消')
     }

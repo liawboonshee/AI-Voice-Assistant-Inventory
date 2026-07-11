@@ -75,7 +75,7 @@ export function InputBar({
         value={input}
         onChange={(event) => onInputChange(event.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={autoVoiceMode ? '自动对话模式…' : '输入消息或点麦克风…'}
+        placeholder={autoVoiceMode ? '输入文字发送，或点 🎤 说话…' : '输入消息或点 🎤…'}
         disabled={loading && !listening}
       />
 

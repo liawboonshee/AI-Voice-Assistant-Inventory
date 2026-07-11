@@ -9,9 +9,11 @@ import { PHASE_LABELS } from './voice/types'
 import { ChatMessageBubble } from './components/ChatMessage'
 import { InputBar } from './components/InputBar'
 import { SettingsPanel } from './components/SettingsPanel'
-import { checkApiConnectivity, getApiBase } from './config/apiBase'
+import { checkApiConnectivity, getApiBase, isMisconfiguredNativeBase } from './config/apiBase'
+import { combineAbortSignals, createTimeoutSignal, isTimeoutAbort } from './utils/withTimeout'
 
 const SAVE_DEBOUNCE_MS = 300
+const API_TIMEOUT_MS = 60_000
 
 export default function App() {
   const [input, setInput] = useState('')
@@ -88,7 +90,16 @@ export default function App() {
     if (!Capacitor.isNativePlatform()) return
 
     void (async () => {
-      const result = await checkApiConnectivity()
+      const base = await getApiBase()
+      if (isMisconfiguredNativeBase(base)) {
+        setSetupRequired(true)
+        setSetupMessage(
+          '安装包未预置云端地址（当前为 localhost），请在设置中填入 Worker HTTPS 地址，或联系客服获取新版 APK',
+        )
+        return
+      }
+
+      const result = await checkApiConnectivity(base)
       if (!result.ok) {
         setSetupRequired(true)
         if (result.authFailure) {
@@ -140,15 +151,24 @@ export default function App() {
 
     abortControllerRef.current?.abort()
     abortControllerRef.current = new AbortController()
-    const signal = abortControllerRef.current.signal
+    const userSignal = abortControllerRef.current.signal
+    const { signal: timeoutSignal, clear: clearTimeoutTimer } = createTimeoutSignal(API_TIMEOUT_MS)
+    const signal = combineAbortSignals([userSignal, timeoutSignal])
 
     try {
       const reply = await askAI(nextMessages, signal)
+      clearTimeoutTimer()
       setMessages([...nextMessages, { role: 'assistant', content: reply }])
       void speak(reply)
     } catch (err) {
-      if (signal.aborted) return
-      const message = err instanceof Error ? err.message : '请求失败，请稍后重试'
+      clearTimeoutTimer()
+      if (userSignal.aborted && !isTimeoutAbort(signal)) return
+      const message =
+        isTimeoutAbort(signal) || isTimeoutAbort(userSignal)
+          ? '请求超时，请重试'
+          : err instanceof Error
+            ? err.message
+            : '请求失败，请稍后重试'
       setError(message)
     }
   }
@@ -202,8 +222,8 @@ export default function App() {
       <main className="chat-area" ref={listRef}>
         {messages.length === 0 && !voice.isBusy && (
           <div className="empty-state">
-            <p>开启「自动对话」后，像 Siri 一样连续语音聊天</p>
-            <p className="empty-hint">云端模式：有网即用，无需开电脑；对话自动保存在本机</p>
+            <p>点 🎤 开始语音（Android 会弹出系统「请说话」界面，属正常）</p>
+            <p className="empty-hint">也可在下方输入文字后点「发送」；有网即用，对话保存在本机</p>
           </div>
         )}
 
