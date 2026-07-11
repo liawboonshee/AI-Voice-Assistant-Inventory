@@ -3,28 +3,6 @@ import VoiceApp from '../voice/VoiceApp';
 import BottomTabBar, { TabKey } from './BottomTabBar';
 import InventoryApp from '../inventory/InventoryApp';
 
-function Inventoryapp {
-
-  return (
-    <div
-      style={{
-        padding: 24,
-        paddingBottom: 96,
-        textAlign: 'center',
-        color: '#374151',
-      }}
-    >
-      <h2 style={{ margin: '32px 0 8px' }}>
-        📦 库存宝
-      </h2>
-
-      <p style={{ color: '#6b7280', fontSize: 14 }}>
-        模块开发中（第 2 步接入进货 / 出货 / 库存 / 客户 / 欠款）。
-      </p>
-    </div>
-  );
-}
-
 export default function AppShell() {
   const [tab, setTab] = useState<TabKey>('voice');
 
