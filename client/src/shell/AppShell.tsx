@@ -3,8 +3,8 @@ import VoiceApp from '../voice/VoiceApp';
 import BottomTabBar, { TabKey } from './BottomTabBar';
 import InventoryApp from '../inventory/InventoryApp';
 
-function InventoryPlaceholder() {
- <InventoryApp />
+function Inventoryapp {
+
   return (
     <div
       style={{
