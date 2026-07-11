@@ -1,4 +1,4 @@
-# AI Voice Assistant（语音版 ChatGPT）
+ # AI Voice Assistant（语音版 ChatGPT）
 
 **客户验收请读 [CUSTOMER_GUIDE.md](CUSTOMER_GUIDE.md)**（云端模式：装 APK 即用，无需开电脑）。  
 **维护方部署请读 [DEPLOY.md](DEPLOY.md)**（Worker + GitHub Secrets 闭环）。
