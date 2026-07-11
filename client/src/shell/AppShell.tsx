@@ -27,7 +27,7 @@ export default function AppShell() {
           display: tab === 'inventory' ? 'block' : 'none',
         }}
       >
-        <InventoryPlaceholder />
+        <InventoryApp />
       </div>
 
       <BottomTabBar
