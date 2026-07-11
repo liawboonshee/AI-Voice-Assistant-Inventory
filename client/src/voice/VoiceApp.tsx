@@ -9,8 +9,8 @@ import { PHASE_LABELS } from './types'
 import { ChatMessageBubble } from '../components/ChatMessage'
 import { InputBar } from '../components/InputBar'
 import { SettingsPanel } from '../components/SettingsPanel'
-import { checkApiConnectivity, getApiBase, isMisconfiguredNativeBase } from './config/apiBase'
-import { combineAbortSignals, createTimeoutSignal, isTimeoutAbort } from './utils/withTimeout'
+import { checkApiConnectivity, getApiBase, isMisconfiguredNativeBase } from '../config/apiBase'
+import { combineAbortSignals, createTimeoutSignal, isTimeoutAbort } from '../utils/withTimeout'
 
 const SAVE_DEBOUNCE_MS = 300
 const API_TIMEOUT_MS = 60_000
