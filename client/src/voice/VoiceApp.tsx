@@ -1,18 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Capacitor } from '@capacitor/core'
-
 import { askAI, type ChatMessage } from '../ai/openai'
 import { useVoiceSession } from './useVoiceSession'
-
 import { speak, stopSpeaking } from '../utils/tts'
 import { trimMessages } from '../utils/trimMessages'
 import { loadMessages, saveMessages } from '../utils/chatStorage'
 import { PHASE_LABELS } from './types'
-
 import { ChatMessageBubble } from '../components/ChatMessage'
 import { InputBar } from '../components/InputBar'
 import { SettingsPanel } from '../components/SettingsPanel'
-
 import { checkApiConnectivity, getApiBase, isMisconfiguredNativeBase } from '../config/apiBase'
 import { combineAbortSignals, createTimeoutSignal, isTimeoutAbort } from '../utils/withTimeout'
 
