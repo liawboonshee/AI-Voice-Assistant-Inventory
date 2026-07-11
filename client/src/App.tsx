@@ -271,6 +271,7 @@ export default function App() {
         onSaved={handleSettingsSaved}
         onClearHistory={handleClearHistory}
       />
+  <VoiceApp />
     </div>
   )
 }
