@@ -11,7 +11,7 @@ import { InputBar } from './components/InputBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { checkApiConnectivity, getApiBase, isMisconfiguredNativeBase } from './config/apiBase'
 import { combineAbortSignals, createTimeoutSignal, isTimeoutAbort } from './utils/withTimeout'
-import VoiceApp from "./voice/VoiceApp";
+
 
 const SAVE_DEBOUNCE_MS = 300
 const API_TIMEOUT_MS = 60_000
