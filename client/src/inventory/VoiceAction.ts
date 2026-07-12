@@ -1,253 +1,161 @@
+import { parseVoiceCommand } from './VoiceCommand'
 import { loadInventory, saveInventory } from './Storage'
 import { saveRecord } from './Records'
-import { parseVoiceCommand } from './VoiceCommand'
-
 
 
 export function executeVoiceCommand(text:string){
 
 
+  const command =
+    parseVoiceCommand(text)
 
-const command =
-parseVoiceCommand(text)
 
 
+  if(!command.type){
 
-const data =
-loadInventory()
+    return null
 
+  }
 
 
 
 
-// 查询库存
+  // =================
+  // 出货
+  // =================
 
-if(command.type==='query'){
+  if(command.type === 'sale'){
 
 
-return `目前库存 ${data.stock.toFixed(2)} 克`
+    const data =
+      loadInventory()
 
 
-}
 
+    if(!command.weight){
 
+      return '请输入出货重量'
 
+    }
 
 
 
+    if(data.stock < command.weight){
 
+      return '库存不足'
 
-// 出货
+    }
 
 
-if(command.type==='sale'){
 
+    data.stock -= command.weight
 
 
-if(command.weight===undefined){
 
+    const amount =
+      command.amount || 0
 
-return '没有识别到重量'
 
 
-}
+    data.income += amount
 
+    data.profit += amount
 
 
 
-if(command.amount===undefined){
+    saveInventory(data)
 
 
-return '没有识别到金额'
 
+    saveRecord({
 
-}
+      type:'sale',
 
+      date:new Date().toLocaleString(),
 
+      customer:
+        command.customer || '未填写',
 
+      weight:
+        command.weight,
 
+      amount
 
+    })
 
-if(data.stock < command.weight){
 
 
-return '库存不足'
+    return `✅ 出货${command.weight}克成功`
 
+  }
 
-}
 
 
 
 
 
 
+  // =================
+  // 进货
+  // =================
 
-data.stock -= command.weight
+  if(command.type === 'purchase'){
 
 
 
-data.income += command.amount
+    const data =
+      loadInventory()
 
 
 
-data.profit += command.amount
+    if(!command.weight){
 
+      return '请输入进货重量'
 
+    }
 
 
 
 
-saveInventory(data)
+    data.stock += command.weight
 
 
 
+    saveInventory(data)
 
 
 
+    saveRecord({
 
-saveRecord({
+      type:'purchase',
 
+      date:new Date().toLocaleString(),
 
-type:'sale',
+      weight:
+        command.weight,
 
+      amount:
+        command.amount || 0
 
-date:new Date().toLocaleString(),
+    })
 
 
-customer:
-command.customer || '未填写',
 
+    return `✅ 进货${command.weight}克成功`
 
-weight:
-command.weight,
+  }
 
 
-amount:
-command.amount
 
 
 
-})
 
+  // =================
+  // 查询交给 InventoryAI
+  // =================
 
 
-
-
-
-
-return `出货成功 ${command.weight} 克，金额 ${command.amount}`
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// 进货
-
-
-if(command.type==='purchase'){
-
-
-
-
-
-if(command.weight===undefined){
-
-
-return '没有识别到重量'
-
-
-}
-
-
-
-
-
-if(command.amount===undefined){
-
-
-return '没有识别到成本'
-
-
-}
-
-
-
-
-
-
-
-data.stock += command.weight
-
-
-
-data.cost += command.amount
-
-
-
-data.totalWeightCost += command.amount
-
-
-
-
-
-
-saveInventory(data)
-
-
-
-
-
-
-
-saveRecord({
-
-
-type:'purchase',
-
-
-date:new Date().toLocaleString(),
-
-
-weight:
-command.weight,
-
-
-amount:
-command.amount
-
-
-
-})
-
-
-
-
-
-
-
-return `进货成功 ${command.weight} 克`
-
-
-
-
-}
-
-
-
-
-
-
-
-return null
+  return null
 
 
 }
