@@ -99,12 +99,8 @@ let handlers:VoiceListenHandlers|null=null
 let manualStop=false
 
 
-// 累积完整语句
-
 let finalText=''
 
-
-// 延迟发送计时器
 
 let sendTimer:any=null
 
@@ -229,21 +225,21 @@ const instance=new Ctor()
 
 
 
-// 中文
+// 中文识别
 
 instance.lang='zh-CN'
 
 
 
-// 持续监听
+// 单次讲话模式
 
-instance.continuous=true
+instance.continuous=false
 
 
 
-// 开启临时结果
+// 不显示太多临时结果
 
-instance.interimResults=true
+instance.interimResults=false
 
 
 
@@ -291,15 +287,11 @@ if(last?.isFinal){
 
 
 
-// 累积语音
-
 finalText += text
 
 
 
 
-
-// 每次新讲话重新计时
 
 if(sendTimer){
 
@@ -311,7 +303,7 @@ clearTimeout(sendTimer)
 
 
 
-// 停顿1.5秒才发送
+// 等待讲话结束
 
 sendTimer=setTimeout(()=>{
 
@@ -334,20 +326,14 @@ finalText=''
 
 
 
-},1500)
+},2500)
 
 
 
-
-
-
-}else{
-
-
-handlers?.onPartial?.(text)
 
 
 }
+
 
 
 
@@ -405,43 +391,12 @@ handlers?.onError(message)
 
 
 
+// 不自动重新开启
+
 instance.onend=()=>{
 
 
-
 recognition=null
-
-
-
-
-// 非手动停止自动恢复
-
-if(!manualStop){
-
-
-
-setTimeout(()=>{
-
-
-
-try{
-
-
-instance.start()
-
-
-
-}catch{}
-
-
-
-},1000)
-
-
-
-}
-
-
 
 
 }
