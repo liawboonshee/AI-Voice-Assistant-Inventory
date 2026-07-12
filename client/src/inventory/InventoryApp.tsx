@@ -1,203 +1,243 @@
-import RecordsPage from './RecordsPage'
 import { useState } from 'react'
 
 import Purchase from './Purchase'
 import Sale from './Sale'
 import Customers from './Customers'
 import Stock from './Stock'
+import RecordsPage from './RecordsPage'
 
 import { loadInventory } from './Storage'
-
+import { loadRecords } from './Records'
 
 
 export default function InventoryApp(){
 
 
-const [page,setPage]=useState('home')
+  const [page,setPage]=useState('home')
 
-  {page==='records' && (
-  <RecordsPage />
-)}
 
-const data=loadInventory()
+  const data=loadInventory()
 
+  const records=loadRecords()
 
 
-return(
 
+  const totalSaleWeight = records
 
-<div style={{paddingBottom:100}}>
+    .filter(item=>item.type==='sale')
 
+    .reduce(
+      (sum,item)=>sum+item.weight,
+      0
+    )
 
 
-{
 
-page==='home' &&
+  const customers = JSON.parse(
+    localStorage.getItem('customers') || '[]'
+  )
 
-<div style={{padding:24}}>
 
+  const totalDebt = customers
 
-<h1>📦 库存宝</h1>
+    .reduce(
+      (sum:any,item:any)=>
+        sum+(item.debt||0),
+      0
+    )
 
 
-<h2>库存管理系统</h2>
 
 
-<p>
+  return(
 
-今日收入：
 
-{data.income}
+    <div style={{paddingBottom:100}}>
 
-</p>
 
 
+      {
+        page==='home' &&
 
-<p>
+        <div style={{padding:24}}>
 
-当前库存：
 
-{data.stock.toFixed(2)} g
+          <h1>📦 库存宝</h1>
 
-</p>
 
+          <h2>库存管理系统</h2>
 
 
-<p>
 
-总盈利：
+          <p>
+            📦 当前库存：
+            {data.stock.toFixed(2)} g
+          </p>
 
-{data.profit}
 
-</p>
 
+          <p>
+            📤 总出货量：
+            {totalSaleWeight.toFixed(2)} g
+          </p>
 
-</div>
 
 
-}
+          <p>
+            💰 总收入：
+            {data.income.toFixed(2)}
+          </p>
 
 
 
+          <p>
+            📒 客户欠款：
+            {totalDebt.toFixed(2)}
+          </p>
 
-{
 
-page==='purchase' &&
 
-<Purchase/>
+          <p>
+            📋 交易次数：
+            {records.length}
+          </p>
 
-}
 
 
+          <p>
+            💵 总盈利：
+            {data.profit.toFixed(2)}
+          </p>
 
 
-{
+        </div>
 
-page==='sale' &&
+      }
 
-<Sale/>
 
-}
 
 
+      {
+        page==='purchase' &&
 
+        <Purchase/>
 
-{
+      }
 
-page==='customer' &&
 
-<Customers/>
 
-}
 
+      {
+        page==='sale' &&
 
+        <Sale/>
 
+      }
 
-{
 
-page==='stock' &&
 
-<Stock/>
 
-}
+      {
+        page==='customer' &&
 
+        <Customers/>
 
+      }
 
 
 
-<div
 
-style={{
+      {
+        page==='stock' &&
 
-position:'fixed',
+        <Stock/>
 
-bottom:60,
+      }
 
-left:0,
 
-right:0,
 
-display:'flex',
 
-justifyContent:'space-around',
+      {
+        page==='records' &&
 
-background:'#111827',
+        <RecordsPage/>
 
-padding:10
+      }
 
-}}
 
->
 
 
-<button onClick={()=>setPage('home')}>
 
-首页
 
-</button>
+      <div
 
+        style={{
 
+          position:'fixed',
 
-<button onClick={()=>setPage('purchase')}>
+          bottom:60,
 
-进货
+          left:0,
 
-</button>
+          right:0,
 
+          display:'flex',
 
+          justifyContent:'space-around',
 
-<button onClick={()=>setPage('sale')}>
+          background:'#111827',
 
-出货
+          padding:10
 
-</button>
+        }}
 
+      >
 
 
-<button onClick={()=>setPage('customer')}>
 
-客户
+        <button onClick={()=>setPage('home')}>
+          首页
+        </button>
 
-</button>
 
 
+        <button onClick={()=>setPage('purchase')}>
+          进货
+        </button>
 
-<button onClick={()=>setPage('stock')}>
 
-库存
 
-</button>
+        <button onClick={()=>setPage('sale')}>
+          出货
+        </button>
 
-<button onClick={()=>setPage('records')}>
-  记录
-</button>
 
-</div>
 
+        <button onClick={()=>setPage('customer')}>
+          客户
+        </button>
 
-</div>
 
 
-)
+        <button onClick={()=>setPage('stock')}>
+          库存
+        </button>
+
+
+
+        <button onClick={()=>setPage('records')}>
+          记录
+        </button>
+
+
+
+      </div>
+
+
+
+    </div>
+
+
+  )
 
 }
