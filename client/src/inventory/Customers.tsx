@@ -3,17 +3,12 @@ import { loadRecords, saveRecord } from './Records'
 
 
 type CustomerData = {
-
   name:string
-
   debt:number
-
 }
 
 
-
 const KEY='customers'
-
 
 
 function loadCustomers():CustomerData[]{
@@ -21,19 +16,10 @@ function loadCustomers():CustomerData[]{
   const data=localStorage.getItem(KEY)
 
   if(!data){
-
     return []
-
   }
 
-
-  return JSON.parse(data).map((item:any)=>({
-
-    name:item.name || '',
-
-    debt:item.debt || 0
-
-  }))
+  return JSON.parse(data)
 
 }
 
@@ -42,15 +28,11 @@ function loadCustomers():CustomerData[]{
 function saveCustomers(data:CustomerData[]){
 
   localStorage.setItem(
-
     KEY,
-
     JSON.stringify(data)
-
   )
 
 }
-
 
 
 
@@ -61,29 +43,63 @@ const [customers,setCustomers]=useState<CustomerData[]>(loadCustomers())
 
 const [records,setRecords]=useState(loadRecords())
 
+const [name,setName]=useState('')
+
 const [pay,setPay]=useState<{[key:number]:string}>({})
 
 
 
 useEffect(()=>{
 
-
 const timer=setInterval(()=>{
-
 
 setCustomers(loadCustomers())
 
 setRecords(loadRecords())
 
-
 },500)
-
 
 
 return()=>clearInterval(timer)
 
 
 },[])
+
+
+
+
+function addCustomer(){
+
+const newName=name.trim()
+
+
+if(!newName){
+
+return
+
+}
+
+
+const list=[...customers]
+
+
+list.push({
+
+name:newName,
+
+debt:0
+
+})
+
+
+saveCustomers(list)
+
+setCustomers(list)
+
+setName('')
+
+
+}
 
 
 
@@ -105,7 +121,6 @@ return
 
 const list=[...customers]
 
-
 const customer=list[index]
 
 
@@ -117,13 +132,12 @@ return
 
 
 
-customer.debt -= amount
+customer.debt-=amount
 
 
+if(customer.debt<0){
 
-if(customer.debt < 0){
-
-customer.debt = 0
+customer.debt=0
 
 }
 
@@ -131,14 +145,13 @@ customer.debt = 0
 
 saveCustomers(list)
 
-
 setCustomers(list)
 
 
 
 saveRecord({
 
-type:'sale',
+type:'payment',
 
 date:new Date().toLocaleString(),
 
@@ -161,7 +174,6 @@ setPay({
 })
 
 
-
 }
 
 
@@ -170,11 +182,35 @@ setPay({
 
 return(
 
-
 <div style={{padding:24}}>
 
 
 <h1>👤 客户管理</h1>
+
+
+
+<div>
+
+<input
+
+value={name}
+
+onChange={(e)=>setName(e.target.value)}
+
+placeholder="输入客户名字"
+
+/>
+
+
+<button onClick={addCustomer}>
+
+➕ 添加客户
+
+</button>
+
+
+</div>
+
 
 
 
@@ -189,7 +225,6 @@ customers.length===0 &&
 </p>
 
 }
-
 
 
 
@@ -209,14 +244,13 @@ border:'1px solid #555',
 
 padding:15,
 
-marginBottom:10,
+marginTop:15,
 
 borderRadius:8
 
 }}
 
 >
-
 
 
 <h3>
@@ -231,10 +265,9 @@ borderRadius:8
 
 欠款：
 
-{(item.debt || 0).toFixed(2)}
+{item.debt.toFixed(2)}
 
 </p>
-
 
 
 
@@ -243,7 +276,6 @@ borderRadius:8
 购买记录
 
 </h4>
-
 
 
 
@@ -266,11 +298,11 @@ r.customer===item.name
 
 <p key={i}>
 
-{(r.weight || 0).toFixed(2)}g
+{r.weight.toFixed(2)}g
 
 -
 
-{(r.amount || 0).toFixed(2)}
+{r.amount.toFixed(2)}
 
 </p>
 
@@ -284,17 +316,18 @@ r.customer===item.name
 
 {
 
-item.debt > 0 &&
+item.debt>0 &&
 
-
-<>
+<div>
 
 
 <input
 
+type="number"
 
-value={pay[index] || ''}
+placeholder="还款金额"
 
+value={pay[index]||''}
 
 onChange={(e)=>
 
@@ -309,36 +342,21 @@ setPay({
 }
 
 
-placeholder="输入还款金额"
-
-
-type="number"
-
-
 />
 
 
 
-
-<button
-
-onClick={()=>repay(index)}
-
->
-
+<button onClick={()=>repay(index)}>
 
 确认还款
-
 
 </button>
 
 
-
-</>
+</div>
 
 
 }
-
 
 
 
@@ -349,6 +367,7 @@ onClick={()=>repay(index)}
 
 
 }
+
 
 
 
