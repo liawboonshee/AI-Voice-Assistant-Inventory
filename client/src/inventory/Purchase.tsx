@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
 export default function Purchase() {
@@ -19,7 +20,17 @@ export default function Purchase() {
 
     data.stock += w
     data.cost += c
+saveRecord({
 
+  type:'purchase',
+
+  date:new Date().toLocaleString(),
+
+  weight:w,
+
+  amount:c
+
+})
     saveInventory(data)
 
     setWeight('')
