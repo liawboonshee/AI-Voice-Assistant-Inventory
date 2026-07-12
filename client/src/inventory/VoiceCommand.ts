@@ -12,8 +12,6 @@ export type VoiceCommand = {
 
 
 
-
-
 function normalize(text:string){
 
 return text
@@ -22,9 +20,15 @@ return text
 
 .replace(/点/g,'.')
 
-.replace(/克/g+'','')
+.replace(/克/g,'')
+
+.replace(/gram/g,'')
 
 .replace(/公斤/g,'kg')
+
+.replace(/kg/g,'')
+
+.replace(/g/g,'')
 
 .replace(/块/g,'')
 
@@ -43,7 +47,6 @@ return text
 export function parseVoiceCommand(text:string):VoiceCommand{
 
 
-
 const t=normalize(text)
 
 
@@ -53,8 +56,6 @@ let result:VoiceCommand={
 type:null
 
 }
-
-
 
 
 
@@ -85,8 +86,6 @@ return result
 
 
 
-
-
 // 出货
 
 if(
@@ -106,8 +105,6 @@ t.includes('出售')
 result.type='sale'
 
 }
-
-
 
 
 
@@ -133,10 +130,7 @@ result.type='purchase'
 
 
 
-
-
-// 找全部数字
-
+// 提取数字
 
 const nums =
 t.match(/\d+(\.\d+)?/g)
@@ -145,58 +139,28 @@ t.match(/\d+(\.\d+)?/g)
 
 
 
-
 if(nums){
 
 
+// 第一个数字重量
 
-// 第一个数字默认重量
-
-if(nums.length>=1){
-
-result.weight=
+result.weight =
 Number(nums[0])
 
-}
 
 
 
-// 第二个数字默认金额
+// 最后一个数字金额
 
 if(nums.length>=2){
 
-result.amount=
-Number(nums[1])
+result.amount =
+Number(nums[nums.length-1])
 
 }
 
 
-
 }
-
-
-
-
-
-
-
-// 如果有g，优先识别g前面的重量
-
-
-const weightMatch =
-t.match(
-/(\d+(\.\d+)?)g/
-)
-
-
-
-if(weightMatch){
-
-result.weight=
-Number(weightMatch[1])
-
-}
-
 
 
 
@@ -205,15 +169,14 @@ Number(weightMatch[1])
 // 客户
 
 const customerMatch =
-t.match(
-/给(.+?)(\d+|g|$)/
+text.match(
+/给(.+?)(\d|克|g|gram|元|块)/
 )
-
 
 
 if(customerMatch){
 
-result.customer=
+result.customer =
 customerMatch[1]
 
 }
@@ -223,7 +186,6 @@ customerMatch[1]
 
 
 return result
-
 
 
 }
