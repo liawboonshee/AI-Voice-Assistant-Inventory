@@ -1,3 +1,4 @@
+import RecordsPage from './RecordsPage'
 import { useState } from 'react'
 
 import Purchase from './Purchase'
