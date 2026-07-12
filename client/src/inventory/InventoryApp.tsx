@@ -5,6 +5,7 @@ import Sale from './Sale'
 import Customers from './Customers'
 import Stock from './Stock'
 import RecordsPage from './RecordsPage'
+import Backup from './Backup'
 
 import { loadInventory } from './Storage'
 import { loadRecords } from './Records'
@@ -13,12 +14,12 @@ import { loadRecords } from './Records'
 export default function InventoryApp(){
 
 
-  const [page,setPage]=useState('home')
+  const [page,setPage] = useState('home')
 
 
-  const data=loadInventory()
+  const data = loadInventory()
 
-  const records=loadRecords()
+  const records = loadRecords()
 
 
 
@@ -42,15 +43,13 @@ export default function InventoryApp(){
 
     .reduce(
       (sum:any,item:any)=>
-        sum+(item.debt||0),
+      sum+(item.debt||0),
       0
     )
 
 
 
-
-  return(
-
+  return (
 
     <div style={{paddingBottom:100}}>
 
@@ -61,12 +60,9 @@ export default function InventoryApp(){
 
         <div style={{padding:24}}>
 
-
           <h1>📦 库存宝</h1>
 
-
           <h2>库存管理系统</h2>
-
 
 
           <p>
@@ -75,12 +71,10 @@ export default function InventoryApp(){
           </p>
 
 
-
           <p>
             📤 总出货量：
             {totalSaleWeight.toFixed(2)} g
           </p>
-
 
 
           <p>
@@ -89,19 +83,16 @@ export default function InventoryApp(){
           </p>
 
 
-
           <p>
             📒 客户欠款：
             {totalDebt.toFixed(2)}
           </p>
 
 
-
           <p>
             📋 交易次数：
             {records.length}
           </p>
-
 
 
           <p>
@@ -117,12 +108,14 @@ export default function InventoryApp(){
 
 
 
+
       {
         page==='purchase' &&
 
         <Purchase/>
 
       }
+
 
 
 
@@ -137,12 +130,14 @@ export default function InventoryApp(){
 
 
 
+
       {
         page==='customer' &&
 
         <Customers/>
 
       }
+
 
 
 
@@ -157,10 +152,22 @@ export default function InventoryApp(){
 
 
 
+
       {
         page==='records' &&
 
         <RecordsPage/>
+
+      }
+
+
+
+
+
+      {
+        page==='backup' &&
+
+        <Backup/>
 
       }
 
@@ -187,7 +194,9 @@ export default function InventoryApp(){
 
           background:'#111827',
 
-          padding:10
+          padding:10,
+
+          overflowX:'auto'
 
         }}
 
@@ -231,12 +240,16 @@ export default function InventoryApp(){
 
 
 
+        <button onClick={()=>setPage('backup')}>
+          备份
+        </button>
+
+
+
       </div>
 
 
-
     </div>
-
 
   )
 
