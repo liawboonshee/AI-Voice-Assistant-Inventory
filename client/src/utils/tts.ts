@@ -87,7 +87,11 @@ if (chineseVoice) {
         resolve()
       }
       setTimeout(() => {
+
+  window.speechSynthesis.resume()
+
   window.speechSynthesis.speak(utterance)
+
 }, 100)
 })
     const watchdog = delay(estimateSpeakMs(clean)).then(() => {
