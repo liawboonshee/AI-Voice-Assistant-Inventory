@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { loadRecords } from './Records'
+import { loadRecords, saveRecord } from './Records'
 
 
 type CustomerData = {
@@ -18,9 +18,7 @@ const KEY='customers'
 
 function loadCustomers():CustomerData[]{
 
-
   const data=localStorage.getItem(KEY)
-
 
   if(!data){
 
@@ -28,9 +26,7 @@ function loadCustomers():CustomerData[]{
 
   }
 
-
   return JSON.parse(data)
-
 
 }
 
@@ -39,11 +35,8 @@ function loadCustomers():CustomerData[]{
 function saveCustomers(data:CustomerData[]){
 
   localStorage.setItem(
-
     KEY,
-
     JSON.stringify(data)
-
   )
 
 }
@@ -51,201 +44,276 @@ function saveCustomers(data:CustomerData[]){
 
 
 
-
 export default function Customers(){
 
 
-  const [customers,setCustomers]=useState(loadCustomers())
+const [customers,setCustomers]=useState(loadCustomers())
 
-  const [records,setRecords]=useState(loadRecords())
+const [records,setRecords]=useState(loadRecords())
 
+const [pay,setPay]=useState<{[key:number]:string}>({})
 
 
-  useEffect(()=>{
 
+useEffect(()=>{
 
-    const timer=setInterval(()=>{
 
+const timer=setInterval(()=>{
 
-      setCustomers(loadCustomers())
+setCustomers(loadCustomers())
 
-      setRecords(loadRecords())
+setRecords(loadRecords())
 
 
-    },500)
+},500)
 
 
 
-    return()=>clearInterval(timer)
+return()=>clearInterval(timer)
 
 
-  },[])
+},[])
 
 
 
 
 
-  function repay(index:number){
+function repay(index:number){
 
 
-    const list=[...customers]
+const amount=Number(pay[index])
 
 
-    list[index].debt=0
 
+if(!amount){
 
-    saveCustomers(list)
+return
 
+}
 
-    setCustomers(list)
 
 
-  }
+const list=[...customers]
 
 
+list[index].debt-=amount
 
 
 
-  return(
+if(list[index].debt<0){
 
-    <div style={{padding:24}}>
+list[index].debt=0
 
+}
 
-      <h1>👤 客户管理</h1>
 
 
+saveCustomers(list)
 
 
-      {
-        customers.length===0 && (
+setCustomers(list)
 
-          <p>
-            暂无客户
-          </p>
 
-        )
-      }
 
+saveRecord({
 
+type:'sale',
 
+date:new Date().toLocaleString(),
 
+customer:list[index].name,
 
-      {
+weight:0,
 
-      customers.map((item,index)=>(
+amount:-amount
 
+})
 
-        <div
 
-        key={index}
 
-        style={{
+setPay({
 
-          border:'1px solid #555',
+...pay,
 
-          padding:15,
+[index]:''
 
-          marginBottom:10,
+})
 
-          borderRadius:8
 
-        }}
 
-        >
+}
 
 
-          <h3>
 
-            👤 {item.name}
 
-          </h3>
 
+return(
 
 
-          <p>
+<div style={{padding:24}}>
 
-            欠款：
 
-            {item.debt.toFixed(2)}
+<h1>👤 客户管理</h1>
 
-          </p>
 
 
+{
+customers.length===0 &&
 
-          <h4>
+<p>
+暂无客户
+</p>
 
-            购买记录
+}
 
-          </h4>
 
 
 
+{
 
-          {
+customers.map((item,index)=>(
 
-          records
 
-          .filter(r=>
+<div
 
-            r.type==='sale'
-            &&
-            r.customer===item.name
+key={index}
 
-          )
+style={{
 
-          .map((r,i)=>(
+border:'1px solid #555',
 
+padding:15,
 
-            <p key={i}>
+marginBottom:10,
 
-              {r.weight.toFixed(2)}g
+borderRadius:8
 
-              -
+}}
 
-              {r.amount.toFixed(2)}
+>
 
-            </p>
 
+<h3>
 
-          ))
+👤 {item.name}
 
-          }
+</h3>
 
 
 
+<p>
 
+欠款：
 
-          {
+{item.debt.toFixed(2)}
 
-          item.debt>0 && (
+</p>
 
-            <button
 
-            onClick={()=>repay(index)}
 
-            >
+<h4>
+购买记录
+</h4>
 
-              已还款
 
-            </button>
 
-          )
+{
 
-          }
+records
 
+.filter(r=>
 
+r.type==='sale'
+&&
+r.customer===item.name
 
-        </div>
+)
 
+.map((r,i)=>(
 
-      ))
 
-      }
+<p key={i}>
 
+{r.weight.toFixed(2)}g
 
+-
 
-    </div>
+{r.amount.toFixed(2)}
 
-  )
+</p>
+
+
+))
+
+}
+
+
+
+
+{
+
+item.debt>0 &&
+
+
+<>
+
+
+<input
+
+value={pay[index]||''}
+
+onChange={(e)=>
+
+setPay({
+
+...pay,
+
+[index]:e.target.value
+
+})
+
+}
+
+placeholder="输入还款金额"
+
+type="number"
+
+/>
+
+
+
+<button
+
+onClick={()=>repay(index)}
+
+>
+
+确认还款
+
+</button>
+
+
+</>
+
+
+}
+
+
+
+</div>
+
+
+))
+
+
+}
+
+
+
+</div>
+
+
+)
+
 
 }
