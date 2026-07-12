@@ -15,6 +15,9 @@ export default function InventoryApp(){
 
 const [page,setPage]=useState('home')
 
+  {page==='records' && (
+  <RecordsPage />
+)}
 
 const data=loadInventory()
 
@@ -185,7 +188,9 @@ padding:10
 
 </button>
 
-
+<button onClick={()=>setPage('records')}>
+  记录
+</button>
 
 </div>
 
