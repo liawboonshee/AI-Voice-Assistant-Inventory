@@ -3,156 +3,205 @@ import { saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
 
-export default function Sale(){
+export default function Sale() {
 
 
-const [weight,setWeight]=useState('')
-const [price,setPrice]=useState('')
-const [customer,setCustomer]=useState('')
-const [message,setMessage]=useState('')
+  const [weight, setWeight] = useState('')
+  const [price, setPrice] = useState('')
+  const [customer, setCustomer] = useState('')
+  const [message, setMessage] = useState('')
 
 
+  const addSale = () => {
 
-const addSale=()=>{
 
+    const w = Number(weight)
+    const total = Number(price)
 
-const w=Number(weight)
-const p=Number(price)
 
+    if (!w || !total) {
 
-if(!w || !p){
+      setMessage('请输入重量和总售价')
+      return
 
-setMessage('请输入重量和售价')
-return
+    }
 
-}
 
+    const data = loadInventory()
 
 
-const data=loadInventory()
+    if (data.stock < w) {
 
+      setMessage('库存不足')
+      return
 
+    }
 
-if(data.stock<w){
 
-setMessage('库存不足')
-return
 
-}
+    // 扣库存
 
+    data.stock -= w
 
 
-const total=w*p
 
+    // 增加收入
 
+    data.income += total
 
-data.stock-=w
 
-data.income+=total
 
+    // 暂时利润=收入
+    // 后面加入成本后修改
 
-// 暂时先计算收入
-data.profit+=total
+    data.profit += total
 
 
 
-saveInventory(data)
+    saveInventory(data)
 
 
 
-saveRecord({
+    // 保存销售记录
 
-type:'sale',
+    saveRecord({
 
-date:new Date().toLocaleString(),
+      type:'sale',
 
-customer:customer || '未填写',
+      date:new Date().toLocaleString(),
 
-weight:w,
+      customer:customer || '未填写',
 
-amount:total
+      weight:w,
 
-})
+      amount:total
 
+    })
 
 
-setWeight('')
-setPrice('')
-setCustomer('')
 
-setMessage('✅ 出货成功')
+    setWeight('')
 
+    setPrice('')
 
-}
+    setCustomer('')
 
 
+    setMessage('✅ 出货成功')
 
-return(
 
-<div style={{padding:24}}>
+  }
 
 
-<h1>📤 出货</h1>
 
+  return (
 
-<p>客户</p>
+    <div style={{padding:24}}>
 
-<input
 
-value={customer}
+      <h1>📤 出货</h1>
 
-onChange={(e)=>setCustomer(e.target.value)}
 
-placeholder="客户名字"
 
-/>
+      <p>客户</p>
 
 
+      <input
 
-<p>重量(g)</p>
+        value={customer}
 
-<input
+        onChange={(e)=>setCustomer(e.target.value)}
 
-value={weight}
+        placeholder="客户名字"
 
-onChange={(e)=>setWeight(e.target.value)}
+        style={{
+          width:'100%',
+          fontSize:18
+        }}
 
-type="number"
+      />
 
-step="0.01"
 
-/>
 
+      <p>重量(g)</p>
 
 
-<p>售价/克</p>
+      <input
 
-<input
+        value={weight}
 
-value={price}
+        onChange={(e)=>setWeight(e.target.value)}
 
-onChange={(e)=>setPrice(e.target.value)}
+        placeholder="例如 6.25"
 
-type="number"
+        type="number"
 
-step="0.01"
+        step="0.01"
 
-/>
+        style={{
+          width:'100%',
+          fontSize:18
+        }}
 
+      />
 
-<br/><br/>
 
 
-<button onClick={addSale}>
-保存出货
-</button>
+      <p>总售价</p>
 
 
-<p>{message}</p>
+      <input
 
+        value={price}
 
-</div>
+        onChange={(e)=>setPrice(e.target.value)}
 
-)
+        placeholder="例如 600"
+
+        type="number"
+
+        step="0.01"
+
+        style={{
+          width:'100%',
+          fontSize:18
+        }}
+
+      />
+
+
+
+      <br/>
+
+      <br/>
+
+
+
+      <button
+
+        onClick={addSale}
+
+        style={{
+
+          fontSize:20,
+
+          padding:'10px 30px'
+
+        }}
+
+      >
+
+        保存出货
+
+      </button>
+
+
+
+      <p>{message}</p>
+
+
+    </div>
+
+  )
 
 }
