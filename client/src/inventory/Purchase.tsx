@@ -3,161 +3,139 @@ import { saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
 
-export default function Purchase(){
+export default function Purchase() {
 
 
-const [weight,setWeight]=useState('')
-const [cost,setCost]=useState('')
-const [message,setMessage]=useState('')
+  const [weight, setWeight] = useState('')
+  const [cost, setCost] = useState('')
+  const [message, setMessage] = useState('')
 
 
+  const addPurchase = () => {
 
-const addPurchase=()=>{
 
+    const w = Number(weight)
+    const c = Number(cost)
 
-const w=Number(weight)
 
-const c=Number(cost)
+    if (!w || !c) {
 
+      setMessage('请输入重量和成本')
+      return
 
+    }
 
-if(!w || !c){
 
-setMessage('请输入重量和成本')
+    const data = loadInventory()
 
-return
 
-}
+    // 增加库存
 
+    data.stock += w
 
 
+    // 增加库存本金
 
-const data=loadInventory()
+    data.totalWeightCost += c
 
 
+    // 累计成本
 
-// 原来的库存成本
+    data.cost += c
 
-const oldCost=data.totalWeightCost
 
 
+    saveInventory(data)
 
-// 增加库存
 
-data.stock += w
 
+    // 保存进货记录
 
+    saveRecord({
 
-// 增加成本
+      type:'purchase',
 
-data.cost += c
+      date:new Date().toLocaleString(),
 
+      weight:w,
 
+      amount:c
 
-// 保存总重量成本
+    })
 
-data.totalWeightCost = oldCost + c
 
 
+    setWeight('')
+    setCost('')
 
-saveInventory(data)
 
+    setMessage('✅ 进货成功')
 
 
-saveRecord({
+  }
 
-type:'purchase',
 
-date:new Date().toLocaleString(),
 
-weight:w,
+  return (
 
-amount:c
+    <div style={{padding:24}}>
 
-})
 
+      <h1>📥 进货</h1>
 
 
-setWeight('')
+      <p>重量(g)</p>
 
-setCost('')
 
+      <input
 
-setMessage('✅ 进货成功')
+        value={weight}
 
+        onChange={(e)=>setWeight(e.target.value)}
 
-}
+        placeholder="例如 100"
 
+        type="number"
 
+        step="0.01"
 
+      />
 
-return(
 
-<div style={{padding:24}}>
+      <p>总成本</p>
 
 
-<h1>📥 进货</h1>
+      <input
 
+        value={cost}
 
+        onChange={(e)=>setCost(e.target.value)}
 
-<p>重量(g)</p>
+        placeholder="例如 5000"
 
+        type="number"
 
-<input
+        step="0.01"
 
-value={weight}
+      />
 
-onChange={(e)=>setWeight(e.target.value)}
 
-placeholder="例如 10.00"
+      <br/>
+      <br/>
 
-type="number"
 
-step="0.01"
+      <button onClick={addPurchase}>
 
-/>
+        保存进货
 
+      </button>
 
 
+      <p>{message}</p>
 
-<p>成本</p>
 
+    </div>
 
-<input
-
-value={cost}
-
-onChange={(e)=>setCost(e.target.value)}
-
-placeholder="例如 500"
-
-type="number"
-
-step="0.01"
-
-/>
-
-
-
-<br/><br/>
-
-
-
-<button onClick={addPurchase}>
-
-保存进货
-
-</button>
-
-
-
-<p>{message}</p>
-
-
-
-</div>
-
-)
-
+  )
 
 }
