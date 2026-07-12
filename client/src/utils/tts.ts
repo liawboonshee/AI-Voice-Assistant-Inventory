@@ -89,7 +89,7 @@ if (chineseVoice) {
       setTimeout(() => {
   window.speechSynthesis.speak(utterance)
 }, 100)
-
+})
     const watchdog = delay(estimateSpeakMs(clean)).then(() => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel()
