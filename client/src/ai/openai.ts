@@ -1,5 +1,4 @@
-import { askInventory } from '../inventory/InventoryAI'
-import { executeVoiceCommand } from '../inventory/VoiceAction'
+import { runInventoryTool } from '../inventory/AITools'
 
 import { getApiBase } from '../config/apiBase'
 import { getProxyAuthHeaders } from '../config/proxyAuth'
@@ -7,208 +6,250 @@ import { getProxyErrorMessage, type ProxyErrorBody } from '../config/proxyErrors
 import { isTimeoutAbort } from '../utils/withTimeout'
 
 
-export type ChatRole = 'user' | 'assistant' | 'system'
+
+export type ChatRole =
+'user' | 'assistant' | 'system'
+
 
 
 export interface ChatMessage {
 
-  role: ChatRole
+role:ChatRole
 
-  content: string
+content:string
+
+}
+
+
+
+
+interface ChatResponse extends ProxyErrorBody{
+
+content?:string
 
 }
 
 
-
-interface ChatResponse extends ProxyErrorBody {
-
-  content?: string
-
-}
 
 
 
 function getErrorMessage(
-  status:number,
-  body:ChatResponse
-):string {
+status:number,
+body:ChatResponse
+){
 
-  return getProxyErrorMessage(
-    status,
-    body
-  )
+return getProxyErrorMessage(
+status,
+body
+)
 
 }
+
+
+
 
 
 
 
 
 export async function askAI(
-  messages:ChatMessage[],
-  signal?:AbortSignal
+
+messages:ChatMessage[],
+
+signal?:AbortSignal
+
 ):Promise<string>{
 
 
 
-  const text =
-    messages[messages.length - 1]?.content || ''
 
 
+const text =
+messages[messages.length-1]?.content || ''
 
 
 
-  // 库存宝查询
 
-  const localAnswer = askInventory(text)
 
 
+// 库存宝工具
 
-  if(localAnswer){
+const toolAnswer =
+runInventoryTool(text)
 
-    return localAnswer
 
-  }
 
+if(toolAnswer){
 
+return toolAnswer
 
+}
 
 
-  // 库存宝自动操作
 
-  const actionAnswer =
-    executeVoiceCommand(text)
 
 
 
-  if(actionAnswer){
 
-    return actionAnswer
 
-  }
+// 普通GPT聊天
 
 
+const base =
+await getApiBase()
 
 
 
-  const base = await getApiBase()
+let response:Response
 
 
-  let response:Response
 
 
 
 
+try{
 
-  try {
 
+response = await fetch(
 
-    response = await fetch(
+`${base}/api/chat`,
 
-      `${base}/api/chat`,
+{
 
-      {
 
-        method:'POST',
+method:'POST',
 
 
-        headers:{
+headers:{
 
-          'Content-Type':'application/json',
 
-          ...getProxyAuthHeaders()
+'Content-Type':'application/json',
 
-        },
 
+...getProxyAuthHeaders()
 
-        body:JSON.stringify({
 
-          messages
+},
 
-        }),
 
 
-        signal,
+body:JSON.stringify({
 
-      }
+messages
 
-    )
+}),
 
 
 
-  }catch(err){
+signal
 
 
+}
 
-    if(isTimeoutAbort(signal)){
 
-      throw new Error(
-        '请求超时，请重试'
-      )
+)
 
-    }
 
 
 
 
-    if(
-      signal?.aborted ||
-      (
-        err instanceof DOMException &&
-        err.name==='AbortError'
-      )
-    ){
+}catch(err){
 
-      throw new Error(
-        '请求已取消'
-      )
 
-    }
 
+if(isTimeoutAbort(signal)){
 
 
-    throw new Error(
-      '无法连接云端 Proxy，请检查网络或在设置中修改地址'
-    )
+throw new Error(
+'请求超时，请重试'
+)
 
 
-  }
+}
 
 
 
 
+if(
 
-  const body =
-    (
-      await response.json()
-      .catch(()=>({}))
-    ) as ChatResponse
+signal?.aborted ||
 
+(
 
+err instanceof DOMException &&
 
+err.name==='AbortError'
 
+)
 
-  if(!response.ok){
+){
 
-    throw new Error(
 
-      getErrorMessage(
+throw new Error(
+'请求已取消'
+)
 
-        response.status,
 
-        body
+}
 
-      )
 
-    )
 
-  }
 
 
+throw new Error(
+'无法连接云端 Proxy，请检查网络或在设置中修改地址'
+)
 
 
+}
 
-  return body.content ?? '无回复'
+
+
+
+
+
+
+
+const body =
+
+(
+
+await response.json()
+
+.catch(()=>({}))
+
+) as ChatResponse
+
+
+
+
+
+
+if(!response.ok){
+
+
+throw new Error(
+
+getErrorMessage(
+
+response.status,
+
+body
+
+)
+
+)
+
+
+}
+
+
+
+
+
+
+return body.content ?? '无回复'
+
 
 
 }
