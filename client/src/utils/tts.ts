@@ -63,8 +63,21 @@ export function speak(text: string): Promise<void> {
 
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(clean)
-      utterance.lang = 'zh-CN'
-      utterance.rate = 1
+
+utterance.lang = 'zh-CN'
+utterance.rate = 0.9
+utterance.pitch = 1
+utterance.volume = 1
+
+const voices = window.speechSynthesis.getVoices()
+
+const chineseVoice = voices.find(
+  v => v.lang.includes('zh')
+)
+
+if (chineseVoice) {
+  utterance.voice = chineseVoice
+}
       utterance.onend = () => {
         finish()
         resolve()
