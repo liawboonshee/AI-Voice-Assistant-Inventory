@@ -1,35 +1,32 @@
 export type RecordItem = {
 
-  type: 'purchase' | 'sale'
+  type:'purchase' | 'sale'
 
-  date: string
+  date:string
 
-  customer?: string
+  customer?:string
 
-  weight: number
+  weight:number
 
-  amount: number
+  amount:number
 
 }
 
 
 
-const KEY = 'inventory_records'
+const KEY='inventory_records'
 
 
 
-export function loadRecords(): RecordItem[] {
+export function loadRecords():RecordItem[]{
 
+  const data=localStorage.getItem(KEY)
 
-  const data = localStorage.getItem(KEY)
-
-
-  if (!data) {
+  if(!data){
 
     return []
 
   }
-
 
   return JSON.parse(data)
 
@@ -37,15 +34,11 @@ export function loadRecords(): RecordItem[] {
 
 
 
+export function saveRecord(item:RecordItem){
 
-export function saveRecord(item: RecordItem) {
-
-
-  const records = loadRecords()
-
+  const records=loadRecords()
 
   records.push(item)
-
 
   localStorage.setItem(
 
@@ -55,5 +48,23 @@ export function saveRecord(item: RecordItem) {
 
   )
 
+}
+
+
+
+export function deleteRecord(index:number){
+
+  const records=loadRecords()
+
+  records.splice(index,1)
+
+
+  localStorage.setItem(
+
+    KEY,
+
+    JSON.stringify(records)
+
+  )
 
 }
