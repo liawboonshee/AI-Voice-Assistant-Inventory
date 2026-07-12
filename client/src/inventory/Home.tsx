@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { loadInventory } from './Storage'
 import { loadRecords } from './Records'
 import { executeVoiceCommand } from './VoiceAction'
+import { createWebSpeechAdapter } from '../voice/webSpeechAdapter'
 
 
 const CUSTOMER_KEY = 'customers'
@@ -60,6 +61,16 @@ export default function Home(){
     useState('')
 
 
+  const [listening,setListening] =
+    useState(false)
+
+
+
+  const voice =
+    createWebSpeechAdapter()
+
+
+
 
 
 
@@ -86,6 +97,7 @@ export default function Home(){
 
 
   },[])
+
 
 
 
@@ -127,8 +139,35 @@ export default function Home(){
 
 
 
-  const totalSaleWeight =
-    records
 
-      .filter(
-        item=>item.type==='
+
+  async function startVoice(){
+
+
+
+    if(listening){
+
+
+      await voice.stop()
+
+
+      setListening(false)
+
+
+      return
+
+    }
+
+
+
+
+
+
+    setListening(true)
+
+
+
+
+
+
+    await voice.start({
