@@ -89,14 +89,13 @@ function getSpeechRecognitionCtor(){
 
 
 
+
 export function createWebSpeechAdapter():VoiceAdapter{
 
 
 let recognition:SpeechRecognitionLike|null=null
 
 let handlers:VoiceListenHandlers|null=null
-
-let manualStop=false
 
 
 let finalText=''
@@ -199,8 +198,6 @@ return
 
 handlers=nextHandlers
 
-manualStop=false
-
 finalText=''
 
 
@@ -225,19 +222,19 @@ const instance=new Ctor()
 
 
 
-// 中文识别
+// 中文
 
 instance.lang='zh-CN'
 
 
 
-// 单次讲话模式
+// 单次监听
 
 instance.continuous=false
 
 
 
-// 不显示太多临时结果
+// 临时结果关闭
 
 instance.interimResults=false
 
@@ -303,7 +300,7 @@ clearTimeout(sendTimer)
 
 
 
-// 等待讲话结束
+// 停顿2.5秒后发送
 
 sendTimer=setTimeout(()=>{
 
@@ -330,10 +327,7 @@ finalText=''
 
 
 
-
-
 }
-
 
 
 
@@ -391,8 +385,6 @@ handlers?.onError(message)
 
 
 
-// 不自动重新开启
-
 instance.onend=()=>{
 
 
@@ -443,10 +435,6 @@ handlers?.onError(
 
 
 async stop(){
-
-
-
-manualStop=true
 
 
 
