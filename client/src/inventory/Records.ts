@@ -1,44 +1,102 @@
-export type RecordItem = {
-
-  type:'purchase' | 'sale'
-
-  date:string
-
-  customer?:string
-
-  weight:number
-
-  amount:number
-
-}
+import { useState } from 'react'
+import { loadRecords } from './Records'
 
 
-const KEY='inventory_records'
+export default function RecordsPage(){
+
+  const [list,setList] = useState(loadRecords())
 
 
-export function loadRecords():RecordItem[]{
+  const refresh = ()=>{
 
-  const data=localStorage.getItem(KEY)
+    setList(loadRecords())
 
-  if(!data){
-    return []
   }
 
-  return JSON.parse(data)
 
-}
+  return (
+
+    <div style={{padding:24}}>
+
+
+      <h1>📋 交易记录</h1>
+
+
+      <button onClick={refresh}>
+        刷新
+      </button>
+
+
+      <br/>
+      <br/>
+
+
+      {
+        list.length===0 && (
+          <p>暂无记录</p>
+        )
+      }
 
 
 
-export function saveRecord(item:RecordItem){
+      {
+        list.map((item,index)=>(
 
-  const records=loadRecords()
+          <div
+            key={index}
+            style={{
+              border:'1px solid #555',
+              padding:12,
+              marginBottom:10,
+              borderRadius:8
+            }}
+          >
 
-  records.push(item)
 
-  localStorage.setItem(
-    KEY,
-    JSON.stringify(records)
+            <p>
+              类型：
+              {item.type==='sale'
+              ? '📤 出货'
+              : '📥 进货'}
+            </p>
+
+
+            <p>
+              日期：
+              {item.date}
+            </p>
+
+
+            {
+              item.customer && (
+                <p>
+                  客户：
+                  {item.customer}
+                </p>
+              )
+            }
+
+
+            <p>
+              重量：
+              {item.weight.toFixed(2)} g
+            </p>
+
+
+            <p>
+              金额：
+              {item.amount.toFixed(2)}
+            </p>
+
+
+          </div>
+
+        ))
+      }
+
+
+    </div>
+
   )
 
 }
