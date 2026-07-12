@@ -1,18 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { loadRecords } from './Records'
 
 
 type CustomerData = {
+
   name:string
+
   debt:number
+
 }
+
 
 
 const KEY='customers'
 
 
+
 function loadCustomers():CustomerData[]{
 
+
   const data=localStorage.getItem(KEY)
+
 
   if(!data){
 
@@ -20,7 +28,9 @@ function loadCustomers():CustomerData[]{
 
   }
 
+
   return JSON.parse(data)
+
 
 }
 
@@ -29,58 +39,70 @@ function loadCustomers():CustomerData[]{
 function saveCustomers(data:CustomerData[]){
 
   localStorage.setItem(
+
     KEY,
+
     JSON.stringify(data)
+
   )
 
 }
 
 
 
+
+
 export default function Customers(){
 
 
-  const [name,setName]=useState('')
-  const [debt,setDebt]=useState('')
-  const [list,setList]=useState<CustomerData[]>(loadCustomers())
+  const [customers,setCustomers]=useState(loadCustomers())
+
+  const [records,setRecords]=useState(loadRecords())
 
 
 
-  function addCustomer(){
+  useEffect(()=>{
 
 
-    if(!name){
-
-      return
-
-    }
+    const timer=setInterval(()=>{
 
 
-    const newList=[
+      setCustomers(loadCustomers())
 
-      ...list,
-
-      {
-
-        name:name,
-
-        debt:Number(debt)||0
-
-      }
-
-    ]
+      setRecords(loadRecords())
 
 
-    saveCustomers(newList)
+    },500)
 
-    setList(newList)
 
-    setName('')
 
-    setDebt('')
+    return()=>clearInterval(timer)
+
+
+  },[])
+
+
+
+
+
+  function repay(index:number){
+
+
+    const list=[...customers]
+
+
+    list[index].debt=0
+
+
+    saveCustomers(list)
+
+
+    setCustomers(list)
 
 
   }
+
+
 
 
 
@@ -89,72 +111,134 @@ export default function Customers(){
     <div style={{padding:24}}>
 
 
-      <h1>👤 客户</h1>
-
-
-      <p>客户名字</p>
-
-      <input
-
-        value={name}
-
-        onChange={(e)=>setName(e.target.value)}
-
-        placeholder="客户名字"
-
-      />
-
-
-      <p>欠款</p>
-
-      <input
-
-        value={debt}
-
-        onChange={(e)=>setDebt(e.target.value)}
-
-        placeholder="金额"
-
-        type="number"
-
-      />
-
-
-      <br/>
-      <br/>
-
-
-      <button onClick={addCustomer}>
-
-        保存客户
-
-      </button>
+      <h1>👤 客户管理</h1>
 
 
 
-      <h2>客户列表</h2>
+
+      {
+        customers.length===0 && (
+
+          <p>
+            暂无客户
+          </p>
+
+        )
+      }
+
+
 
 
 
       {
 
-        list.map((item,index)=>(
+      customers.map((item,index)=>(
 
 
-          <div key={index}>
+        <div
+
+        key={index}
+
+        style={{
+
+          border:'1px solid #555',
+
+          padding:15,
+
+          marginBottom:10,
+
+          borderRadius:8
+
+        }}
+
+        >
 
 
-            {item.name}
+          <h3>
 
-            ：欠款
+            👤 {item.name}
 
-            {(item.debt||0).toFixed(2)}
-
-
-          </div>
+          </h3>
 
 
-        ))
+
+          <p>
+
+            欠款：
+
+            {item.debt.toFixed(2)}
+
+          </p>
+
+
+
+          <h4>
+
+            购买记录
+
+          </h4>
+
+
+
+
+          {
+
+          records
+
+          .filter(r=>
+
+            r.type==='sale'
+            &&
+            r.customer===item.name
+
+          )
+
+          .map((r,i)=>(
+
+
+            <p key={i}>
+
+              {r.weight.toFixed(2)}g
+
+              -
+
+              {r.amount.toFixed(2)}
+
+            </p>
+
+
+          ))
+
+          }
+
+
+
+
+
+          {
+
+          item.debt>0 && (
+
+            <button
+
+            onClick={()=>repay(index)}
+
+            >
+
+              已还款
+
+            </button>
+
+          )
+
+          }
+
+
+
+        </div>
+
+
+      ))
 
       }
 
@@ -163,6 +247,5 @@ export default function Customers(){
     </div>
 
   )
-
 
 }
