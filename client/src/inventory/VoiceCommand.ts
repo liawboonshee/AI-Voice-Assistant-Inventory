@@ -12,10 +12,39 @@ export type VoiceCommand = {
 
 
 
+
+
+function normalize(text:string){
+
+return text
+
+.replace(/\s+/g,'')
+
+.replace(/点/g,'.')
+
+.replace(/克/g+'','')
+
+.replace(/公斤/g,'kg')
+
+.replace(/块/g,'')
+
+.replace(/元/g,'')
+
+.replace(/两/g,'2')
+
+
+
+}
+
+
+
+
+
 export function parseVoiceCommand(text:string):VoiceCommand{
 
 
-const t=text.replace(/\s+/g,'')
+
+const t=normalize(text)
 
 
 
@@ -27,11 +56,23 @@ type:null
 
 
 
+
+
+
 // 查询
 
 if(
-t.includes('库存') ||
+
+t.includes('库存')
+
+||
+
 t.includes('多少')
+
+||
+
+t.includes('还有')
+
 ){
 
 result.type='query'
@@ -42,12 +83,24 @@ return result
 
 
 
+
+
+
+
 // 出货
 
 if(
-t.includes('卖') ||
-t.includes('出货') ||
+
+t.includes('卖')
+
+||
+
+t.includes('出货')
+
+||
+
 t.includes('出售')
+
 ){
 
 result.type='sale'
@@ -56,11 +109,20 @@ result.type='sale'
 
 
 
+
+
+
+
 // 进货
 
 if(
-t.includes('进货') ||
+
+t.includes('进货')
+
+||
+
 t.includes('买入')
+
 ){
 
 result.type='purchase'
@@ -70,53 +132,98 @@ result.type='purchase'
 
 
 
-// 重量
 
-const weight=t.match(
+
+
+// 找全部数字
+
+
+const nums =
+t.match(/\d+(\.\d+)?/g)
+
+
+
+
+
+
+if(nums){
+
+
+
+// 第一个数字默认重量
+
+if(nums.length>=1){
+
+result.weight=
+Number(nums[0])
+
+}
+
+
+
+// 第二个数字默认金额
+
+if(nums.length>=2){
+
+result.amount=
+Number(nums[1])
+
+}
+
+
+
+}
+
+
+
+
+
+
+
+// 如果有g，优先识别g前面的重量
+
+
+const weightMatch =
+t.match(
 /(\d+(\.\d+)?)g/
 )
 
 
-if(weight){
 
-result.weight=Number(weight[1])
+if(weightMatch){
 
-}
-
-
-
-
-// 金额
-
-const money=t.match(
-/(\d+(\.\d+)?)/
-)
-
-
-if(money){
-
-result.amount=Number(money[1])
+result.weight=
+Number(weightMatch[1])
 
 }
+
+
+
 
 
 
 // 客户
 
-const customer=t.match(
-/给(.+?)(\d|g|元|块)/
+const customerMatch =
+t.match(
+/给(.+?)(\d+|g|$)/
 )
 
 
-if(customer){
 
-result.customer=customer[1]
+if(customerMatch){
+
+result.customer=
+customerMatch[1]
 
 }
 
 
 
+
+
 return result
+
 
 
 }
