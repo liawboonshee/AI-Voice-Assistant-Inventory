@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { loadInventory } from './Storage'
 import { loadRecords } from './Records'
 
 import { createWebSpeechAdapter } from '../voice/webSpeechAdapter'
-
 import { executeVoiceCommand } from './VoiceAction'
 
 
@@ -16,9 +16,8 @@ const CUSTOMER_KEY='customers'
 function loadDebt(){
 
 
-const data=
+const data =
 localStorage.getItem(CUSTOMER_KEY)
-
 
 
 if(!data){
@@ -28,9 +27,7 @@ return 0
 }
 
 
-
-const list=JSON.parse(data)
-
+const list = JSON.parse(data)
 
 
 return list.reduce(
@@ -43,7 +40,6 @@ sum+(item.debt||0),
 
 )
 
-
 }
 
 
@@ -55,25 +51,24 @@ sum+(item.debt||0),
 export default function Home(){
 
 
+const navigate = useNavigate()
+
+
 
 const [data,setData]=
 useState(loadInventory())
-
 
 
 const [records,setRecords]=
 useState(loadRecords())
 
 
-
 const [debt,setDebt]=
 useState(loadDebt())
 
 
-
 const [text,setText]=
 useState('')
-
 
 
 const [message,setMessage]=
@@ -100,13 +95,11 @@ setRecords(loadRecords())
 setDebt(loadDebt())
 
 
-
 },500)
 
 
 
 return()=>clearInterval(timer)
-
 
 
 },[])
@@ -118,14 +111,14 @@ return()=>clearInterval(timer)
 
 
 
-// 开启麦克风
+
+// 麦克风
 
 
 const startVoice=async()=>{
 
 
-
-const voice=
+const voice =
 createWebSpeechAdapter()
 
 
@@ -141,7 +134,7 @@ setText(result)
 
 
 
-const answer=
+const answer =
 executeVoiceCommand(result)
 
 
@@ -192,13 +185,14 @@ setMessage(e)
 
 
 
-// 输入文字处理
+
+// 文字输入
 
 
 const sendText=()=>{
 
 
-const answer=
+const answer =
 executeVoiceCommand(text)
 
 
@@ -210,7 +204,6 @@ answer || '无法识别'
 )
 
 
-
 }
 
 
@@ -220,11 +213,14 @@ answer || '无法识别'
 
 
 
-const totalSaleWeight=records
+
+const totalSaleWeight = records
 
 
 .filter(
+
 item=>item.type==='sale'
+
 )
 
 
@@ -244,8 +240,9 @@ sum+item.weight,
 
 
 
-return(
 
+
+return(
 
 
 <div style={{padding:24}}>
@@ -271,7 +268,6 @@ return(
 
 
 
-
 <p>
 
 📤 总出货：
@@ -279,7 +275,6 @@ return(
 {totalSaleWeight.toFixed(2)} g
 
 </p>
-
 
 
 
@@ -295,10 +290,9 @@ return(
 
 
 
-
 <p>
 
-📒 欠款：
+📒 客户欠款：
 
 {debt.toFixed(2)}
 
@@ -307,10 +301,9 @@ return(
 
 
 
-
 <p>
 
-💵 利润：
+💵 实际利润：
 
 {data.profit.toFixed(2)}
 
@@ -329,9 +322,7 @@ return(
 
 
 <h2>
-
-AI助手
-
+AI语音助手
 </h2>
 
 
@@ -341,9 +332,7 @@ AI助手
 
 <button
 
-
 onClick={startVoice}
-
 
 style={{
 
@@ -353,12 +342,9 @@ padding:'15px 30px'
 
 }}
 
-
 >
 
-
 🎤
-
 
 </button>
 
@@ -368,7 +354,8 @@ padding:'15px 30px'
 
 
 
-<br/><br/>
+<br/>
+<br/>
 
 
 
@@ -411,7 +398,9 @@ padding:10
 
 
 
-<br/><br/>
+
+<br/>
+<br/>
 
 
 
@@ -420,9 +409,7 @@ padding:10
 
 <button
 
-
 onClick={sendText}
-
 
 style={{
 
@@ -432,15 +419,11 @@ padding:'10px 30px'
 
 }}
 
-
 >
-
 
 确认处理
 
-
 </button>
-
 
 
 
@@ -466,6 +449,7 @@ padding:'10px 30px'
 
 
 
+
 <h2>
 
 快捷功能
@@ -477,7 +461,69 @@ padding:'10px 30px'
 
 
 
+
 <button
 
 
-style={
+onClick={()=>navigate('/sale')}
+
+
+style={{
+
+fontSize:18,
+
+padding:15,
+
+margin:5
+
+}}
+
+
+>
+
+📤 出货
+
+</button>
+
+
+
+
+
+
+
+<button
+
+
+onClick={()=>navigate('/purchase')}
+
+
+style={{
+
+fontSize:18,
+
+padding:15,
+
+margin:5
+
+}}
+
+
+>
+
+📥 进货
+
+</button>
+
+
+
+
+
+
+
+</div>
+
+
+)
+
+
+}
