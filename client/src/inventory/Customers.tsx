@@ -10,25 +10,22 @@ type CustomerData = {
 }
 
 
+
 const KEY='customers'
 
 
 
 function loadCustomers():CustomerData[]{
 
+  const data=localStorage.getItem(KEY)
 
-const data=localStorage.getItem(KEY)
+  if(!data){
 
+    return []
 
-if(!data){
+  }
 
-return []
-
-}
-
-
-return JSON.parse(data)
-
+  return JSON.parse(data)
 
 }
 
@@ -36,13 +33,13 @@ return JSON.parse(data)
 
 function saveCustomers(data:CustomerData[]){
 
-localStorage.setItem(
+  localStorage.setItem(
 
-KEY,
+    KEY,
 
-JSON.stringify(data)
+    JSON.stringify(data)
 
-)
+  )
 
 }
 
@@ -51,106 +48,76 @@ JSON.stringify(data)
 export default function Customers(){
 
 
-const [name,setName]=useState('')
-
-const [debt,setDebt]=useState('')
-
 const [list,setList]=useState(loadCustomers())
 
 
 
-
-const addCustomer=()=>{
-
-
-if(!name){
-
-return
-
-}
+const addDebt=(name:string,amount:number)=>{
 
 
+const old=[...list]
 
-const newList=[
 
-...list,
+const index=old.findIndex(
 
-{
+(item)=>item.name===name
 
-name:name,
-
-debt:Number(debt)||0
-
-}
-
-]
+)
 
 
 
-saveCustomers(newList)
+if(index>=0){
 
+old[index].debt+=amount
 
-setList(newList)
+}else{
 
+old.push({
 
-setName('')
+name,
 
-setDebt('')
+debt:amount
 
+})
 
 }
 
 
 
+saveCustomers(old)
 
-return(
+setList(old)
+
+
+
+}
+
+
+
+return (
 
 <div style={{padding:24}}>
 
 
-<h1>👤 客户</h1>
+<h1>👤 客户欠款</h1>
 
 
-<p>客户名字</p>
+<p>
+
+客户资料管理
+
+</p>
 
 
-<input
+{
 
-value={name}
+list.length===0 && (
 
-onChange={(e)=>setName(e.target.value)}
+<p>暂无客户</p>
 
-placeholder="输入客户"
+)
 
-/>
-
-
-<p>欠款</p>
-
-
-<input
-
-value={debt}
-
-onChange={(e)=>setDebt(e.target.value)}
-
-placeholder="金额"
-
-/>
-
-
-<br/><br/>
-
-
-<button onClick={addCustomer}>
-
-保存客户
-
-</button>
-
-
-
-<h3>客户列表</h3>
+}
 
 
 
@@ -159,15 +126,39 @@ placeholder="金额"
 list.map((item,index)=>(
 
 
-<div key={index}>
+<div
+
+key={index}
+
+style={{
+
+border:'1px solid #555',
+
+padding:12,
+
+margin:10
+
+}}
+
+>
+
+
+<p>
+
+姓名：
 
 {item.name}
 
-&nbsp;
+</p>
 
-欠款:
 
-{item.debt}
+<p>
+
+欠款：
+
+{item.debt.toFixed(2)}
+
+</p>
 
 
 </div>
