@@ -27,6 +27,8 @@ interface SpeechRecognitionLike {
 
   interimResults:boolean
 
+  maxAlternatives:number
+
 
   onresult:
     ((event:SpeechRecognitionEventLike)=>void)|null
@@ -50,6 +52,7 @@ interface SpeechRecognitionLike {
 
 type SpeechRecognitionConstructor =
   new()=>SpeechRecognitionLike
+
 
 
 
@@ -87,6 +90,29 @@ function getSpeechRecognitionCtor(){
 
 
 
+// 数字修正
+
+function fixVoiceText(text:string){
+
+  return text
+
+    .replace(/点/g,'.')
+
+    .replace(/。/g,'.')
+
+    .replace(/克/g,'g')
+
+    .replace(/块/g,'')
+
+    .replace(/元/g,'')
+
+    .replace(/两/g,'2')
+
+}
+
+
+
+
 
 
 
@@ -107,15 +133,14 @@ let sendTimer:any=null
 
 
 
+
 return {
-
-
 
 
 
 async isSupported(){
 
-  return !!getSpeechRecognitionCtor()
+return !!getSpeechRecognitionCtor()
 
 },
 
@@ -128,7 +153,7 @@ async requestPermission(){
 
 if(!getSpeechRecognitionCtor()){
 
-  return false
+return false
 
 }
 
@@ -140,7 +165,7 @@ try{
 const stream =
 await navigator.mediaDevices.getUserMedia({
 
-  audio:true
+audio:true
 
 })
 
@@ -159,9 +184,7 @@ return true
 
 return false
 
-
 }
-
 
 
 },
@@ -181,35 +204,21 @@ const Ctor=getSpeechRecognitionCtor()
 
 if(!Ctor){
 
-
 nextHandlers.onError(
 '当前设备不支持语音识别'
 )
 
-
 return
 
-
 }
-
 
 
 
 
 handlers=nextHandlers
 
+
 finalText=''
-
-
-
-if(sendTimer){
-
-clearTimeout(sendTimer)
-
-}
-
-
-
 
 
 recognition?.stop()
@@ -220,23 +229,26 @@ const instance=new Ctor()
 
 
 
-
-
 // 中文
 
 instance.lang='zh-CN'
 
 
-
-// 单次监听
+// 单句识别
 
 instance.continuous=false
 
 
 
-// 临时结果关闭
+// 开启临时结果
 
-instance.interimResults=false
+instance.interimResults=true
+
+
+
+// 多候选，提高数字准确率
+
+instance.maxAlternatives=3
 
 
 
@@ -249,7 +261,6 @@ instance.onresult=(event)=>{
 let text=''
 
 
-
 for(
 
 let i=event.resultIndex;
@@ -260,15 +271,11 @@ i++
 
 ){
 
-
 text +=
 
 event.results[i]?.[0]?.transcript ?? ''
 
-
-
 }
-
 
 
 
@@ -279,13 +286,10 @@ event.results[event.results.length-1]
 
 
 
-
 if(last?.isFinal){
 
 
-
 finalText += text
-
 
 
 
@@ -298,26 +302,19 @@ clearTimeout(sendTimer)
 
 
 
-
-
-// 停顿2.5秒后发送
-
 sendTimer=setTimeout(()=>{
 
 
-
-const result=finalText.trim()
+const result=
+fixVoiceText(finalText.trim())
 
 
 
 if(result){
 
-
 handlers?.onFinal(result)
 
-
 finalText=''
-
 
 }
 
@@ -327,12 +324,16 @@ finalText=''
 
 
 
+}else{
+
+
+handlers?.onPartial?.(text)
+
 }
 
 
 
 }
-
 
 
 
@@ -343,7 +344,6 @@ finalText=''
 instance.onerror=(event)=>{
 
 
-
 if(event.error==='no-speech'){
 
 return
@@ -352,32 +352,14 @@ return
 
 
 
-
-const message =
-
-
-event.error==='not-allowed'
-
-
-?
-
-'麦克风权限被拒绝，请允许录音权限'
-
-
-:
+handlers?.onError(
 
 `语音错误：${event.error}`
 
-
-
-
-handlers?.onError(message)
-
+)
 
 
 }
-
-
 
 
 
@@ -387,9 +369,7 @@ handlers?.onError(message)
 
 instance.onend=()=>{
 
-
 recognition=null
-
 
 }
 
@@ -399,9 +379,7 @@ recognition=null
 
 
 
-
 recognition=instance
-
 
 
 
@@ -416,7 +394,9 @@ instance.start()
 
 
 handlers?.onError(
+
 '启动语音失败'
+
 )
 
 
@@ -424,10 +404,7 @@ handlers?.onError(
 
 
 
-
 },
-
-
 
 
 
@@ -453,13 +430,11 @@ recognition?.stop()
 recognition=null
 
 
-
 handlers=null
 
 
 
 }
-
 
 
 
