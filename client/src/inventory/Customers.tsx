@@ -52,8 +52,6 @@ const [list,setList]=useState(loadCustomers())
 
 
 
-const addDebt=(name:string,amount:number)=>{
-
 
 const old=[...list]
 
@@ -156,7 +154,7 @@ margin:10
 
 欠款：
 
-{item.debt.toFixed(2)}
+(item.debt || 0).toFixed(2)
 
 </p>
 
