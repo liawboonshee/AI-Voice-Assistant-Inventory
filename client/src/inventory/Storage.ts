@@ -8,9 +8,11 @@ export type InventoryData = {
 
   cost:number
 
+  // 当前库存总本金
   totalWeightCost:number
 
 }
+
 
 
 const KEY='inventory_data'
@@ -52,23 +54,21 @@ const result=JSON.parse(data)
 
 
 
-return {
+// 兼容旧数据
 
-stock:result.stock || 0,
+if(result.totalWeightCost===undefined){
 
-income:result.income || 0,
-
-profit:result.profit || 0,
-
-cost:result.cost || 0,
-
-totalWeightCost:result.totalWeightCost || 0
+result.totalWeightCost=0
 
 }
 
 
-}
 
+return result
+
+
+
+}
 
 
 
