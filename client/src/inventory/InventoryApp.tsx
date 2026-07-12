@@ -1,13 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Purchase from './Purchase'
 import Sale from './Sale'
-import Customer from './Customer'
+import Customers from './Customers'
 import { loadInventory } from './Storage'
 
 export default function InventoryApp() {
 
   const [page, setPage] = useState('home')
-  const data = loadInventory()
+  const [data, setData] = useState(loadInventory())
+
+useEffect(() => {
+  const timer = setInterval(() => {
+    setData(loadInventory())
+  }, 500)
+
+  return () => clearInterval(timer)
+}, [])
 
   return (
     <div style={{paddingBottom:100}}>
@@ -53,7 +61,7 @@ export default function InventoryApp() {
 
 
       {page === 'customer' && (
-  <Customer />
+  <Customers />
 )}
 
 
