@@ -3,7 +3,6 @@ import { loadRecords } from './Records'
 
 
 // 中文数字转数字
-function chineseNumber(text:string){
 
   const map:any={
     '零':0,
