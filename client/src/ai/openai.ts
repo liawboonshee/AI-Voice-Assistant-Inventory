@@ -1,4 +1,6 @@
 import { askInventory } from '../inventory/InventoryAI'
+import { executeVoiceCommand } from '../inventory/VoiceAction'
+
 import { getApiBase } from '../config/apiBase'
 import { getProxyAuthHeaders } from '../config/proxyAuth'
 import { getProxyErrorMessage, type ProxyErrorBody } from '../config/proxyErrors'
@@ -41,6 +43,7 @@ function getErrorMessage(
 
 
 
+
 export async function askAI(
   messages:ChatMessage[],
   signal?:AbortSignal
@@ -48,19 +51,39 @@ export async function askAI(
 
 
 
-  // 先检查库存宝本地指令
-
-  const localAnswer = askInventory(
-
+  const text =
     messages[messages.length - 1]?.content || ''
 
-  )
+
+
+
+
+  // 库存宝查询
+
+  const localAnswer = askInventory(text)
 
 
 
   if(localAnswer){
 
     return localAnswer
+
+  }
+
+
+
+
+
+  // 库存宝自动操作
+
+  const actionAnswer =
+    executeVoiceCommand(text)
+
+
+
+  if(actionAnswer){
+
+    return actionAnswer
 
   }
 
@@ -76,18 +99,25 @@ export async function askAI(
 
 
 
+
   try {
 
 
     response = await fetch(
+
       `${base}/api/chat`,
+
       {
 
         method:'POST',
 
+
         headers:{
+
           'Content-Type':'application/json',
+
           ...getProxyAuthHeaders()
+
         },
 
 
@@ -106,7 +136,7 @@ export async function askAI(
 
 
 
-  } catch(err){
+  }catch(err){
 
 
 
@@ -117,6 +147,7 @@ export async function askAI(
       )
 
     }
+
 
 
 
@@ -146,6 +177,7 @@ export async function askAI(
 
 
 
+
   const body =
     (
       await response.json()
@@ -159,10 +191,15 @@ export async function askAI(
   if(!response.ok){
 
     throw new Error(
+
       getErrorMessage(
+
         response.status,
+
         body
+
       )
+
     )
 
   }
