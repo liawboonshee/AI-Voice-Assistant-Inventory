@@ -14,6 +14,7 @@ export type VoiceCommand = {
 
 
 
+
 // 中文数字转换
 
 function chineseNumber(text:string):number|null{
@@ -47,6 +48,14 @@ const map:any={
 
 
 
+if(!text){
+
+return null
+
+}
+
+
+
 if(!/[一二三四五六七八九零]/.test(text)){
 
 return null
@@ -57,15 +66,23 @@ return null
 
 
 
+// 十五、二十
+
 if(text.includes('十')){
 
 
 const arr=text.split('十')
 
 
-let a=arr[0] ? map[arr[0]] : 1
+const a = arr[0]
+? map[arr[0]]
+: 1
 
-let b=arr[1] ? map[arr[1]] : 0
+
+const b = arr[1]
+? map[arr[1]]
+: 0
+
 
 
 return a*10+b
@@ -76,10 +93,13 @@ return a*10+b
 
 
 
+
+
 let result=''
 
 
 for(const c of text){
+
 
 if(map[c]!==undefined){
 
@@ -87,7 +107,9 @@ result+=map[c]
 
 }
 
+
 }
+
 
 
 
@@ -123,7 +145,7 @@ return text
 
 .replace(/gram/g,'')
 
-.replace(/公斤/g,'kg')
+.replace(/公斤/g,'')
 
 .replace(/kg/g,'')
 
@@ -150,11 +172,24 @@ function parseWeightNumber(text:string):number|null{
 
 
 
+if(!text){
+
+return null
+
+}
+
+
+
+
+
+// 小数
+
 if(text.includes('.')){
 
 return Number(text)
 
 }
+
 
 
 
@@ -167,12 +202,13 @@ if(/^\d{3}$/.test(text)){
 
 return Number(
 
-text.slice(0,1)+'.'+text.slice(1)
+text.substring(0,1)+'.'+text.substring(1)
 
 )
 
 
 }
+
 
 
 
@@ -196,6 +232,8 @@ return Number(
 
 
 
+
+
 // 05 = 0.5
 
 if(/^0\d$/.test(text)){
@@ -214,10 +252,12 @@ return Number(
 
 
 
+
 if(/^\d+$/.test(text)){
 
 
 return Number(text)
+
 
 }
 
@@ -236,9 +276,10 @@ return null
 
 
 
+export function parseVoiceCommand(
+text:string
+):VoiceCommand{
 
-
-export function parseVoiceCommand(text:string):VoiceCommand{
 
 
 const original=text
@@ -255,141 +296,11 @@ t=t.replace(/点/g,'.')
 
 
 
-
 let result:VoiceCommand={
 
 type:null
 
 }
-
-
-
-
-
-
-
-// =================
-// 快捷出货
-// 出5
-// 出5 350
-// 出6251000
-// =================
-
-
-const saleQuick = original.match(
-
-/出(\d+(\.\d+)?)\s*(\d+)?/
-
-)
-
-
-
-if(saleQuick){
-
-
-result.type='sale'
-
-
-
-const w=parseWeightNumber(
-saleQuick[1]
-)
-
-
-
-result.weight =
-
-w !== null
-
-? w
-
-: Number(saleQuick[1])
-
-
-
-
-
-if(saleQuick[3]){
-
-result.amount=
-
-Number(saleQuick[3])
-
-}
-
-
-
-return result
-
-
-}
-
-
-
-
-
-
-
-
-
-// =================
-// 快捷进货
-// 进10 1000
-// 进货10 1000
-// =================
-
-
-const purchaseQuick = original.match(
-
-/进(?:货)?(\d+(\.\d+)?)\s*(\d+)?/
-
-)
-
-
-
-if(purchaseQuick){
-
-
-result.type='purchase'
-
-
-
-const w=parseWeightNumber(
-
-purchaseQuick[1]
-
-)
-
-
-
-result.weight=
-
-w !== null
-
-? w
-
-: Number(purchaseQuick[1])
-
-
-
-
-
-if(purchaseQuick[3]){
-
-result.amount=
-
-Number(purchaseQuick[3])
-
-}
-
-
-
-return result
-
-
-}
-
-
 
 
 
@@ -416,11 +327,10 @@ t.includes('还有')
 
 result.type='query'
 
-
 return result
 
-}
 
+}
 
 
 
@@ -432,11 +342,11 @@ return result
 
 if(
 
-t.includes('卖')
+t.includes('出货')
 
 ||
 
-t.includes('出货')
+t.includes('卖')
 
 ||
 
@@ -482,11 +392,11 @@ result.type='purchase'
 
 
 
-
-
 // 客户
 
-const customerMatch = original.match(
+const customerMatch =
+
+original.match(
 
 /给(.+?)(\d|克|g|gram|元|块)/
 
@@ -497,8 +407,7 @@ const customerMatch = original.match(
 if(customerMatch){
 
 
-result.customer=
-
+result.customer =
 customerMatch[1]
 
 
@@ -511,10 +420,12 @@ customerMatch[1]
 
 
 
+// 数字
 
-// 数字解析
+const nums =
+t.match(/\d+(\.\d+)?/g)
 
-const nums=t.match(/\d+(\.\d+)?/g)
+
 
 
 
@@ -522,9 +433,8 @@ if(nums){
 
 
 
-const weight=
-
-parseWeightNumber(nums[0])
+const weight =
+parseWeightNumber(nums[0] || '')
 
 
 
@@ -537,24 +447,19 @@ result.weight=weight
 
 
 
+
 if(nums.length>=2){
 
-result.amount=
 
-Number(
-
-nums[nums.length-1]
-
-)
-
-}
-
+result.amount =
+Number(nums[nums.length-1])
 
 
 }
 
 
 
+}
 
 
 
@@ -564,11 +469,11 @@ nums[nums.length-1]
 
 // 中文重量
 
-if(!result.weight){
+if(result.weight===undefined){
 
 
-const chinese=
 
+const chinese =
 original.match(
 
 /([一二三四五六七八九零十点二两]+)(克|g|gram)?/
@@ -581,11 +486,13 @@ if(chinese){
 
 
 
-let c=chinese[1]
+let c =
+chinese[1] || ''
 
 
 
 c=c.replace(/点/g,'.')
+
 
 
 
@@ -594,21 +501,27 @@ const parts=c.split('.')
 
 
 
+
 if(parts.length===2){
 
 
 
-const a=chineseNumber(parts[0])
+const a =
+chineseNumber(parts[0] || '')
 
-const b=chineseNumber(parts[1])
+
+
+const b =
+chineseNumber(parts[1] || '')
+
+
 
 
 
 if(a!==null && b!==null){
 
 
-result.weight=
-
+result.weight =
 Number(`${a}.${b}`)
 
 
@@ -620,7 +533,8 @@ Number(`${a}.${b}`)
 
 
 
-const n=chineseNumber(c)
+const n =
+chineseNumber(c)
 
 
 
@@ -639,7 +553,9 @@ result.weight=n
 }
 
 
+
 }
+
 
 
 
