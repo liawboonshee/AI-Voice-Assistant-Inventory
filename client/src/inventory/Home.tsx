@@ -1,37 +1,51 @@
 import { useEffect, useState } from 'react'
+
 import { loadInventory } from './Storage'
 import { loadRecords } from './Records'
-import { executeVoiceCommand } from './VoiceAction'
+
 import { createWebSpeechAdapter } from '../voice/webSpeechAdapter'
 
+import { executeVoiceCommand } from './VoiceAction'
 
-const CUSTOMER_KEY = 'customers'
+
+
+const CUSTOMER_KEY='customers'
 
 
 
 function loadDebt(){
 
-  const data =
-    localStorage.getItem(CUSTOMER_KEY)
+
+const data=
+localStorage.getItem(CUSTOMER_KEY)
 
 
-  if(!data){
 
-    return 0
+if(!data){
 
-  }
-
-
-  const list = JSON.parse(data)
-
-
-  return list.reduce(
-    (sum:any,item:any)=>
-      sum + (item.debt || 0),
-    0
-  )
+return 0
 
 }
+
+
+
+const list=JSON.parse(data)
+
+
+
+return list.reduce(
+
+(sum:number,item:any)=>
+
+sum+(item.debt||0),
+
+0
+
+)
+
+
+}
+
 
 
 
@@ -41,33 +55,29 @@ function loadDebt(){
 export default function Home(){
 
 
-  const [data,setData] =
-    useState(loadInventory())
 
+const [data,setData]=
+useState(loadInventory())
 
-  const [records,setRecords] =
-    useState(loadRecords())
 
 
-  const [debt,setDebt] =
-    useState(loadDebt())
+const [records,setRecords]=
+useState(loadRecords())
 
 
-  const [input,setInput] =
-    useState('')
 
+const [debt,setDebt]=
+useState(loadDebt())
 
-  const [message,setMessage] =
-    useState('')
 
 
-  const [listening,setListening] =
-    useState(false)
+const [text,setText]=
+useState('')
 
 
 
-  const voice =
-    createWebSpeechAdapter()
+const [message,setMessage]=
+useState('')
 
 
 
@@ -75,99 +85,399 @@ export default function Home(){
 
 
 
-  useEffect(()=>{
+useEffect(()=>{
 
 
-    const timer =
-      setInterval(()=>{
+const timer=setInterval(()=>{
 
 
-        setData(loadInventory())
+setData(loadInventory())
 
-        setRecords(loadRecords())
 
-        setDebt(loadDebt())
+setRecords(loadRecords())
 
 
-      },500)
+setDebt(loadDebt())
 
 
 
-    return ()=>clearInterval(timer)
+},500)
 
 
-  },[])
 
+return()=>clearInterval(timer)
 
 
 
+},[])
 
 
 
 
 
-  function runCommand(){
 
 
-    if(!input){
 
-      return
+// 开启麦克风
 
-    }
 
+const startVoice=async()=>{
 
 
-    const result =
-      executeVoiceCommand(input)
 
+const voice=
+createWebSpeechAdapter()
 
 
-    setMessage(
-      result || '没有识别到指令'
-    )
 
+await voice.start({
 
 
-    setInput('')
 
+onFinal:(result)=>{
 
-  }
 
+setText(result)
 
 
 
+const answer=
+executeVoiceCommand(result)
 
 
 
+setMessage(
 
+answer || '无法处理'
 
-  async function startVoice(){
+)
 
 
+},
 
-    if(listening){
 
 
-      await voice.stop()
 
+onPartial:(t)=>{
 
-      setListening(false)
 
+setText(t)
 
-      return
 
-    }
+},
 
 
 
 
+onError:(e)=>{
 
 
-    setListening(true)
+setMessage(e)
 
 
+}
 
 
 
+})
 
-    await voice.start({
+
+
+}
+
+
+
+
+
+
+
+
+// 输入文字处理
+
+
+const sendText=()=>{
+
+
+const answer=
+executeVoiceCommand(text)
+
+
+
+setMessage(
+
+answer || '无法识别'
+
+)
+
+
+
+}
+
+
+
+
+
+
+
+
+const totalSaleWeight=records
+
+
+.filter(
+item=>item.type==='sale'
+)
+
+
+.reduce(
+
+(sum,item)=>
+
+sum+item.weight,
+
+0
+
+)
+
+
+
+
+
+
+
+return(
+
+
+
+<div style={{padding:24}}>
+
+
+
+<h1>
+📦 库存宝
+</h1>
+
+
+
+
+
+<p>
+
+📦 当前库存：
+
+{data.stock.toFixed(2)} g
+
+</p>
+
+
+
+
+
+<p>
+
+📤 总出货：
+
+{totalSaleWeight.toFixed(2)} g
+
+</p>
+
+
+
+
+
+<p>
+
+💰 总收入：
+
+{data.income.toFixed(2)}
+
+</p>
+
+
+
+
+
+<p>
+
+📒 欠款：
+
+{debt.toFixed(2)}
+
+</p>
+
+
+
+
+
+<p>
+
+💵 利润：
+
+{data.profit.toFixed(2)}
+
+</p>
+
+
+
+
+
+
+
+<hr/>
+
+
+
+
+
+<h2>
+
+AI助手
+
+</h2>
+
+
+
+
+
+
+<button
+
+
+onClick={startVoice}
+
+
+style={{
+
+fontSize:40,
+
+padding:'15px 30px'
+
+}}
+
+
+>
+
+
+🎤
+
+
+</button>
+
+
+
+
+
+
+
+<br/><br/>
+
+
+
+
+
+
+
+<input
+
+
+value={text}
+
+
+onChange={
+
+e=>setText(e.target.value)
+
+}
+
+
+placeholder="例如 出货6点25克1000"
+
+
+style={{
+
+width:'100%',
+
+fontSize:20,
+
+padding:10
+
+}}
+
+
+/>
+
+
+
+
+
+
+
+<br/><br/>
+
+
+
+
+
+
+<button
+
+
+onClick={sendText}
+
+
+style={{
+
+fontSize:20,
+
+padding:'10px 30px'
+
+}}
+
+
+>
+
+
+确认处理
+
+
+</button>
+
+
+
+
+
+
+
+
+<p>
+
+{message}
+
+</p>
+
+
+
+
+
+
+
+<hr/>
+
+
+
+
+
+<h2>
+
+快捷功能
+
+</h2>
+
+
+
+
+
+
+<button
+
+
+style={
