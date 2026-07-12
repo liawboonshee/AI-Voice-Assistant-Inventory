@@ -6,301 +6,433 @@ import { saveRecord } from './Records'
 export default function Sale(){
 
 
-  const [customer,setCustomer] = useState('')
+const [customer,setCustomer]=useState('')
 
-  const [weight,setWeight] = useState('')
+const [weight,setWeight]=useState('')
 
-  const [price,setPrice] = useState('')
+const [price,setPrice]=useState('')
 
-  const [debt,setDebt] = useState(false)
+const [debt,setDebt]=useState(false)
 
-  const [message,setMessage] = useState('')
+const [message,setMessage]=useState('')
 
 
 
-  const addCustomerDebt = (
-    name:string,
-    amount:number
-  )=>{
 
 
-    const data = JSON.parse(
-      localStorage.getItem('customers') || '[]'
-    )
+const addCustomerDebt=(
 
+name:string,
 
-    const index = data.findIndex(
-      (item:any)=>item.name===name
-    )
+amount:number
 
+)=>{
 
-    if(index>=0){
 
-      data[index].debt += amount
+const data=JSON.parse(
 
-    }else{
+localStorage.getItem('customers') || '[]'
 
-      data.push({
+)
 
-        name:name,
 
-        debt:amount
 
-      })
+const index=data.findIndex(
 
-    }
+(item:any)=>item.name===name
 
+)
 
-    localStorage.setItem(
-      'customers',
-      JSON.stringify(data)
-    )
 
 
-  }
+if(index>=0){
 
+data[index].debt += amount
 
+}
 
+else{
 
-  const addSale = ()=>{
 
+data.push({
 
-    const w = Number(weight)
+name:name,
 
-    const p = Number(price)
+debt:amount
 
+})
 
 
-    if(!w || !p){
+}
 
-      setMessage('请输入重量和售价')
 
-      return
 
-    }
+localStorage.setItem(
 
+'customers',
 
+JSON.stringify(data)
 
-    const data = loadInventory()
+)
 
 
+}
 
-    if(data.stock < w){
 
-      setMessage('库存不足')
 
-      return
 
-    }
 
 
 
-    const total = w * p
 
+const addSale=()=>{
 
 
-    // 保存记录
+const w=Number(weight)
 
-    saveRecord({
+const total=Number(price)
 
-      type:'sale',
 
-      date:new Date().toLocaleString(),
 
-      customer:customer || '未填写',
+if(!w || !total){
 
-      weight:w,
+setMessage('请输入重量和售价')
 
-      amount:total
+return
 
-    })
+}
 
 
 
+const data=loadInventory()
 
 
-    // 扣库存
 
-    data.stock -= w
+if(data.stock < w){
 
+setMessage('库存不足')
 
+return
 
+}
 
 
-    // 已付款才算收入
 
-    if(!debt){
 
-      data.income += total
 
-      data.profit += total
+// 出货前库存
 
-    }
-    else{
+const oldStock=data.stock
 
-      addCustomerDebt(
-        customer || '未填写',
-        total
-      )
 
-    }
 
 
+// 每克本金
 
+const costPerGram =
 
+oldStock > 0
 
-    saveInventory(data)
+?
 
+data.totalWeightCost / oldStock
 
+:
 
-    setCustomer('')
+0
 
-    setWeight('')
 
-    setPrice('')
 
-    setDebt(false)
 
-    setMessage(
-      debt ? '✅ 出货成功（欠款）' : '✅ 出货成功'
-    )
 
 
-  }
+// 本次成本
 
+const saleCost =
 
+costPerGram * w
 
 
-  return (
 
-    <div style={{padding:24}}>
 
 
-      <h1>📤 出货</h1>
+// 扣库存
 
+data.stock -= w
 
 
-      <p>客户</p>
 
-      <input
 
-        value={customer}
+// 扣库存本金
 
-        onChange={
-          e=>setCustomer(e.target.value)
-        }
+data.totalWeightCost -= saleCost
 
-        placeholder="客户名字"
 
-        style={{
-          width:'100%',
-          fontSize:18
-        }}
 
-      />
+if(data.totalWeightCost < 0){
 
+data.totalWeightCost=0
 
+}
 
-      <p>重量(g)</p>
 
-      <input
 
-        value={weight}
 
-        onChange={
-          e=>setWeight(e.target.value)
-        }
 
-        placeholder="例如 6.25"
 
-        type="number"
 
-        step="0.01"
+// 保存销售记录
 
-        style={{
-          width:'100%',
-          fontSize:18
-        }}
+saveRecord({
 
-      />
+type:'sale',
 
+date:new Date().toLocaleString(),
 
+customer:customer || '未填写',
 
-      <p>总售价</p>
+weight:w,
 
-      <input
+amount:total
 
-        value={price}
+})
 
-        onChange={
-          e=>setPrice(e.target.value)
-        }
 
-        placeholder="例如 600"
 
-        type="number"
 
-        step="0.01"
 
-        style={{
-          width:'100%',
-          fontSize:18
-        }}
 
-      />
 
+// 已付款
 
+if(!debt){
 
-      <br/>
 
-      <label>
+data.income += total
 
-        <input
 
-          type="checkbox"
+}
 
-          checked={debt}
+else{
 
-          onChange={
-            e=>setDebt(e.target.checked)
-          }
 
-        />
+addCustomerDebt(
 
-        欠款
+customer || '未填写',
 
-      </label>
+total
 
+)
 
 
-      <br/>
-      <br/>
+}
 
 
 
-      <button
 
-        onClick={addSale}
 
-        style={{
-          fontSize:20,
-          padding:'10px 30px'
-        }}
+// 真实利润
 
-      >
+data.profit +=
 
-        保存出货
+total - saleCost
 
-      </button>
 
 
 
-      <p>{message}</p>
 
 
-    </div>
+saveInventory(data)
 
-  )
+
+
+
+
+
+setCustomer('')
+
+setWeight('')
+
+setPrice('')
+
+setDebt(false)
+
+
+
+setMessage(
+
+debt
+
+?
+
+'✅ 出货成功（欠款）'
+
+:
+
+'✅ 出货成功'
+
+)
+
+
+}
+
+
+
+
+
+
+
+return(
+
+<div style={{padding:24}}>
+
+
+<h1>📤 出货</h1>
+
+
+
+<p>客户</p>
+
+<input
+
+value={customer}
+
+onChange={
+e=>setCustomer(e.target.value)
+}
+
+placeholder="客户名字"
+
+style={{
+
+width:'100%',
+
+fontSize:18
+
+}}
+
+/>
+
+
+
+
+<p>重量(g)</p>
+
+<input
+
+value={weight}
+
+onChange={
+e=>setWeight(e.target.value)
+}
+
+placeholder="例如 6.25"
+
+type="number"
+
+step="0.01"
+
+style={{
+
+width:'100%',
+
+fontSize:18
+
+}}
+
+/>
+
+
+
+
+<p>总售价</p>
+
+<input
+
+value={price}
+
+onChange={
+e=>setPrice(e.target.value)
+}
+
+placeholder="例如 600"
+
+type="number"
+
+step="0.01"
+
+style={{
+
+width:'100%',
+
+fontSize:18
+
+}}
+
+/>
+
+
+
+
+
+<br/>
+
+<label>
+
+
+<input
+
+type="checkbox"
+
+checked={debt}
+
+onChange={
+e=>setDebt(e.target.checked)
+}
+
+/>
+
+
+欠款
+
+
+</label>
+
+
+
+
+
+<br/><br/>
+
+
+
+<button
+
+onClick={addSale}
+
+style={{
+
+fontSize:20,
+
+padding:'10px 30px'
+
+}}
+
+>
+
+保存出货
+
+</button>
+
+
+
+<p>{message}</p>
+
+
+
+</div>
+
+)
 
 
 }
