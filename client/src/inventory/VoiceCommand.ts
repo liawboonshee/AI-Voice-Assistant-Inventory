@@ -56,7 +56,6 @@ return null
 
 
 
-// 十五 = 15
 
 if(text.includes('十')){
 
@@ -89,6 +88,7 @@ result+=map[c]
 }
 
 }
+
 
 
 if(result){
@@ -145,11 +145,10 @@ return text
 
 
 
+
 function parseWeightNumber(text:string):number|null{
 
 
-
-// 小数
 
 if(text.includes('.')){
 
@@ -161,9 +160,7 @@ return Number(text)
 
 
 
-// 三位数字
-
-// 625 -> 6.25
+// 625 = 6.25
 
 if(/^\d{3}$/.test(text)){
 
@@ -181,9 +178,7 @@ text.slice(0,1)+'.'+text.slice(1)
 
 
 
-// 两位数字
-
-// 25 -> 0.25
+// 25 = 0.25
 
 if(/^\d{2}$/.test(text)){
 
@@ -201,7 +196,7 @@ return Number(
 
 
 
-// 05
+// 05 = 0.5
 
 if(/^0\d$/.test(text)){
 
@@ -224,7 +219,6 @@ if(/^\d+$/.test(text)){
 
 return Number(text)
 
-
 }
 
 
@@ -233,6 +227,7 @@ return null
 
 
 }
+
 
 
 
@@ -254,10 +249,6 @@ let t=normalize(text)
 
 
 
-
-
-// 点
-
 t=t.replace(/点/g,'.')
 
 
@@ -270,6 +261,134 @@ let result:VoiceCommand={
 type:null
 
 }
+
+
+
+
+
+
+
+// =================
+// 快捷出货
+// 出5
+// 出5 350
+// 出6251000
+// =================
+
+
+const saleQuick = original.match(
+
+/出(\d+(\.\d+)?)\s*(\d+)?/
+
+)
+
+
+
+if(saleQuick){
+
+
+result.type='sale'
+
+
+
+const w=parseWeightNumber(
+saleQuick[1]
+)
+
+
+
+result.weight =
+
+w !== null
+
+? w
+
+: Number(saleQuick[1])
+
+
+
+
+
+if(saleQuick[3]){
+
+result.amount=
+
+Number(saleQuick[3])
+
+}
+
+
+
+return result
+
+
+}
+
+
+
+
+
+
+
+
+
+// =================
+// 快捷进货
+// 进10 1000
+// 进货10 1000
+// =================
+
+
+const purchaseQuick = original.match(
+
+/进(?:货)?(\d+(\.\d+)?)\s*(\d+)?/
+
+)
+
+
+
+if(purchaseQuick){
+
+
+result.type='purchase'
+
+
+
+const w=parseWeightNumber(
+
+purchaseQuick[1]
+
+)
+
+
+
+result.weight=
+
+w !== null
+
+? w
+
+: Number(purchaseQuick[1])
+
+
+
+
+
+if(purchaseQuick[3]){
+
+result.amount=
+
+Number(purchaseQuick[3])
+
+}
+
+
+
+return result
+
+
+}
+
 
 
 
@@ -364,11 +483,10 @@ result.type='purchase'
 
 
 
+
 // 客户
 
-const customerMatch =
-
-original.match(
+const customerMatch = original.match(
 
 /给(.+?)(\d|克|g|gram|元|块)/
 
@@ -394,22 +512,15 @@ customerMatch[1]
 
 
 
-// 找数字
+// 数字解析
 
-const nums=
-
-t.match(/\d+(\.\d+)?/g)
-
-
-
+const nums=t.match(/\d+(\.\d+)?/g)
 
 
 
 if(nums){
 
 
-
-// 第一个数字 = 重量
 
 const weight=
 
@@ -419,20 +530,14 @@ parseWeightNumber(nums[0])
 
 if(weight!==null){
 
-
 result.weight=weight
-
 
 }
 
 
 
 
-
-// 最后数字 = 金额
-
 if(nums.length>=2){
-
 
 result.amount=
 
@@ -442,12 +547,13 @@ nums[nums.length-1]
 
 )
 
-
 }
 
 
 
 }
+
+
 
 
 
@@ -474,7 +580,9 @@ original.match(
 if(chinese){
 
 
+
 let c=chinese[1]
+
 
 
 c=c.replace(/点/g,'.')
@@ -485,12 +593,15 @@ const parts=c.split('.')
 
 
 
+
 if(parts.length===2){
+
 
 
 const a=chineseNumber(parts[0])
 
 const b=chineseNumber(parts[1])
+
 
 
 if(a!==null && b!==null){
@@ -504,10 +615,13 @@ Number(`${a}.${b}`)
 }
 
 
+
 }else{
 
 
+
 const n=chineseNumber(c)
+
 
 
 if(n!==null){
@@ -517,15 +631,15 @@ result.weight=n
 }
 
 
-}
-
-
 
 }
 
 
+
 }
 
+
+}
 
 
 
