@@ -151,7 +151,7 @@ setCustomers(list)
 
 saveRecord({
 
-type:'payment',
+type:'sale',
 
 date:new Date().toLocaleString(),
 
