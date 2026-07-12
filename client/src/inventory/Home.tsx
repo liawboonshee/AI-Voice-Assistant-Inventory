@@ -1,31 +1,76 @@
 import { useEffect, useState } from 'react'
 import { loadInventory } from './Storage'
+import { loadRecords } from './Records'
+
+
+const CUSTOMER_KEY = 'customers'
+
+
+function loadDebt(){
+
+  const data = localStorage.getItem(CUSTOMER_KEY)
+
+  if(!data){
+
+    return 0
+
+  }
+
+
+  const list = JSON.parse(data)
+
+
+  return list.reduce(
+    (sum:any,item:any)=>sum+(item.debt||0),
+    0
+  )
+
+}
+
 
 
 export default function Home(){
 
+
   const [data,setData] = useState(loadInventory())
+
+  const [records,setRecords] = useState(loadRecords())
+
+  const [debt,setDebt] = useState(loadDebt())
+
 
 
   useEffect(()=>{
+
 
     const timer=setInterval(()=>{
 
       setData(loadInventory())
 
+      setRecords(loadRecords())
+
+      setDebt(loadDebt())
+
+
     },500)
 
 
-    return ()=>clearInterval(timer)
+
+    return()=>clearInterval(timer)
+
 
   },[])
 
 
 
-  const avgCost =
-    data.stock > 0
-    ? data.totalWeightCost / data.stock
-    : 0
+  const totalSaleWeight = records
+
+    .filter(item=>item.type==='sale')
+
+    .reduce(
+      (sum,item)=>sum+item.weight,
+      0
+    )
 
 
 
@@ -37,43 +82,47 @@ export default function Home(){
       <h1>📦 库存宝</h1>
 
 
-      <h2>库存管理系统</h2>
-
 
       <p>
-        今日收入：
-        {data.income.toFixed(2)}
-      </p>
-
-
-      <p>
-        当前库存：
+        📦 当前库存：
         {data.stock.toFixed(2)} g
       </p>
 
 
+
       <p>
-        库存本金：
-        {data.totalWeightCost.toFixed(2)}
+        📤 总出货量：
+        {totalSaleWeight.toFixed(2)} g
       </p>
 
 
+
       <p>
-        平均成本：
-        {avgCost.toFixed(2)} /g
+        💰 总收入：
+        {data.income.toFixed(2)}
       </p>
 
 
+
       <p>
-        总成本：
-        {data.cost.toFixed(2)}
+        📒 客户欠款：
+        {debt.toFixed(2)}
       </p>
 
 
+
       <p>
-        实际盈利：
+        📋 交易次数：
+        {records.length}
+      </p>
+
+
+
+      <p>
+        💵 实际利润：
         {data.profit.toFixed(2)}
       </p>
+
 
 
     </div>
