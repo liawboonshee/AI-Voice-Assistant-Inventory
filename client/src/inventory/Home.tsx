@@ -3,130 +3,274 @@ import { loadInventory } from './Storage'
 import { loadRecords } from './Records'
 
 
-const CUSTOMER_KEY = 'customers'
+const CUSTOMER_KEY='customers'
+
 
 
 function loadDebt(){
 
-  const data = localStorage.getItem(CUSTOMER_KEY)
-
-  if(!data){
-
-    return 0
-
-  }
+const data=localStorage.getItem(CUSTOMER_KEY)
 
 
-  const list = JSON.parse(data)
+if(!data){
 
-
-  return list.reduce(
-    (sum:any,item:any)=>sum+(item.debt||0),
-    0
-  )
+return 0
 
 }
+
+
+const list=JSON.parse(data)
+
+
+
+return list.reduce(
+
+(sum:any,item:any)=>
+
+sum+(item.debt||0),
+
+0
+
+)
+
+}
+
+
 
 
 
 export default function Home(){
 
 
-  const [data,setData] = useState(loadInventory())
 
-  const [records,setRecords] = useState(loadRecords())
+const [data,setData]=useState(loadInventory())
 
-  const [debt,setDebt] = useState(loadDebt())
+const [records,setRecords]=useState(loadRecords())
 
-
-
-  useEffect(()=>{
-
-
-    const timer=setInterval(()=>{
-
-      setData(loadInventory())
-
-      setRecords(loadRecords())
-
-      setDebt(loadDebt())
-
-
-    },500)
+const [debt,setDebt]=useState(loadDebt())
 
 
 
-    return()=>clearInterval(timer)
 
 
-  },[])
+useEffect(()=>{
 
 
-
-  const totalSaleWeight = records
-
-    .filter(item=>item.type==='sale')
-
-    .reduce(
-      (sum,item)=>sum+item.weight,
-      0
-    )
+const timer=setInterval(()=>{
 
 
+setData(loadInventory())
 
-  return (
+setRecords(loadRecords())
 
-    <div style={{padding:24}}>
+setDebt(loadDebt())
 
 
-      <h1>📦 库存宝</h1>
+},500)
 
 
 
-      <p>
-        📦 当前库存：
-        {data.stock.toFixed(2)} g
-      </p>
+return()=>clearInterval(timer)
 
 
 
-      <p>
-        📤 总出货量：
-        {totalSaleWeight.toFixed(2)} g
-      </p>
+},[])
 
 
 
-      <p>
-        💰 总收入：
-        {data.income.toFixed(2)}
-      </p>
 
 
 
-      <p>
-        📒 客户欠款：
-        {debt.toFixed(2)}
-      </p>
+
+const totalSaleWeight=
+
+records
+
+.filter(item=>item.type==='sale')
+
+.reduce(
+
+(sum,item)=>
+
+sum+item.weight,
+
+0
+
+)
 
 
 
-      <p>
-        📋 交易次数：
-        {records.length}
-      </p>
 
 
 
-      <p>
-        💵 实际利润：
-        {data.profit.toFixed(2)}
-      </p>
+// 平均成本
+
+const averageCost=
+
+data.stock>0
+
+?
+
+data.totalWeightCost/data.stock
+
+:
+
+0
 
 
 
-    </div>
 
-  )
+
+
+
+return(
+
+
+<div style={{padding:24}}>
+
+
+
+<h1>📦 库存宝</h1>
+
+
+
+<h2>库存总览</h2>
+
+
+
+
+<p>
+
+📦 当前库存：
+
+<b>
+
+{data.stock.toFixed(2)} g
+
+</b>
+
+</p>
+
+
+
+
+
+<p>
+
+⚖️ 平均成本：
+
+<b>
+
+{averageCost.toFixed(2)}
+
+</b>
+
+</p>
+
+
+
+
+
+<p>
+
+💰 库存本金：
+
+<b>
+
+{data.totalWeightCost.toFixed(2)}
+
+</b>
+
+</p>
+
+
+
+
+
+<p>
+
+📤 总出货量：
+
+<b>
+
+{totalSaleWeight.toFixed(2)} g
+
+</b>
+
+</p>
+
+
+
+
+
+<p>
+
+💵 总收入：
+
+<b>
+
+{data.income.toFixed(2)}
+
+</b>
+
+</p>
+
+
+
+
+
+<p>
+
+📈 实际利润：
+
+<b>
+
+{data.profit.toFixed(2)}
+
+</b>
+
+</p>
+
+
+
+
+
+<p>
+
+📒 客户欠款：
+
+<b>
+
+{debt.toFixed(2)}
+
+</b>
+
+</p>
+
+
+
+
+
+<p>
+
+📋 交易次数：
+
+<b>
+
+{records.length}
+
+</b>
+
+</p>
+
+
+
+
+
+</div>
+
+
+)
+
 
 }
