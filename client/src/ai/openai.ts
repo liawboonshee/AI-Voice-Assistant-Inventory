@@ -1,49 +1,177 @@
+import { askInventory } from '../inventory/InventoryAI'
 import { getApiBase } from '../config/apiBase'
 import { getProxyAuthHeaders } from '../config/proxyAuth'
 import { getProxyErrorMessage, type ProxyErrorBody } from '../config/proxyErrors'
 import { isTimeoutAbort } from '../utils/withTimeout'
 
+
 export type ChatRole = 'user' | 'assistant' | 'system'
 
+
 export interface ChatMessage {
+
   role: ChatRole
+
   content: string
+
 }
+
+
 
 interface ChatResponse extends ProxyErrorBody {
+
   content?: string
+
 }
 
-function getErrorMessage(status: number, body: ChatResponse): string {
-  return getProxyErrorMessage(status, body)
+
+
+function getErrorMessage(
+  status:number,
+  body:ChatResponse
+):string {
+
+  return getProxyErrorMessage(
+    status,
+    body
+  )
+
 }
 
-export async function askAI(messages: ChatMessage[], signal?: AbortSignal): Promise<string> {
+
+
+
+export async function askAI(
+  messages:ChatMessage[],
+  signal?:AbortSignal
+):Promise<string>{
+
+
+
+  // 先检查库存宝本地指令
+
+  const localAnswer = askInventory(
+
+    messages[messages.length - 1]?.content || ''
+
+  )
+
+
+
+  if(localAnswer){
+
+    return localAnswer
+
+  }
+
+
+
+
+
   const base = await getApiBase()
-  let response: Response
+
+
+  let response:Response
+
+
+
 
   try {
-    response = await fetch(`${base}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getProxyAuthHeaders() },
-      body: JSON.stringify({ messages }),
-      signal,
-    })
-  } catch (err) {
-    if (isTimeoutAbort(signal)) {
-      throw new Error('请求超时，请重试')
+
+
+    response = await fetch(
+      `${base}/api/chat`,
+      {
+
+        method:'POST',
+
+        headers:{
+          'Content-Type':'application/json',
+          ...getProxyAuthHeaders()
+        },
+
+
+        body:JSON.stringify({
+
+          messages
+
+        }),
+
+
+        signal,
+
+      }
+
+    )
+
+
+
+  } catch(err){
+
+
+
+    if(isTimeoutAbort(signal)){
+
+      throw new Error(
+        '请求超时，请重试'
+      )
+
     }
-    if (signal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
-      throw new Error('请求已取消')
+
+
+
+    if(
+      signal?.aborted ||
+      (
+        err instanceof DOMException &&
+        err.name==='AbortError'
+      )
+    ){
+
+      throw new Error(
+        '请求已取消'
+      )
+
     }
-    throw new Error('无法连接云端 Proxy，请检查网络或在设置中修改地址')
+
+
+
+    throw new Error(
+      '无法连接云端 Proxy，请检查网络或在设置中修改地址'
+    )
+
+
   }
 
-  const body = (await response.json().catch(() => ({}))) as ChatResponse
 
-  if (!response.ok) {
-    throw new Error(getErrorMessage(response.status, body))
+
+
+  const body =
+    (
+      await response.json()
+      .catch(()=>({}))
+    ) as ChatResponse
+
+
+
+
+
+  if(!response.ok){
+
+    throw new Error(
+      getErrorMessage(
+        response.status,
+        body
+      )
+    )
+
   }
+
+
+
+
 
   return body.content ?? '无回复'
+
+
 }
