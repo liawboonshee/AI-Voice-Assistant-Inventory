@@ -2,17 +2,12 @@ import { useState } from 'react'
 
 
 type CustomerData = {
-
   name:string
-
   debt:number
-
 }
 
 
-
 const KEY='customers'
-
 
 
 function loadCustomers():CustomerData[]{
@@ -34,11 +29,8 @@ function loadCustomers():CustomerData[]{
 function saveCustomers(data:CustomerData[]){
 
   localStorage.setItem(
-
     KEY,
-
     JSON.stringify(data)
-
   )
 
 }
@@ -48,128 +40,129 @@ function saveCustomers(data:CustomerData[]){
 export default function Customers(){
 
 
-const [list,setList]=useState(loadCustomers())
+  const [name,setName]=useState('')
+  const [debt,setDebt]=useState('')
+  const [list,setList]=useState<CustomerData[]>(loadCustomers())
 
 
 
+  function addCustomer(){
 
-const old=[...list]
 
+    if(!name){
 
-const index=old.findIndex(
+      return
 
-(item)=>item.name===name
+    }
 
-)
 
+    const newList=[
 
+      ...list,
 
-if(index>=0){
+      {
 
-old[index].debt+=amount
+        name:name,
 
-}else{
+        debt:Number(debt)||0
 
-old.push({
+      }
 
-name,
+    ]
 
-debt:amount
 
-})
+    saveCustomers(newList)
 
-}
+    setList(newList)
 
+    setName('')
 
+    setDebt('')
 
-saveCustomers(old)
 
-setList(old)
+  }
 
 
 
-}
+  return(
 
+    <div style={{padding:24}}>
 
 
-return (
+      <h1>👤 客户</h1>
 
-<div style={{padding:24}}>
 
+      <p>客户名字</p>
 
-<h1>👤 客户欠款</h1>
+      <input
 
+        value={name}
 
-<p>
+        onChange={(e)=>setName(e.target.value)}
 
-客户资料管理
+        placeholder="客户名字"
 
-</p>
+      />
 
 
-{
+      <p>欠款</p>
 
-list.length===0 && (
+      <input
 
-<p>暂无客户</p>
+        value={debt}
 
-)
+        onChange={(e)=>setDebt(e.target.value)}
 
-}
+        placeholder="金额"
 
+        type="number"
 
+      />
 
-{
 
-list.map((item,index)=>(
+      <br/>
+      <br/>
 
 
-<div
+      <button onClick={addCustomer}>
 
-key={index}
+        保存客户
 
-style={{
+      </button>
 
-border:'1px solid #555',
 
-padding:12,
 
-margin:10
+      <h2>客户列表</h2>
 
-}}
 
->
 
+      {
 
-<p>
+        list.map((item,index)=>(
 
-姓名：
 
-{item.name}
+          <div key={index}>
 
-</p>
 
+            {item.name}
 
-<p>
+            ：欠款
 
-欠款：
+            {(item.debt||0).toFixed(2)}
 
-(item.debt || 0).toFixed(2)
 
-</p>
+          </div>
 
 
-</div>
+        ))
 
+      }
 
-))
 
-}
 
+    </div>
 
-</div>
-
-)
+  )
 
 
 }
