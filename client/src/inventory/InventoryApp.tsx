@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Purchase from './Purchase'
 import Sale from './Sale'
+import Customer from './Customer'
 import { loadInventory } from './Storage'
 
 export default function InventoryApp() {
@@ -52,11 +53,8 @@ export default function InventoryApp() {
 
 
       {page === 'customer' && (
-        <div style={{padding:24}}>
-          <h1>👤 客户</h1>
-          <p>客户功能开发中</p>
-        </div>
-      )}
+  <Customer />
+)}
 
 
       <div
