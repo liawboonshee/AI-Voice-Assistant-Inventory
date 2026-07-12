@@ -1,52 +1,253 @@
-// 记录出货前本金
-
-const oldStock = data.stock
-
-
-// 当前每克本金
-
-const costPerGram =
-oldStock > 0
-?
-data.totalWeightCost / oldStock
-:
-0
+import { loadInventory, saveInventory } from './Storage'
+import { saveRecord } from './Records'
+import { parseVoiceCommand } from './VoiceCommand'
 
 
 
-// 本次卖出的本金
-
-const saleCost =
-costPerGram * command.weight
+export function executeVoiceCommand(text:string){
 
 
 
-// 扣库存
-
-data.stock -= command.weight
-
-
-
-// 扣库存本金
-
-data.totalWeightCost -= saleCost
+const command =
+parseVoiceCommand(text)
 
 
 
-if(data.totalWeightCost < 0){
+const data =
+loadInventory()
 
-data.totalWeightCost = 0
+
+
+
+
+// 查询库存
+
+if(command.type==='query'){
+
+
+return `目前库存 ${data.stock.toFixed(2)} 克`
+
 
 }
 
 
 
-// 增加收入
+
+
+
+
+
+// 出货
+
+
+if(command.type==='sale'){
+
+
+
+if(command.weight===undefined){
+
+
+return '没有识别到重量'
+
+
+}
+
+
+
+
+if(command.amount===undefined){
+
+
+return '没有识别到金额'
+
+
+}
+
+
+
+
+
+
+if(data.stock < command.weight){
+
+
+return '库存不足'
+
+
+}
+
+
+
+
+
+
+
+data.stock -= command.weight
+
+
 
 data.income += command.amount
 
 
 
-// 真实利润
+data.profit += command.amount
 
-data.profit += command.amount - saleCost
+
+
+
+
+
+saveInventory(data)
+
+
+
+
+
+
+
+saveRecord({
+
+
+type:'sale',
+
+
+date:new Date().toLocaleString(),
+
+
+customer:
+command.customer || '未填写',
+
+
+weight:
+command.weight,
+
+
+amount:
+command.amount
+
+
+
+})
+
+
+
+
+
+
+
+return `出货成功 ${command.weight} 克，金额 ${command.amount}`
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// 进货
+
+
+if(command.type==='purchase'){
+
+
+
+
+
+if(command.weight===undefined){
+
+
+return '没有识别到重量'
+
+
+}
+
+
+
+
+
+if(command.amount===undefined){
+
+
+return '没有识别到成本'
+
+
+}
+
+
+
+
+
+
+
+data.stock += command.weight
+
+
+
+data.cost += command.amount
+
+
+
+data.totalWeightCost += command.amount
+
+
+
+
+
+
+saveInventory(data)
+
+
+
+
+
+
+
+saveRecord({
+
+
+type:'purchase',
+
+
+date:new Date().toLocaleString(),
+
+
+weight:
+command.weight,
+
+
+amount:
+command.amount
+
+
+
+})
+
+
+
+
+
+
+
+return `进货成功 ${command.weight} 克`
+
+
+
+
+}
+
+
+
+
+
+
+
+return null
+
+
+}
