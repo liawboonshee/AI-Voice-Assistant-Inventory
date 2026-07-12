@@ -2,53 +2,6 @@ import { loadInventory } from './Storage'
 import { loadRecords } from './Records'
 
 
-// 中文数字转数字
-
-function chineseNumber(text:string):number|null{
-
-  const map:any={
-    '零':0,
-    '一':1,
-    '二':2,
-    '两':2,
-    '三':3,
-    '四':4,
-    '五':5,
-    '六':6,
-    '七':7,
-    '八':8,
-    '九':9
-  }
-
-
-  if(/^\d+(\.\d+)?$/.test(text)){
-
-    return Number(text)
-
-  }
-
-
-  let result=0
-
-
-  for(const c of text){
-
-    if(map[c]!==undefined){
-
-      result=result*10+map[c]
-
-    }
-
-  }
-
-
-  return result
-
-}
-
-
-
-
 // 修正语音文字
 
 function normalize(text:string){
