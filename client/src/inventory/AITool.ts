@@ -1,41 +1,44 @@
-import { executeVoiceCommand } from './VoiceAction'
 import { askInventory } from './InventoryAI'
+import { executeVoiceCommand } from './VoiceAction'
+
 
 
 export function runInventoryTool(text:string){
 
 
-  // 先执行库存操作
 
-  const action =
+  // 先执行库存动作
+
+  const actionAnswer =
     executeVoiceCommand(text)
 
 
 
-  if(action){
+  if(actionAnswer){
 
-    return action
+    return actionAnswer
 
   }
 
 
 
 
-  // 查询库存
+  // 再执行库存查询
 
-  const answer =
+  const queryAnswer =
     askInventory(text)
 
 
 
-  if(answer){
+  if(queryAnswer){
 
-    return answer
+    return queryAnswer
 
   }
 
 
 
   return null
+
 
 }
