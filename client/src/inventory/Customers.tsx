@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { loadRecords, saveRecord } from './Records'
+import { loadInventory, saveInventory } from './Storage'
 
 
 type CustomerData = {
@@ -132,7 +133,10 @@ return
 
 
 
-customer.debt-=amount
+const actualPayment=Math.min(amount,customer.debt)
+
+
+customer.debt-=actualPayment
 
 
 if(customer.debt<0){
@@ -148,6 +152,13 @@ saveCustomers(list)
 setCustomers(list)
 
 
+const inventory=loadInventory()
+
+inventory.income+=actualPayment
+
+saveInventory(inventory)
+
+
 
 saveRecord({
 
@@ -159,7 +170,9 @@ customer:customer.name,
 
 weight:0,
 
-amount:-amount
+amount:-actualPayment,
+
+paidAmount:actualPayment
 
 })
 

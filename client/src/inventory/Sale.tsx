@@ -193,7 +193,13 @@ customer:customer || '未填写',
 
 weight:w,
 
-amount:total
+amount:total,
+
+debtAmount:debt ? total : 0,
+
+paidAmount:debt ? 0 : total,
+
+costAmount:saleCost
 
 })
 

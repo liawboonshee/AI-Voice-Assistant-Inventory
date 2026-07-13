@@ -135,6 +135,21 @@ export default function RecordsPage(){
             </p>
 
 
+            {
+              (item.debtAmount || 0) > 0 && (
+
+                <p>
+
+                  欠款：
+
+                  {item.debtAmount?.toFixed(2)}
+
+                </p>
+
+              )
+            }
+
+
 
 
           </div>

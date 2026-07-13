@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit'
 import os from 'node:os'
 
 const VOICE_SYSTEM_PROMPT =
-  '你是语音助手。用中文简短回答，1-3 句话，不要 Markdown、不要列表、不要代码块。'
+  '你是“库存宝”的中文语音助手。先理解用户真正想问什么，再直接回答。信息不足时只问一个最关键的问题；不要编造库存、交易或客户数据。使用自然、简短的中文，通常1-3句话，不要Markdown、列表或代码块。'
 
 function requiredEnv(name) {
   const value = process.env[name]
@@ -19,7 +19,7 @@ function requiredEnv(name) {
 const OPENAI_API_KEY = requiredEnv('OPENAI_API_KEY')
 const PORT = Number(process.env.PORT || 3001)
 const HOST = process.env.HOST || '0.0.0.0'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+const MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-terra'
 const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 30000)
 const PROXY_AUTH_TOKEN = process.env.PROXY_AUTH_TOKEN || ''
 

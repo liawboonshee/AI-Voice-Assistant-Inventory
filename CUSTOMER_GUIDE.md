@@ -122,7 +122,7 @@ wrangler secret put PROXY_AUTH_TOKEN   # 可选
 | 字段 | 说明 |
 |------|------|
 | `OPENAI_API_KEY` | 必填 |
-| `OPENAI_MODEL` | 默认 `gpt-4o-mini` |
+| `OPENAI_MODEL` | 默认 `gpt-5.6-terra`（聪明与费用平衡） |
 | `PROXY_AUTH_TOKEN` | 可选，与 APK `VITE_PROXY_TOKEN` 一致 |
 
 ### client 构建环境变量

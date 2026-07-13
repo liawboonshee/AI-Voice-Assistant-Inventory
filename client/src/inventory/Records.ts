@@ -10,6 +10,13 @@ export type RecordItem = {
 
   amount:number
 
+  // 新版记录会保存付款、欠款和本次成本；旧资料没有这些字段也能继续读取。
+  debtAmount?:number
+
+  paidAmount?:number
+
+  costAmount?:number
+
 }
 
 

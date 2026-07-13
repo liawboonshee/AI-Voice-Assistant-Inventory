@@ -59,7 +59,9 @@ export default function Purchase() {
 
       weight:w,
 
-      amount:c
+      amount:c,
+
+      costAmount:c
 
     })
 
