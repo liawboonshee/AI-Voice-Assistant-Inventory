@@ -11,7 +11,7 @@ export type InventoryQuery =
   | 'last'
 
 export type VoiceCommand = {
-  type: 'sale' | 'purchase' | 'query' | null
+  type: 'sale' | 'purchase' | 'income' | 'query' | null
   query?: InventoryQuery
   customer?: string
   weight?: number
@@ -19,6 +19,7 @@ export type VoiceCommand = {
   debtAmount?: number
   paidAmount?: number
   isDebt?: boolean
+  paymentMethod?: 'cash' | 'transfer' | 'debt'
 }
 
 type NumberToken = {
@@ -64,6 +65,11 @@ function normalizeText(text: string): string {
     .replace(/公厘克/g, '毫克')
     .replace(/公斤重/g, '公斤')
     .replace(/元钱/g, '元')
+    // Google 中文语音经常把库存口令听成同音词，先纠正再解析数字。
+    .replace(/听话|听货|进化|近货|净货|镜货|进活|今货|金货|经过|进过|进口|进购|进够|劲货|禁货|静候|今后/g, '进货')
+    .replace(/吃货|出活|出和|出河/g, '出货')
+    // 保留两个独立数字之间的边界，例如“进货 125 4500”。
+    .replace(/([0-9零〇一二两三四五六七八九十百千万半])\s+(?=[0-9零〇一二两三四五六七八九十百千万半])/g, '$1；')
     .replace(/\s+/g, '')
     .trim()
 }
@@ -265,6 +271,14 @@ function parseActionDetails(text: string, type: 'sale' | 'purchase'): Omit<Voice
     result.isDebt = true
   }
 
+  if (type === 'sale') {
+    result.paymentMethod = /欠款|赊账|挂账|记账|未付款|没给钱|还没付/.test(text)
+      ? 'debt'
+      : /转账|转帐|银行|电子钱包/.test(text)
+        ? 'transfer'
+        : 'cash'
+  }
+
   const paidPattern = new RegExp(`(?:已付|实收|收到|先付|付了)[:：]?(${NUMBER_SOURCE})`, 'i')
   const paidMatch = paidPattern.exec(remainder)
   if (paidMatch) {
@@ -320,6 +334,7 @@ export function parseVoiceCommand(input: string): VoiceCommand {
 
   const isPurchase = /进货|入货|补货|采购|买入|收货/.test(text)
   const isSale = /出货|卖给|卖予|销售|出售|卖出|售出/.test(text)
+  const isIncome = /记录收入|现金收入|其他收入|收入|收款/.test(text)
 
   if (isPurchase) {
     return { type: 'purchase', ...parseActionDetails(text, 'purchase') }
@@ -327,6 +342,10 @@ export function parseVoiceCommand(input: string): VoiceCommand {
 
   if (isSale) {
     return { type: 'sale', ...parseActionDetails(text, 'sale') }
+  }
+
+  if (isIncome) {
+    return { type: 'income', amount: extractNumberTokens(text)[0]?.value }
   }
 
   return { type: null }

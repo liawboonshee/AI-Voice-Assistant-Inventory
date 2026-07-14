@@ -39,14 +39,16 @@ function addCustomerDebt(name: string, amount: number): void {
 
 function getDebtAmount(command: VoiceCommand): number {
   if (command.debtAmount !== undefined) return command.debtAmount
+  if (command.paymentMethod === 'debt') return command.amount ?? 0
   if (command.isDebt) return command.amount ?? 0
   return 0
 }
 
 export function getMissingCommandField(command: VoiceCommand): MissingField {
+  if (command.type === 'income') return command.amount === undefined ? 'amount' : null
   if (command.type !== 'sale' && command.type !== 'purchase') return null
   if (command.weight === undefined) return 'weight'
-  if (command.amount === undefined) return 'amount'
+  if (command.type === 'purchase' && command.amount === undefined) return 'amount'
   if (command.type === 'sale' && getDebtAmount(command) > 0 && !command.customer) {
     return 'customer'
   }
@@ -62,6 +64,7 @@ export function getMissingCommandPrompt(command: VoiceCommand): string | null {
   }
 
   if (missing === 'amount') {
+    if (command.type === 'income') return '要记录收入多少钱？'
     const weight = command.weight?.toFixed(2)
     return command.type === 'purchase'
       ? `${weight}克已听到，总成本多少钱？`
@@ -72,20 +75,39 @@ export function getMissingCommandPrompt(command: VoiceCommand): string | null {
 }
 
 export function executeParsedVoiceCommand(command: VoiceCommand): string | null {
-  if (command.type !== 'sale' && command.type !== 'purchase') return null
+  if (command.type !== 'sale' && command.type !== 'purchase' && command.type !== 'income') return null
 
   const missingPrompt = getMissingCommandPrompt(command)
   if (missingPrompt) return missingPrompt
 
-  const weight = roundMoney(command.weight ?? 0)
   const amount = roundMoney(command.amount ?? 0)
+
+  if (command.type === 'income') {
+    if (!Number.isFinite(amount) || amount <= 0) return '收入金额必须大于0。'
+    const data = loadInventory()
+    data.income = roundMoney(data.income + amount)
+    data.profit = roundMoney(data.profit + amount)
+    saveInventory(data)
+    saveRecord({
+      type: 'income',
+      date: new Date().toLocaleString(),
+      weight: 0,
+      amount,
+      paidAmount: amount,
+      costAmount: 0,
+      profitAmount: amount,
+      note: '其他收入',
+    })
+    return `✅ 已记录收入${amount.toFixed(2)}，并计入利润。`
+  }
+
+  const weight = roundMoney(command.weight ?? 0)
 
   if (!Number.isFinite(weight) || weight < 0.01) {
     return '重量最少是0.01克，请重新说。'
   }
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return command.type === 'purchase' ? '总成本必须大于0。' : '总售价必须大于0。'
-  }
+  if (!Number.isFinite(amount) || amount < 0) return '金额不能小于0。'
+  if (command.type === 'purchase' && amount <= 0) return '总成本必须大于0。'
 
   const data = loadInventory()
 
@@ -101,6 +123,7 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
       weight,
       amount,
       costAmount: amount,
+      profitAmount: 0,
     })
 
     return `✅ 已记录进货：${weight.toFixed(2)}克，成本${amount.toFixed(2)}；库存${data.stock.toFixed(2)}克。`
@@ -119,14 +142,16 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   const costPerGram = oldStock > 0 ? data.totalWeightCost / oldStock : 0
   const saleCost = roundMoney(costPerGram * weight)
   const paidAmount = roundMoney(amount - debtAmount)
+  const hasAmount = command.amount !== undefined && amount > 0
+  const profitAmount = hasAmount ? roundMoney(amount - saleCost) : 0
 
   data.stock = roundMoney(data.stock - weight)
   data.totalWeightCost = Math.max(0, roundMoney(data.totalWeightCost - saleCost))
   data.income = roundMoney(data.income + paidAmount)
-  data.profit = roundMoney(data.profit + amount - saleCost)
+  data.profit = roundMoney(data.profit + profitAmount)
 
   const customer = command.customer || '未填写'
-  if (debtAmount > 0) addCustomerDebt(customer, debtAmount)
+  addCustomerDebt(customer, debtAmount)
 
   saveInventory(data)
   saveRecord({
@@ -138,10 +163,18 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
     debtAmount,
     paidAmount,
     costAmount: saleCost,
+    profitAmount,
+    paymentMethod: hasAmount
+      ? debtAmount > 0
+        ? 'debt'
+        : command.paymentMethod || 'cash'
+      : 'none',
   })
 
   const debtText = debtAmount > 0 ? `，欠款${debtAmount.toFixed(2)}` : ''
-  return `✅ 已记录出货：${customer}，${weight.toFixed(2)}克，售价${amount.toFixed(2)}${debtText}；库存${data.stock.toFixed(2)}克。`
+  return hasAmount
+    ? `✅ 已记录出货：${customer}，${weight.toFixed(2)}克，售价${amount.toFixed(2)}${debtText}；库存${data.stock.toFixed(2)}克。`
+    : `✅ 已记录出货：${customer}，${weight.toFixed(2)}克，未填写金额；库存${data.stock.toFixed(2)}克。`
 }
 
 export function executeVoiceCommand(text: string): string | null {

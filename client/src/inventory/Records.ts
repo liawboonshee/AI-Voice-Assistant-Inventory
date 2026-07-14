@@ -1,10 +1,14 @@
 export type RecordItem = {
 
-  type:'purchase' | 'sale'
+  type:'purchase' | 'sale' | 'income'
 
   date:string
 
   customer?:string
+
+  source?:string
+
+  note?:string
 
   weight:number
 
@@ -16,6 +20,11 @@ export type RecordItem = {
   paidAmount?:number
 
   costAmount?:number
+
+  profitAmount?:number
+
+  // 出货收款方式；none 表示只扣库存、没有填写金额。
+  paymentMethod?:'cash' | 'transfer' | 'debt' | 'none'
 
 }
 
@@ -35,7 +44,12 @@ export function loadRecords():RecordItem[]{
 
   }
 
-  return JSON.parse(data)
+  try {
+    const parsed=JSON.parse(data)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
 
 }
 

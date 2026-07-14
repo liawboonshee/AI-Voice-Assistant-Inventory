@@ -4,36 +4,28 @@ import BottomTabBar, { TabKey } from './BottomTabBar';
 import InventoryApp from '../inventory/InventoryApp';
 
 export default function AppShell() {
-  const [tab, setTab] = useState<TabKey>('voice');
+  const [tab, setTab] = useState<TabKey>('inventory');
 
   return (
     <div
       style={{
         minHeight: '100vh',
         paddingBottom:
-          'calc(56px + env(safe-area-inset-bottom))',
+          tab === 'voice' ? 'calc(56px + env(safe-area-inset-bottom))' : 0,
       }}
     >
-      <div
-        style={{
-          display: tab === 'voice' ? 'block' : 'none',
-        }}
-      >
+      {tab === 'voice' ? (
         <VoiceApp />
-      </div>
+      ) : (
+        <InventoryApp onOpenVoice={() => setTab('voice')} />
+      )}
 
-      <div
-        style={{
-          display: tab === 'inventory' ? 'block' : 'none',
-        }}
-      >
-        <InventoryApp />
-      </div>
-
-      <BottomTabBar
-        active={tab}
-        onChange={setTab}
-      />
+      {tab === 'voice' && (
+        <BottomTabBar
+          active={tab}
+          onChange={setTab}
+        />
+      )}
     </div>
   );
 }

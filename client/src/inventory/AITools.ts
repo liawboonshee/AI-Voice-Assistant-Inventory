@@ -56,7 +56,7 @@ export function runInventoryTool(input: string): string | null {
     return askInventory(text)
   }
 
-  if (command.type === 'sale' || command.type === 'purchase') {
+  if (command.type === 'sale' || command.type === 'purchase' || command.type === 'income') {
     pendingCommand = command
   } else if (pendingCommand) {
     pendingCommand = mergeFollowUp(pendingCommand, text)

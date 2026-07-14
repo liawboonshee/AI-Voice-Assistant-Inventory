@@ -2,142 +2,57 @@ import { useState } from 'react'
 import { saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
+function round(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
 
 export default function Purchase() {
-
-
   const [weight, setWeight] = useState('')
   const [cost, setCost] = useState('')
+  const [source, setSource] = useState('')
   const [message, setMessage] = useState('')
 
-
   const addPurchase = () => {
-
-
-    const w = Number(weight)
-    const c = Number(cost)
-
-
-    if (!w || !c) {
-
-      setMessage('请输入重量和成本')
+    const w = round(Number(weight))
+    const c = round(Number(cost))
+    if (!Number.isFinite(w) || w < 0.01 || !Number.isFinite(c) || c <= 0) {
+      setMessage('请输入至少0.01g的重量和正确成本')
       return
-
     }
 
-
     const data = loadInventory()
-
-
-    // 增加库存
-
-    data.stock += w
-
-
-    // 增加库存本金
-
-    data.totalWeightCost += c
-
-
-    // 累计成本
-
-    data.cost += c
-
-
-
+    data.stock = round(data.stock + w)
+    data.totalWeightCost = round(data.totalWeightCost + c)
+    data.cost = round(data.cost + c)
     saveInventory(data)
 
-
-
-    // 保存进货记录
-
     saveRecord({
-
-      type:'purchase',
-
-      date:new Date().toLocaleString(),
-
-      weight:w,
-
-      amount:c,
-
-      costAmount:c
-
+      type: 'purchase',
+      date: new Date().toLocaleString(),
+      source: source.trim() || '未填写',
+      weight: w,
+      amount: c,
+      costAmount: c,
+      profitAmount: 0,
     })
-
-
 
     setWeight('')
     setCost('')
-
-
-    setMessage('✅ 进货成功')
-
-
+    setSource('')
+    setMessage(`✅ 已进货${w.toFixed(2)}g，成本RM${c.toFixed(2)}`)
   }
 
-
-
   return (
-
-    <div style={{padding:24}}>
-
-
+    <div>
       <h1>📥 进货</h1>
-
-
-      <p>重量(g)</p>
-
-
-      <input
-
-        value={weight}
-
-        onChange={(e)=>setWeight(e.target.value)}
-
-        placeholder="例如 100"
-
-        type="number"
-
-        step="0.01"
-
-      />
-
-
-      <p>总成本</p>
-
-
-      <input
-
-        value={cost}
-
-        onChange={(e)=>setCost(e.target.value)}
-
-        placeholder="例如 5000"
-
-        type="number"
-
-        step="0.01"
-
-      />
-
-
-      <br/>
-      <br/>
-
-
-      <button onClick={addPurchase}>
-
-        保存进货
-
-      </button>
-
-
-      <p>{message}</p>
-
-
+      <p>供应来源（可选）</p>
+      <input value={source} onChange={(event) => setSource(event.target.value)} placeholder="例如：阿强供应商" />
+      <p>重量（g，最小0.01）</p>
+      <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="例如 125" type="number" step="0.01" />
+      <p>总成本（RM）</p>
+      <input value={cost} onChange={(event) => setCost(event.target.value)} placeholder="例如 4500" type="number" step="0.01" />
+      <button type="button" onClick={addPurchase}>保存进货</button>
+      {message && <p>{message}</p>}
     </div>
-
   )
-
 }

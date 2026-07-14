@@ -5,6 +5,12 @@ import type { VoiceAdapter, VoiceListenHandlers } from './types'
 
 const INLINE_RESTART_DELAY_MS = 350
 const PLUGIN_STOP_TIMEOUT_MS = 400
+const INVENTORY_ACTION_PATTERN = /进货|入货|补货|采购|买入|收货|出货|销售|出售|卖出|售出/
+
+function pickBestTranscript(matches: string[] | undefined): string {
+  const candidates = (matches ?? []).map((item) => item.trim()).filter(Boolean)
+  return candidates.find((item) => INVENTORY_ACTION_PATTERN.test(item)) ?? candidates[0] ?? ''
+}
 
 /** 将插件英文错误映射为可操作的中文提示 */
 function mapSpeechError(err: unknown): string {
@@ -102,13 +108,13 @@ export function createNativeSpeechAdapter(): VoiceAdapter {
 
       const result = await SpeechRecognition.start({
         language: 'zh-CN',
-        maxResults: 1,
+        maxResults: 5,
         partialResults: false,
         popup: true,
         prompt: '请说话…',
       })
 
-      const text = result.matches?.[0]?.trim() ?? ''
+      const text = pickBestTranscript(result.matches)
       if (!text) {
         nextHandlers.onError('未识别到语音，请靠近麦克风清晰说话后重试')
         return
@@ -155,7 +161,7 @@ export function createNativeSpeechAdapter(): VoiceAdapter {
         language: 'zh-CN',
         partialResults: true,
         popup: false,
-        maxResults: 1,
+        maxResults: 5,
       })
     } catch (err) {
       handlers?.onError(mapSpeechError(err))
@@ -191,7 +197,7 @@ export function createNativeSpeechAdapter(): VoiceAdapter {
         language: 'zh-CN',
         partialResults: true,
         popup: false,
-        maxResults: 1,
+        maxResults: 5,
       })
     } catch (err) {
       handlers?.onError(mapSpeechError(err))

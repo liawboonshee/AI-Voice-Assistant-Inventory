@@ -2,392 +2,140 @@ import { useEffect, useState } from 'react'
 import { loadRecords, saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
+type CustomerData = { name: string; phone?: string; debt: number }
+const KEY = 'customers'
 
-type CustomerData = {
-  name:string
-  debt:number
+function round(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100
 }
 
-
-const KEY='customers'
-
-
-function loadCustomers():CustomerData[]{
-
-  const data=localStorage.getItem(KEY)
-
-  if(!data){
+function loadCustomers(): CustomerData[] {
+  try {
+    const data = JSON.parse(localStorage.getItem(KEY) || '[]')
+    return Array.isArray(data) ? data : []
+  } catch {
     return []
   }
-
-  return JSON.parse(data)
-
 }
 
+function saveCustomers(data: CustomerData[]) {
+  localStorage.setItem(KEY, JSON.stringify(data))
+}
 
+export default function Customers() {
+  const [customers, setCustomers] = useState<CustomerData[]>(loadCustomers())
+  const [records, setRecords] = useState(loadRecords())
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [pay, setPay] = useState<Record<number, string>>({})
+  const [message, setMessage] = useState('')
 
-function saveCustomers(data:CustomerData[]){
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setCustomers(loadCustomers())
+      setRecords(loadRecords())
+    }, 700)
+    return () => window.clearInterval(timer)
+  }, [])
 
-  localStorage.setItem(
-    KEY,
-    JSON.stringify(data)
+  function addCustomer() {
+    const newName = name.trim()
+    if (!newName) {
+      setMessage('请输入客户名字')
+      return
+    }
+    const list = [...customers]
+    const existing = list.find((item) => item.name === newName)
+    if (existing) existing.phone = phone.trim() || existing.phone
+    else list.push({ name: newName, phone: phone.trim() || undefined, debt: 0 })
+    saveCustomers(list)
+    setCustomers(list)
+    setName('')
+    setPhone('')
+    setMessage(existing ? '✅ 客户资料已更新' : '✅ 客户已添加')
+  }
+
+  function repay(index: number) {
+    const amount = round(Number(pay[index]))
+    const list = [...customers]
+    const customer = list[index]
+    if (!customer || !Number.isFinite(amount) || amount <= 0) return
+    const actualPayment = Math.min(amount, customer.debt)
+    if (actualPayment <= 0) return
+
+    customer.debt = Math.max(0, round(customer.debt - actualPayment))
+    saveCustomers(list)
+    setCustomers(list)
+
+    const inventory = loadInventory()
+    inventory.income = round(inventory.income + actualPayment)
+    saveInventory(inventory)
+    saveRecord({
+      type: 'income',
+      date: new Date().toLocaleString(),
+      customer: customer.name,
+      weight: 0,
+      amount: actualPayment,
+      paidAmount: actualPayment,
+      costAmount: 0,
+      profitAmount: 0,
+      note: '客户还款',
+    })
+    setPay({ ...pay, [index]: '' })
+    setMessage(`✅ ${customer.name}已还款RM${actualPayment.toFixed(2)}`)
+  }
+
+  return (
+    <div>
+      <h1>👤 客户管理</h1>
+      <div className="customer-add-grid">
+        <input value={name} onChange={(event) => setName(event.target.value)} placeholder="客户名字" />
+        <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="电话（可选）" type="tel" />
+      </div>
+      <button type="button" onClick={addCustomer}>➕ 添加 / 更新客户</button>
+      {message && <p>{message}</p>}
+      {customers.length === 0 && <p>暂无客户</p>}
+
+      {customers.map((item, index) => {
+        const history = records.filter(
+          (record) => record.type === 'sale' && record.customer === item.name && record.weight > 0,
+        )
+        const totalWeight = history.reduce((sum, record) => sum + record.weight, 0)
+        const totalSpend = history.reduce((sum, record) => sum + record.amount, 0)
+        const totalPaid = history.reduce(
+          (sum, record) => sum + (record.paidAmount ?? Math.max(0, record.amount - (record.debtAmount || 0))),
+          0,
+        )
+        return (
+          <section className="customer-card" key={item.name}>
+            <h3>👤 {item.name}</h3>
+            <p>电话：{item.phone || '未填写'}</p>
+            <div className="customer-summary-grid">
+              <span>购买 {totalWeight.toFixed(2)}g</span>
+              <span>消费 RM{totalSpend.toFixed(2)}</span>
+              <span>已付款 RM{totalPaid.toFixed(2)}</span>
+              <strong>欠款 RM{item.debt.toFixed(2)}</strong>
+            </div>
+            <h4>历史购买记录</h4>
+            {history.length === 0 ? (
+              <p>暂无购买记录</p>
+            ) : (
+              history.slice().reverse().slice(0, 8).map((record, recordIndex) => (
+                <p className="customer-history-row" key={`${record.date}-${recordIndex}`}>
+                  <span>{record.date}</span>
+                  <strong>{record.weight.toFixed(2)}g · RM{record.amount.toFixed(2)}</strong>
+                </p>
+              ))
+            )}
+            {item.debt > 0 && (
+              <div className="customer-repay-row">
+                <input type="number" placeholder="还款金额" value={pay[index] || ''} onChange={(event) => setPay({ ...pay, [index]: event.target.value })} />
+                <button type="button" onClick={() => repay(index)}>确认还款</button>
+              </div>
+            )}
+          </section>
+        )
+      })}
+    </div>
   )
-
-}
-
-
-
-export default function Customers(){
-
-
-const [customers,setCustomers]=useState<CustomerData[]>(loadCustomers())
-
-const [records,setRecords]=useState(loadRecords())
-
-const [name,setName]=useState('')
-
-const [pay,setPay]=useState<{[key:number]:string}>({})
-
-
-
-useEffect(()=>{
-
-const timer=setInterval(()=>{
-
-setCustomers(loadCustomers())
-
-setRecords(loadRecords())
-
-},500)
-
-
-return()=>clearInterval(timer)
-
-
-},[])
-
-
-
-
-function addCustomer(){
-
-const newName=name.trim()
-
-
-if(!newName){
-
-return
-
-}
-
-
-const list=[...customers]
-
-
-list.push({
-
-name:newName,
-
-debt:0
-
-})
-
-
-saveCustomers(list)
-
-setCustomers(list)
-
-setName('')
-
-
-}
-
-
-
-
-
-function repay(index:number){
-
-
-const amount=Number(pay[index])
-
-
-if(!amount){
-
-return
-
-}
-
-
-
-const list=[...customers]
-
-const customer=list[index]
-
-
-if(!customer){
-
-return
-
-}
-
-
-
-const actualPayment=Math.min(amount,customer.debt)
-
-
-customer.debt-=actualPayment
-
-
-if(customer.debt<0){
-
-customer.debt=0
-
-}
-
-
-
-saveCustomers(list)
-
-setCustomers(list)
-
-
-const inventory=loadInventory()
-
-inventory.income+=actualPayment
-
-saveInventory(inventory)
-
-
-
-saveRecord({
-
-type:'sale',
-
-date:new Date().toLocaleString(),
-
-customer:customer.name,
-
-weight:0,
-
-amount:-actualPayment,
-
-paidAmount:actualPayment
-
-})
-
-
-
-setPay({
-
-...pay,
-
-[index]:''
-
-})
-
-
-}
-
-
-
-
-
-return(
-
-<div style={{padding:24}}>
-
-
-<h1>👤 客户管理</h1>
-
-
-
-<div>
-
-<input
-
-value={name}
-
-onChange={(e)=>setName(e.target.value)}
-
-placeholder="输入客户名字"
-
-/>
-
-
-<button onClick={addCustomer}>
-
-➕ 添加客户
-
-</button>
-
-
-</div>
-
-
-
-
-{
-
-customers.length===0 &&
-
-<p>
-
-暂无客户
-
-</p>
-
-}
-
-
-
-
-{
-
-customers.map((item,index)=>(
-
-
-<div
-
-key={index}
-
-style={{
-
-border:'1px solid #555',
-
-padding:15,
-
-marginTop:15,
-
-borderRadius:8
-
-}}
-
->
-
-
-<h3>
-
-👤 {item.name}
-
-</h3>
-
-
-
-<p>
-
-欠款：
-
-{item.debt.toFixed(2)}
-
-</p>
-
-
-
-<h4>
-
-购买记录
-
-</h4>
-
-
-
-{
-
-records
-
-.filter(r=>
-
-r.type==='sale'
-
-&&
-
-r.customer===item.name
-
-)
-
-.map((r,i)=>(
-
-
-<p key={i}>
-
-{r.weight.toFixed(2)}g
-
--
-
-{r.amount.toFixed(2)}
-
-</p>
-
-
-))
-
-}
-
-
-
-
-{
-
-item.debt>0 &&
-
-<div>
-
-
-<input
-
-type="number"
-
-placeholder="还款金额"
-
-value={pay[index]||''}
-
-onChange={(e)=>
-
-setPay({
-
-...pay,
-
-[index]:e.target.value
-
-})
-
-}
-
-
-/>
-
-
-
-<button onClick={()=>repay(index)}>
-
-确认还款
-
-</button>
-
-
-</div>
-
-
-}
-
-
-
-</div>
-
-
-))
-
-
-}
-
-
-
-
-</div>
-
-
-)
-
-
 }

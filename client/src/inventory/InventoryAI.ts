@@ -1,6 +1,7 @@
 import { loadInventory } from './Storage'
 import { loadRecords, type RecordItem } from './Records'
 import { parseVoiceCommand } from './VoiceCommand'
+import { recordCashIn, recordProfit } from './Analytics'
 
 type CustomerData = {
   name: string
@@ -37,6 +38,10 @@ function describeLastRecord(record: RecordItem | undefined): string {
     return `最近一笔是进货：${record.weight.toFixed(2)}克，成本${record.amount.toFixed(2)}，时间${record.date}。`
   }
 
+  if (record.type === 'income') {
+    return `最近一笔是${record.note || '收入'}：${record.amount.toFixed(2)}，时间${record.date}。`
+  }
+
   const debtText = (record.debtAmount || 0) > 0 ? `，欠款${record.debtAmount?.toFixed(2)}` : ''
   return `最近一笔是出货：${record.customer || '未填写'}，${record.weight.toFixed(2)}克，售价${record.amount.toFixed(2)}${debtText}，时间${record.date}。`
 }
@@ -64,12 +69,7 @@ export function askInventory(input: string): string | null {
 
   if (command.query === 'income') {
     if (text.includes('今天')) {
-      const paid = records
-        .filter((record) => record.type === 'sale')
-        .reduce(
-          (total, record) => total + (record.paidAmount ?? record.amount),
-          0,
-        )
+      const paid = records.reduce((total, record) => total + recordCashIn(record), 0)
       return `今天实收${paid.toFixed(2)}。`
     }
     return `目前累计实收${data.income.toFixed(2)}。`
@@ -77,15 +77,8 @@ export function askInventory(input: string): string | null {
 
   if (command.query === 'profit') {
     if (text.includes('今天')) {
-      const todaySales = records.filter((record) => record.type === 'sale')
-      const hasCostData = todaySales.every((record) => record.costAmount !== undefined)
-      if (hasCostData) {
-        const profit = todaySales.reduce(
-          (total, record) => total + record.amount - (record.costAmount || 0),
-          0,
-        )
-        return `今天利润${profit.toFixed(2)}。`
-      }
+      const profit = records.reduce((total, record) => total + recordProfit(record), 0)
+      return `今天利润${profit.toFixed(2)}。`
     }
     return `目前累计利润${data.profit.toFixed(2)}。`
   }
