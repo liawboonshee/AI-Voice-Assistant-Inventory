@@ -8,8 +8,8 @@
 
 | 内容 | 位置 |
 |------|------|
-| 完整源码 | https://github.com/boonshee/AI-Voice-Assistant |
-| Debug APK | 仓库 **Actions** → 最新成功 run → **Artifacts** → 下载 `app-debug` |
+| 完整源码 | https://github.com/liawboonshee/AI-Voice-Assistant-Inventory/tree/inventory-v1 |
+| 固定签名 APK | 仓库 **Actions** → 最新成功 run → **Artifacts** → 下载 `KuCunBao-AI-fixed-signature` |
 | 云端 Proxy（**默认**） | `worker/` → Cloudflare Worker |
 | 本地调试 Proxy（备选） | `server/`（Node.js Express） |
 | 前端 + Android | `client/` |
@@ -51,6 +51,12 @@ GitHub Secrets 设置：
 |--------|------|------|
 | `VITE_API_BASE_URL` | 是 | Worker HTTPS 地址 |
 | `VITE_PROXY_TOKEN` | 若 Worker 启用了 Token | 须与 `PROXY_AUTH_TOKEN` **完全相同** |
+| `KUCUNBAO_KEYSTORE_BASE64` | 是 | `KuCunBao-release.jks` 的 Base64 内容 |
+| `KUCUNBAO_STORE_PASSWORD` | 是 | 固定签名密钥库密码 |
+| `KUCUNBAO_KEY_ALIAS` | 是 | 固定签名别名 |
+| `KUCUNBAO_KEY_PASSWORD` | 是 | 固定签名密钥密码 |
+
+签名资料来自私密备份 `KuCunBao-signing-backup.zip`，不可提交到公开仓库。缺少任何一项签名 Secret 时，Actions 会直接失败，不再生成随机签名 APK。
 
 push 后 Actions 自动构建 APK。
 
@@ -74,7 +80,7 @@ App 设置填 `http://<电脑局域网IP>:3001`，手机与电脑同一 WiFi。
 
 ### 第 1 步：安装 APK
 
-从 GitHub Actions Artifacts 下载最新 `app-debug`，安装到 Android 手机。
+从 GitHub Actions Artifacts 下载最新 `KuCunBao-AI-fixed-signature`，解压后安装 `KuCunBao-AI-release.apk`。这个 APK 必须由库存宝原始固定签名构建，才可覆盖旧版并保留数据。
 
 ### 第 2 步：授予麦克风权限
 

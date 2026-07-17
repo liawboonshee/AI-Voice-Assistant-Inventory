@@ -68,13 +68,43 @@ jobs:
         run: |
           sed -i 's|mirrors.cloud.tencent.com/gradle|services.gradle.org/distributions|g' gradle/wrapper/gradle-wrapper.properties
 
-      - name: Gradle assembleDebug
-        working-directory: client/android
-        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      - name: Restore permanent signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KUCUNBAO_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.KUCUNBAO_STORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KUCUNBAO_KEY_ALIAS || secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KUCUNBAO_KEY_PASSWORD || secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::固定签名 Secrets 未完整配置，拒绝生成随机签名 APK"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/KuCunBao-release.jks"
+          fingerprint=$(keytool -list -v \
+            -keystore "$RUNNER_TEMP/KuCunBao-release.jks" \
+            -storepass "$STORE_PASSWORD" \
+            -alias "$KEY_ALIAS" | sed -n 's/.*SHA256: //p' | tr -d ':[:space:]')
+          if [ "$fingerprint" != "F4473D2FBFFBF24496E126DA6F6EE344616D09271224CF5E5E9DA59E03D0122E" ]; then
+            echo "::error::签名证书不是库存宝原始固定签名，拒绝构建"
+            exit 1
+          fi
+          echo "固定签名证书校验通过"
 
-      - name: Upload app-debug.apk
+      - name: Gradle assembleRelease with permanent signature
+        working-directory: client/android
+        env:
+          KUCUNBAO_KEYSTORE_FILE: ${{ runner.temp }}/KuCunBao-release.jks
+          KUCUNBAO_STORE_PASSWORD: ${{ secrets.KUCUNBAO_STORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+          KUCUNBAO_KEY_ALIAS: ${{ secrets.KUCUNBAO_KEY_ALIAS || secrets.KEY_ALIAS }}
+          KUCUNBAO_KEY_PASSWORD: ${{ secrets.KUCUNBAO_KEY_PASSWORD || secrets.KEY_PASSWORD }}
+        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+
+      - name: Prepare fixed-signature APK
+        run: cp client/android/app/build/outputs/apk/release/app-release.apk KuCunBao-AI-release.apk
+
+      - name: Upload fixed-signature release APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: client/android/app/build/outputs/apk/debug/app-debug.apk
+          name: KuCunBao-AI-fixed-signature
+          path: KuCunBao-AI-release.apk
           if-no-files-found: error
