@@ -58,6 +58,14 @@ GitHub Secrets 设置：
 
 签名资料来自私密备份 `KuCunBao-signing-backup.zip`，不可提交到公开仓库。缺少任何一项签名 Secret 时，Actions 会直接失败，不再生成随机签名 APK。
 
+首次配置可在已登录 GitHub CLI 的 Termux 执行：
+
+```bash
+bash scripts/setup-github-signing.sh ~/storage/downloads/KuCunBao-signing-backup.zip
+```
+
+脚本只把加密值写入 GitHub Secrets，并校验原始证书指纹；不会把 JKS 或密码提交到仓库。
+
 push 后 Actions 自动构建 APK。
 
 ### Q5：局域网 Node 方案还能用吗？
