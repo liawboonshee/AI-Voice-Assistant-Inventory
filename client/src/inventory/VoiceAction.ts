@@ -1,5 +1,6 @@
 import { loadInventory, saveInventory } from './Storage'
-import { saveRecord } from './Records'
+import { currentRecordDate, saveRecord } from './Records'
+import { calculatePaymentBreakdown, paymentSummary } from './Payments'
 import { parseVoiceCommand, type VoiceCommand } from './VoiceCommand'
 
 type MissingField = 'weight' | 'amount' | 'customer' | null
@@ -37,7 +38,32 @@ function addCustomerDebt(name: string, amount: number): void {
   localStorage.setItem(CUSTOMER_KEY, JSON.stringify(customers))
 }
 
+function paymentForCommand(command: VoiceCommand) {
+  const hasExplicitSplit =
+    command.cashAmount !== undefined ||
+    command.transferAmount !== undefined ||
+    command.debtAmount !== undefined
+  let cashAmount = command.cashAmount
+  let transferAmount = command.transferAmount
+  let debtAmount = command.debtAmount
+
+  if (!hasExplicitSplit && command.amount !== undefined) {
+    if (command.paymentMethod === 'transfer') transferAmount = command.amount
+    if (command.paymentMethod === 'debt' || command.isDebt) debtAmount = command.amount
+    if (command.paymentMethod === 'cash') cashAmount = command.amount
+  }
+
+  return calculatePaymentBreakdown({
+    total: command.amount,
+    cashAmount,
+    transferAmount,
+    debtAmount,
+  })
+}
+
 function getDebtAmount(command: VoiceCommand): number {
+  const payment = paymentForCommand(command)
+  if (typeof payment !== 'string') return payment.debtAmount
   if (command.debtAmount !== undefined) return command.debtAmount
   if (command.paymentMethod === 'debt') return command.amount ?? 0
   if (command.isDebt) return command.amount ?? 0
@@ -90,7 +116,7 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
     saveInventory(data)
     saveRecord({
       type: 'income',
-      date: new Date().toLocaleString(),
+      date: currentRecordDate(),
       weight: 0,
       amount,
       paidAmount: amount,
@@ -112,42 +138,46 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   const data = loadInventory()
 
   if (command.type === 'purchase') {
+    const batchUnitCost = roundMoney(amount / weight)
     data.stock = roundMoney(data.stock + weight)
     data.totalWeightCost = roundMoney(data.totalWeightCost + amount)
     data.cost = roundMoney(data.cost + amount)
+    const averageCostAfter = data.stock > 0 ? roundMoney(data.totalWeightCost / data.stock) : 0
     saveInventory(data)
 
     saveRecord({
       type: 'purchase',
-      date: new Date().toLocaleString(),
+      date: currentRecordDate(),
       weight,
       amount,
       costAmount: amount,
       profitAmount: 0,
+      batchId: `B${Date.now()}`,
+      unitCost: batchUnitCost,
+      averageCostAfter,
+      stockAfter: data.stock,
     })
 
-    return `✅ 已记录进货：${weight.toFixed(2)}克，成本${amount.toFixed(2)}；库存${data.stock.toFixed(2)}克。`
+    return `✅ 已记录新批货：${weight.toFixed(2)}克，成本${amount.toFixed(2)}；库存平均成本已重算为${averageCostAfter.toFixed(2)}每克。`
   }
 
   if (data.stock < weight) {
     return `库存不足。目前只有${data.stock.toFixed(2)}克，不能出货${weight.toFixed(2)}克。`
   }
 
-  const debtAmount = roundMoney(getDebtAmount(command))
-  if (debtAmount < 0 || debtAmount > amount) {
-    return `欠款不能超过总售价${amount.toFixed(2)}。`
-  }
+  const payment = paymentForCommand(command)
+  if (typeof payment === 'string') return payment
+  const debtAmount = payment.debtAmount
 
   const oldStock = data.stock
   const costPerGram = oldStock > 0 ? data.totalWeightCost / oldStock : 0
   const saleCost = roundMoney(costPerGram * weight)
-  const paidAmount = roundMoney(amount - debtAmount)
-  const hasAmount = command.amount !== undefined && amount > 0
-  const profitAmount = hasAmount ? roundMoney(amount - saleCost) : 0
+  const hasAmount = payment.total > 0
+  const profitAmount = hasAmount ? roundMoney(payment.total - saleCost) : 0
 
   data.stock = roundMoney(data.stock - weight)
   data.totalWeightCost = Math.max(0, roundMoney(data.totalWeightCost - saleCost))
-  data.income = roundMoney(data.income + paidAmount)
+  data.income = roundMoney(data.income + payment.paidAmount)
   data.profit = roundMoney(data.profit + profitAmount)
 
   const customer = command.customer || '未填写'
@@ -156,24 +186,22 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   saveInventory(data)
   saveRecord({
     type: 'sale',
-    date: new Date().toLocaleString(),
+    date: currentRecordDate(),
     customer,
     weight,
-    amount,
+    amount: payment.total,
     debtAmount,
-    paidAmount,
+    paidAmount: payment.paidAmount,
+    cashAmount: payment.cashAmount,
+    transferAmount: payment.transferAmount,
     costAmount: saleCost,
     profitAmount,
-    paymentMethod: hasAmount
-      ? debtAmount > 0
-        ? 'debt'
-        : command.paymentMethod || 'cash'
-      : 'none',
+    paymentMethod: payment.paymentMethod,
+    stockAfter: data.stock,
   })
 
-  const debtText = debtAmount > 0 ? `，欠款${debtAmount.toFixed(2)}` : ''
   return hasAmount
-    ? `✅ 已记录出货：${customer}，${weight.toFixed(2)}克，售价${amount.toFixed(2)}${debtText}；库存${data.stock.toFixed(2)}克。`
+    ? `✅ 已记录出货：${customer}，${weight.toFixed(2)}克，${paymentSummary(payment)}；库存${data.stock.toFixed(2)}克。`
     : `✅ 已记录出货：${customer}，${weight.toFixed(2)}克，未填写金额；库存${data.stock.toFixed(2)}克。`
 }
 

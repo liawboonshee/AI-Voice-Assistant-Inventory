@@ -1,7 +1,7 @@
 import { loadInventory } from './Storage'
 import { loadRecords, type RecordItem } from './Records'
 import { parseVoiceCommand } from './VoiceCommand'
-import { recordCashIn, recordProfit } from './Analytics'
+import { isSameLocalDay, recordCashIn, recordProfit } from './Analytics'
 
 type CustomerData = {
   name: string
@@ -15,16 +15,6 @@ function loadCustomers(): CustomerData[] {
   } catch {
     return []
   }
-}
-
-function sameLocalDay(dateText: string, target: Date): boolean {
-  const date = new Date(dateText)
-  return (
-    !Number.isNaN(date.getTime()) &&
-    date.getFullYear() === target.getFullYear() &&
-    date.getMonth() === target.getMonth() &&
-    date.getDate() === target.getDate()
-  )
 }
 
 function sum(records: RecordItem[], field: 'weight' | 'amount'): number {
@@ -42,6 +32,14 @@ function describeLastRecord(record: RecordItem | undefined): string {
     return `最近一笔是${record.note || '收入'}：${record.amount.toFixed(2)}，时间${record.date}。`
   }
 
+  if (record.type === 'adjustment') {
+    return `最近一笔是库存修正：变化${record.weight.toFixed(2)}克，修正后库存${(record.stockAfter || 0).toFixed(2)}克。`
+  }
+
+  if (record.type === 'debt') {
+    return `最近一笔是新增欠款：${record.customer || '未填写'}，欠款${record.amount.toFixed(2)}。`
+  }
+
   const debtText = (record.debtAmount || 0) > 0 ? `，欠款${record.debtAmount?.toFixed(2)}` : ''
   return `最近一笔是出货：${record.customer || '未填写'}，${record.weight.toFixed(2)}克，售价${record.amount.toFixed(2)}${debtText}，时间${record.date}。`
 }
@@ -54,7 +52,7 @@ export function askInventory(input: string): string | null {
   const data = loadInventory()
   const allRecords = loadRecords()
   const records = text.includes('今天')
-    ? allRecords.filter((record) => sameLocalDay(record.date, new Date()))
+    ? allRecords.filter((record) => isSameLocalDay(record.date, new Date()))
     : allRecords
   const period = text.includes('今天') ? '今天' : '目前'
 

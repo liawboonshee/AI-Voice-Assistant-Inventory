@@ -782,6 +782,47 @@ body {
   color: #fff;
 }
 
+.inventory-payment-split {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.inventory-payment-split label {
+  display: grid;
+  gap: 5px;
+  color: #586174;
+  font-size: 0.78rem;
+}
+
+.inventory-payment-split input {
+  min-width: 0;
+  margin: 0;
+}
+
+.inventory-stock-summary,
+.inventory-stock-adjust {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid #e3e7f1;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.inventory-stock-summary p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.inventory-stock-adjust h2 { margin-top: 0; }
+
+@media (max-width: 420px) {
+  .inventory-payment-split { grid-template-columns: 1fr; }
+}
+
 .customer-add-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -829,6 +870,13 @@ body {
   grid-template-columns: 1fr auto;
   gap: 8px;
   align-items: center;
+}
+
+.customer-debt-add-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin: 10px 0 14px;
 }
 
 .records-summary-grid {

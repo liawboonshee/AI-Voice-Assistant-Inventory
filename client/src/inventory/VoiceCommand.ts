@@ -18,8 +18,10 @@ export type VoiceCommand = {
   amount?: number
   debtAmount?: number
   paidAmount?: number
+  cashAmount?: number
+  transferAmount?: number
   isDebt?: boolean
-  paymentMethod?: 'cash' | 'transfer' | 'debt'
+  paymentMethod?: 'cash' | 'transfer' | 'debt' | 'mixed'
 }
 
 type NumberToken = {
@@ -272,11 +274,34 @@ function parseActionDetails(text: string, type: 'sale' | 'purchase'): Omit<Voice
   }
 
   if (type === 'sale') {
-    result.paymentMethod = /欠款|赊账|挂账|记账|未付款|没给钱|还没付/.test(text)
-      ? 'debt'
-      : /转账|转帐|银行|电子钱包/.test(text)
-        ? 'transfer'
-        : 'cash'
+    const cashPattern = new RegExp(`(?:收现金|现金|现收)[:：]?(${NUMBER_SOURCE})`, 'i')
+    const cashMatch = cashPattern.exec(remainder)
+    if (cashMatch) {
+      const cashAmount = parseSpokenNumber(cashMatch[1] ?? '')
+      if (cashAmount !== null) result.cashAmount = cashAmount
+      remainder = maskRange(remainder, cashMatch.index, cashMatch[0].length)
+    }
+
+    const transferPattern = new RegExp(`(?:转账|转帐|银行|电子钱包)[:：]?(${NUMBER_SOURCE})`, 'i')
+    const transferMatch = transferPattern.exec(remainder)
+    if (transferMatch) {
+      const transferAmount = parseSpokenNumber(transferMatch[1] ?? '')
+      if (transferAmount !== null) result.transferAmount = transferAmount
+      remainder = maskRange(remainder, transferMatch.index, transferMatch[0].length)
+    }
+
+    const methodCount = [
+      (result.cashAmount || 0) > 0,
+      (result.transferAmount || 0) > 0,
+      (result.debtAmount || 0) > 0,
+    ].filter(Boolean).length
+    result.paymentMethod = methodCount > 1
+      ? 'mixed'
+      : (result.debtAmount || 0) > 0 || /欠款|赊账|挂账|记账|未付款|没给钱|还没付/.test(text)
+        ? 'debt'
+        : (result.transferAmount || 0) > 0 || /转账|转帐|银行|电子钱包/.test(text)
+          ? 'transfer'
+          : 'cash'
   }
 
   const paidPattern = new RegExp(`(?:已付|实收|收到|先付|付了)[:：]?(${NUMBER_SOURCE})`, 'i')
@@ -315,6 +340,18 @@ function parseActionDetails(text: string, type: 'sale' | 'purchase'): Omit<Voice
   ) {
     result.debtAmount = Math.max(0, result.amount - result.paidAmount)
     result.isDebt = result.debtAmount > 0
+  }
+
+  if (type === 'sale' && (result.cashAmount !== undefined || result.transferAmount !== undefined)) {
+    result.paidAmount = (result.cashAmount || 0) + (result.transferAmount || 0)
+  }
+
+  if (
+    type === 'sale' &&
+    result.amount === undefined &&
+    (result.cashAmount !== undefined || result.transferAmount !== undefined || result.debtAmount !== undefined)
+  ) {
+    result.amount = (result.cashAmount || 0) + (result.transferAmount || 0) + (result.debtAmount || 0)
   }
 
   return result

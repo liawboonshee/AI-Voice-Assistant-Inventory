@@ -49,6 +49,8 @@ function formatMoney(value: number): string {
 
 function recordTitle(item: RecordItem): string {
   if (item.type === 'purchase') return '📥 进货'
+  if (item.type === 'adjustment') return '🧮 库存修正'
+  if (item.type === 'debt') return '🧾 新增欠款'
   if (item.type === 'income') return item.note === '客户还款' ? '💳 客户还款' : '💰 收入'
   if (item.weight === 0 && (item.paidAmount || 0) > 0) return '💳 客户还款'
   return '📤 出货'
@@ -149,7 +151,7 @@ export default function InventoryApp({ onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 2.8</h1>
+            <h1>📦 库存宝 AI 2.9</h1>
             <p>今天：{new Date().toLocaleDateString('zh-CN')}</p>
           </div>
           <div className="inventory-header-actions">

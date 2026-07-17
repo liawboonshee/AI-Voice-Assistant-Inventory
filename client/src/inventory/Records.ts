@@ -1,6 +1,8 @@
+import type { PaymentMethod } from './Payments'
+
 export type RecordItem = {
 
-  type:'purchase' | 'sale' | 'income'
+  type:'purchase' | 'sale' | 'income' | 'adjustment' | 'debt'
 
   date:string
 
@@ -19,12 +21,24 @@ export type RecordItem = {
 
   paidAmount?:number
 
+  cashAmount?:number
+
+  transferAmount?:number
+
   costAmount?:number
 
   profitAmount?:number
 
   // 出货收款方式；none 表示只扣库存、没有填写金额。
-  paymentMethod?:'cash' | 'transfer' | 'debt' | 'none'
+  paymentMethod?:PaymentMethod
+
+  batchId?:string
+
+  unitCost?:number
+
+  averageCostAfter?:number
+
+  stockAfter?:number
 
 }
 
@@ -68,6 +82,12 @@ export function saveRecord(item:RecordItem){
     JSON.stringify(records)
 
   )
+
+}
+
+export function currentRecordDate():string{
+
+  return new Date().toISOString()
 
 }
 

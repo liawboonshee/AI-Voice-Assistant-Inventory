@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { saveRecord } from './Records'
+import { currentRecordDate, saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
 function round(value: number): number {
@@ -23,7 +23,7 @@ export default function Income() {
     saveInventory(data)
     saveRecord({
       type: 'income',
-      date: new Date().toLocaleString(),
+      date: currentRecordDate(),
       weight: 0,
       amount: value,
       paidAmount: value,
