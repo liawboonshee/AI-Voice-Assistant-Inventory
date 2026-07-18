@@ -204,6 +204,100 @@ function extractDebtQueryCustomer(text: string): string | undefined {
   return name || undefined
 }
 
+function loadKnownCustomerNames(): string[] {
+  try {
+    if (typeof localStorage === 'undefined') return []
+    const data = JSON.parse(localStorage.getItem('customers') || '[]')
+    if (!Array.isArray(data)) return []
+    return data
+      .map((item) => (typeof item?.name === 'string' ? item.name.trim() : ''))
+      .filter(Boolean)
+      .filter((name, index, list) => list.indexOf(name) === index)
+      .sort((left, right) => right.length - left.length)
+  } catch {
+    return []
+  }
+}
+
+function cleanCustomerCandidate(text: string): string {
+  return text
+    .replace(/[\s，,。；;!?！？:：]/g, '')
+    .replace(/^(?:客户|顾客)(?:是|叫|为)?/, '')
+    .replace(/^(?:是|叫)/, '')
+    .replace(/(?:的)?(?:欠款?|还欠)(?:多少|多少钱|几多)?$/, '')
+    .trim()
+}
+
+const CUSTOMER_HOMOPHONE_GROUPS = [
+  '健建剑坚键', '明鸣铭名', '伟炜纬玮', '华花桦', '杰洁捷婕', '林琳霖', '平萍苹',
+  '欣新心鑫馨', '丽莉利俐', '英莹瑛', '俊军君钧', '芳方', '文雯纹', '强墙',
+  '宏鸿洪红弘', '凯恺铠', '豪浩昊', '勇永咏', '峰锋丰', '宇雨羽禹', '佳嘉家',
+  '慧惠汇', '婷庭廷', '彬斌', '成诚程', '东冬', '龙隆', '宁凝', '玲灵铃',
+  '霞侠', '香湘', '佩沛', '燕艳', '志智治', '祥翔', '阳杨洋',
+]
+
+function sameCustomerSound(left: string, right: string): boolean {
+  return left === right || CUSTOMER_HOMOPHONE_GROUPS.some(
+    (group) => group.includes(left) && group.includes(right),
+  )
+}
+
+function nameDistance(left: string, right: string): number {
+  const rows = Array.from({ length: left.length + 1 }, (_, index) => index)
+  for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+    let diagonal = rows[0] ?? 0
+    rows[0] = rightIndex
+    for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+      const previous = rows[leftIndex] ?? 0
+      rows[leftIndex] = sameCustomerSound(left[leftIndex - 1] ?? '', right[rightIndex - 1] ?? '')
+        ? diagonal
+        : Math.min(diagonal, previous, rows[leftIndex - 1] ?? 0) + 1
+      diagonal = previous
+    }
+  }
+  return rows[left.length] ?? Math.max(left.length, right.length)
+}
+
+/**
+ * 用库存宝里已保存的顾客名单校正语音姓名。
+ * 先做完整姓名匹配，再允许一个汉字的语音同音/错字误差；同分时不猜。
+ */
+export function resolveKnownCustomerName(input: string): string | undefined {
+  const names = loadKnownCustomerNames()
+  if (names.length === 0) return undefined
+
+  const normalizedInput = normalizeText(input)
+  const embedded = names.find((name) => normalizedInput.includes(normalizeText(name)))
+  if (embedded) return embedded
+
+  const candidate = cleanCustomerCandidate(
+    extractCustomer(normalizedInput) ?? extractDebtQueryCustomer(normalizedInput) ?? normalizedInput,
+  )
+  if (!candidate) return undefined
+
+  const exact = names.find((name) => normalizeText(name) === candidate)
+  if (exact) return exact
+
+  const ranked = names
+    .map((name) => ({ name, distance: nameDistance(normalizeText(name), candidate) }))
+    .sort((left, right) => left.distance - right.distance)
+  const best = ranked[0]
+  if (!best || best.distance > 1) return undefined
+  if (ranked[1]?.distance === best.distance) return undefined
+  return best.name
+}
+
+/** Android 会返回多个听写候选，优先选择包含已保存顾客姓名的完整口令。 */
+export function scoreCustomerTranscript(input: string): number {
+  const normalized = normalizeText(input)
+  const names = loadKnownCustomerNames()
+  const exactCustomer = names.some((name) => normalized.includes(normalizeText(name)))
+  const resolvedCustomer = exactCustomer ? undefined : resolveKnownCustomerName(normalized)
+  const hasAction = /进货|入货|补货|采购|买入|收货|出货|卖给|销售|出售|卖出|售出/.test(normalized)
+  const hasQuery = /库存|利润|收入|欠款|欠多少|交易|记录/.test(normalized)
+  return (exactCustomer ? 100 : resolvedCustomer ? 60 : 0) + (hasAction ? 25 : 0) + (hasQuery ? 10 : 0)
+}
+
 function detectQuery(text: string): InventoryQuery | undefined {
   const questionLike =
     /多少|几笔|几多|查询|查一下|帮我查|看看|目前|现在|总共|总计|情况|概况|报表|上一笔|最近一笔|最后一笔/.test(
@@ -260,7 +354,7 @@ function parseActionDetails(text: string, type: 'sale' | 'purchase'): Omit<Voice
   let remainder = parsedWeight.masked
 
   if (parsedWeight.value !== undefined) result.weight = parsedWeight.value
-  if (type === 'sale') result.customer = extractCustomer(text)
+  if (type === 'sale') result.customer = resolveKnownCustomerName(text) ?? extractCustomer(text)
 
   const debtPattern = new RegExp(`(?:欠款?|赊账|挂账|记账)[:：]?(${NUMBER_SOURCE})`, 'i')
   const debtMatch = debtPattern.exec(remainder)
@@ -362,10 +456,13 @@ export function parseVoiceCommand(input: string): VoiceCommand {
   const query = detectQuery(text)
 
   if (query) {
+    const debtCustomer = query === 'debt' ? extractDebtQueryCustomer(text) : undefined
     return {
       type: 'query',
       query,
-      customer: query === 'debt' ? extractDebtQueryCustomer(text) : undefined,
+      customer: query === 'debt'
+        ? resolveKnownCustomerName(debtCustomer ?? text) ?? debtCustomer
+        : undefined,
     }
   }
 

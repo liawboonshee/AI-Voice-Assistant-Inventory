@@ -819,6 +819,22 @@ body {
 
 .inventory-stock-adjust h2 { margin-top: 0; }
 
+.inventory-stock-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.inventory-stock-form-grid label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: #586174;
+  font-size: 0.8rem;
+}
+
+.inventory-stock-note-field { grid-column: 1 / -1; }
+
 @media (max-width: 420px) {
   .inventory-payment-split { grid-template-columns: 1fr; }
 }
@@ -842,6 +858,22 @@ body {
 .customer-card h4,
 .record-entry h3 { margin: 0 0 8px; }
 
+.customer-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.customer-card-header h3 { margin: 0; }
+.customer-card-header span {
+  overflow: hidden;
+  color: #7b8494;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .customer-summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -850,9 +882,38 @@ body {
 }
 
 .customer-summary-grid strong {
-  grid-column: 1 / -1;
   color: #dc2626;
 }
+
+.customer-summary-grid > * {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: #f4f6fc;
+  font-size: 0.78rem;
+}
+
+.customer-summary-grid small {
+  color: #7b8494;
+  font-size: 0.66rem;
+  font-weight: 500;
+}
+
+.customer-card-details {
+  border-top: 1px solid #eef0f6;
+  color: #586174;
+  font-size: 0.78rem;
+}
+
+.customer-card-details summary {
+  padding: 7px 1px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.customer-card-details[open] { padding-bottom: 5px; }
 
 .customer-history-row {
   display: flex;
@@ -876,7 +937,7 @@ body {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
-  margin: 10px 0 14px;
+  margin: 3px 0 7px;
 }
 
 .records-summary-grid {
@@ -899,6 +960,150 @@ body {
 
 .record-search-input { margin: 4px 0 10px; }
 .record-entry p { margin: 5px 0; font-size: 0.84rem; }
+
+@media (max-width: 560px) {
+  .inventory-app {
+    padding-bottom: calc(55px + env(safe-area-inset-bottom));
+  }
+
+  .inventory-pro-header {
+    padding: 9px 10px 10px;
+    border-radius: 0 0 18px 18px;
+  }
+
+  .inventory-pro-header h1 { font-size: 1.05rem; }
+  .inventory-pro-header p { margin-top: 2px; font-size: 0.68rem; }
+
+  .inventory-header-actions button {
+    min-width: 40px;
+    min-height: 32px;
+    padding: 5px 7px;
+    border-radius: 11px;
+    font-size: 0.7rem;
+  }
+
+  .inventory-header-actions .inventory-icon-action {
+    min-width: 32px;
+    font-size: 0.9rem;
+  }
+
+  .inventory-page-shell { padding: 7px 9px 12px; }
+
+  .inventory-back-button {
+    min-height: 34px;
+    padding: 6px 10px;
+    border-radius: 11px;
+    font-size: 0.78rem;
+  }
+
+  .inventory-page-shell > div,
+  .inventory-debt-page {
+    margin-top: 6px;
+    padding: 10px !important;
+    border-radius: 16px;
+  }
+
+  .inventory-page-shell h1 {
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+    line-height: 1.2;
+  }
+
+  .inventory-page-shell h2 {
+    margin-bottom: 7px;
+    font-size: 0.98rem;
+    line-height: 1.25;
+  }
+
+  .inventory-page-shell p { margin: 5px 0; }
+
+  .inventory-page-shell input:not([type='checkbox']):not([type='file']) {
+    min-height: 38px;
+    padding: 7px 9px;
+    border-radius: 10px;
+    font-size: 0.86rem;
+  }
+
+  .inventory-page-shell button:not(.inventory-back-button) {
+    min-height: 36px;
+    margin-top: 5px;
+    padding: 7px 11px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+  }
+
+  .inventory-stock-summary,
+  .inventory-stock-adjust {
+    margin-top: 7px;
+    padding: 9px;
+    border-radius: 13px;
+  }
+
+  .inventory-stock-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .inventory-stock-summary p {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    margin: 0;
+    padding: 6px 7px;
+    border-radius: 9px;
+    background: #f4f6fc;
+    color: #6b7280;
+    font-size: 0.7rem;
+  }
+
+  .inventory-stock-summary strong {
+    overflow: hidden;
+    color: #1f2937;
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .inventory-stock-form-grid { gap: 7px; }
+  .inventory-stock-form-grid label { gap: 3px; font-size: 0.7rem; }
+
+  .customer-add-grid { gap: 6px; }
+
+  .customer-card,
+  .record-entry {
+    margin-top: 7px;
+    padding: 9px;
+    border-radius: 12px;
+  }
+
+  .customer-card-header h3 { font-size: 0.94rem; }
+
+  .customer-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    margin: 7px 0 5px;
+  }
+
+  .customer-summary-grid > * {
+    padding: 5px 4px;
+    font-size: clamp(0.63rem, 2.8vw, 0.72rem);
+  }
+
+  .customer-summary-grid small { font-size: 0.6rem; }
+  .customer-card-details summary { padding: 6px 1px; }
+
+  .customer-debt-add-row,
+  .customer-repay-row { gap: 5px; }
+
+  .inventory-bottom-nav {
+    min-height: calc(53px + env(safe-area-inset-bottom));
+    padding-top: 3px;
+  }
+
+  .inventory-bottom-nav button { font-size: 0.6rem; }
+  .inventory-bottom-nav button span { font-size: 0.98rem; }
+}
 
 @media (min-width: 640px) {
   .inventory-app { max-width: 720px; margin: 0 auto; }

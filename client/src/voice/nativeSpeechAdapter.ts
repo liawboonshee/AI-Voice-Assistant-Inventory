@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { SpeechRecognition } from '@capacitor-community/speech-recognition'
 import type { PluginListenerHandle } from '@capacitor/core'
+import { scoreCustomerTranscript } from '../inventory/VoiceCommand'
 import type { VoiceAdapter, VoiceListenHandlers } from './types'
 
 const INLINE_RESTART_DELAY_MS = 350
@@ -9,7 +10,13 @@ const INVENTORY_ACTION_PATTERN = /进货|入货|补货|采购|买入|收货|出�
 
 function pickBestTranscript(matches: string[] | undefined): string {
   const candidates = (matches ?? []).map((item) => item.trim()).filter(Boolean)
-  return candidates.find((item) => INVENTORY_ACTION_PATTERN.test(item)) ?? candidates[0] ?? ''
+  return candidates
+    .map((item, index) => ({
+      item,
+      index,
+      score: scoreCustomerTranscript(item) + (INVENTORY_ACTION_PATTERN.test(item) ? 10 : 0),
+    }))
+    .sort((left, right) => right.score - left.score || left.index - right.index)[0]?.item ?? ''
 }
 
 /** 将插件英文错误映射为可操作的中文提示 */

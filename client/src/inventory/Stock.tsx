@@ -70,12 +70,20 @@ export default function Stock() {
 
       <section className="inventory-stock-adjust">
         <h2>🧮 修改库存 / 盘点修正</h2>
-        <p>实际库存重量（g）</p>
-        <input type="number" min="0" step="0.01" value={actualStock} onChange={(event) => setActualStock(event.target.value)} placeholder={`目前 ${data.stock.toFixed(2)}g`} />
-        <p>实际库存本金（RM，可不填）</p>
-        <input type="number" min="0" step="0.01" value={actualCost} onChange={(event) => setActualCost(event.target.value)} placeholder="不填则保持原平均成本" />
-        <p>备注</p>
-        <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="例如：盘点修正" />
+        <div className="inventory-stock-form-grid">
+          <label>
+            <span>实际重量（g）</span>
+            <input type="number" min="0" step="0.01" value={actualStock} onChange={(event) => setActualStock(event.target.value)} placeholder={`目前 ${data.stock.toFixed(2)}g`} />
+          </label>
+          <label>
+            <span>实际本金（RM，可不填）</span>
+            <input type="number" min="0" step="0.01" value={actualCost} onChange={(event) => setActualCost(event.target.value)} placeholder="保持平均成本" />
+          </label>
+          <label className="inventory-stock-note-field">
+            <span>备注</span>
+            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="例如：盘点修正" />
+          </label>
+        </div>
         <button type="button" onClick={adjustStock}>保存库存修改</button>
         {message && <p>{message}</p>}
       </section>

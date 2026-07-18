@@ -1,7 +1,7 @@
 import { loadInventory, saveInventory } from './Storage'
 import { currentRecordDate, saveRecord } from './Records'
 import { calculatePaymentBreakdown, paymentSummary } from './Payments'
-import { parseVoiceCommand, type VoiceCommand } from './VoiceCommand'
+import { parseVoiceCommand, resolveKnownCustomerName, type VoiceCommand } from './VoiceCommand'
 
 type MissingField = 'weight' | 'amount' | 'customer' | null
 
@@ -180,7 +180,7 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   data.income = roundMoney(data.income + payment.paidAmount)
   data.profit = roundMoney(data.profit + profitAmount)
 
-  const customer = command.customer || '未填写'
+  const customer = resolveKnownCustomerName(command.customer || '') || command.customer || '未填写'
   addCustomerDebt(customer, debtAmount)
 
   saveInventory(data)

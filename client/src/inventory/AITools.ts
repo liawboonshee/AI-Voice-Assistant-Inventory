@@ -7,6 +7,7 @@ import {
 import {
   extractFirstSpokenNumber,
   parseVoiceCommand,
+  resolveKnownCustomerName,
   type VoiceCommand,
 } from './VoiceCommand'
 
@@ -19,7 +20,7 @@ function cleanCustomerReply(text: string): string | undefined {
     .replace(/^(客户|顾客)(是|叫|为)?/, '')
     .replace(/^(是|叫)/, '')
     .trim()
-  return name || undefined
+  return (name && resolveKnownCustomerName(name)) || name || undefined
 }
 
 function mergeFollowUp(command: VoiceCommand, text: string): VoiceCommand {

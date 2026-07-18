@@ -138,35 +138,42 @@ export default function Customers() {
         )
         return (
           <section className="customer-card" key={item.name}>
-            <h3>👤 {item.name}</h3>
-            <p>电话：{item.phone || '未填写'}</p>
+            <div className="customer-card-header">
+              <h3>👤 {item.name}</h3>
+              <span>{item.phone || '未填电话'}</span>
+            </div>
             <div className="customer-summary-grid">
-              <span>购买 {totalWeight.toFixed(2)}g</span>
-              <span>消费 RM{totalSpend.toFixed(2)}</span>
-              <span>已付款 RM{totalPaid.toFixed(2)}</span>
-              <strong>欠款 RM{item.debt.toFixed(2)}</strong>
+              <span><small>购买</small>{totalWeight.toFixed(2)}g</span>
+              <span><small>消费</small>RM{totalSpend.toFixed(2)}</span>
+              <span><small>已付</small>RM{totalPaid.toFixed(2)}</span>
+              <strong><small>欠款</small>RM{item.debt.toFixed(2)}</strong>
             </div>
-            <div className="customer-debt-add-row">
-              <input type="number" min="0" step="0.01" placeholder="新增欠款金额" value={newDebt[index] || ''} onChange={(event) => setNewDebt({ ...newDebt, [index]: event.target.value })} />
-              <button type="button" onClick={() => addDebt(index)}>新增欠款</button>
-            </div>
-            <h4>历史购买记录</h4>
-            {history.length === 0 ? (
-              <p>暂无购买记录</p>
-            ) : (
-              history.slice().reverse().slice(0, 8).map((record, recordIndex) => (
-                <p className="customer-history-row" key={`${record.date}-${recordIndex}`}>
-                  <span>{formatRecordDate(record.date)}</span>
-                  <strong>{record.weight.toFixed(2)}g · RM{record.amount.toFixed(2)}</strong>
-                </p>
-              ))
-            )}
-            {item.debt > 0 && (
-              <div className="customer-repay-row">
-                <input type="number" placeholder="还款金额" value={pay[index] || ''} onChange={(event) => setPay({ ...pay, [index]: event.target.value })} />
-                <button type="button" onClick={() => repay(index)}>确认还款</button>
+            <details className="customer-card-details">
+              <summary>欠款操作</summary>
+              <div className="customer-debt-add-row">
+                <input type="number" min="0" step="0.01" placeholder="新增欠款金额" value={newDebt[index] || ''} onChange={(event) => setNewDebt({ ...newDebt, [index]: event.target.value })} />
+                <button type="button" onClick={() => addDebt(index)}>新增</button>
               </div>
-            )}
+              {item.debt > 0 && (
+                <div className="customer-repay-row">
+                  <input type="number" placeholder="还款金额" value={pay[index] || ''} onChange={(event) => setPay({ ...pay, [index]: event.target.value })} />
+                  <button type="button" onClick={() => repay(index)}>还款</button>
+                </div>
+              )}
+            </details>
+            <details className="customer-card-details">
+              <summary>购买记录（{history.length}）</summary>
+              {history.length === 0 ? (
+                <p>暂无购买记录</p>
+              ) : (
+                history.slice().reverse().slice(0, 8).map((record, recordIndex) => (
+                  <p className="customer-history-row" key={`${record.date}-${recordIndex}`}>
+                    <span>{formatRecordDate(record.date)}</span>
+                    <strong>{record.weight.toFixed(2)}g · RM{record.amount.toFixed(2)}</strong>
+                  </p>
+                ))
+              )}
+            </details>
           </section>
         )
       })}
