@@ -9,8 +9,17 @@ function round(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100
 }
 
+function loadCustomers(): CustomerData[] {
+  try {
+    const data = JSON.parse(localStorage.getItem('customers') || '[]')
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
+  }
+}
+
 function saveCustomerSale(name: string, debtAmount: number): void {
-  const customers: CustomerData[] = JSON.parse(localStorage.getItem('customers') || '[]')
+  const customers = loadCustomers()
   const customer = customers.find((item) => item.name === name)
   if (customer) customer.debt = round((customer.debt || 0) + debtAmount)
   else customers.push({ name, debt: round(debtAmount) })
@@ -18,13 +27,20 @@ function saveCustomerSale(name: string, debtAmount: number): void {
 }
 
 export default function Sale() {
+  const [customers, setCustomers] = useState<CustomerData[]>(loadCustomers)
   const [customer, setCustomer] = useState('')
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
   const [weight, setWeight] = useState('')
   const [price, setPrice] = useState('')
   const [cash, setCash] = useState('')
   const [transfer, setTransfer] = useState('')
   const [debt, setDebt] = useState('')
   const [message, setMessage] = useState('')
+
+  const customerQuery = customer.trim().toLowerCase()
+  const customerSuggestions = customers
+    .filter((item) => !customerQuery || item.name.toLowerCase().includes(customerQuery))
+    .slice(0, 6)
 
   const addSale = () => {
     const w = round(Number(weight))
@@ -101,7 +117,47 @@ export default function Sale() {
     <div>
       <h1>📤 出货</h1>
       <p>客户</p>
-      <input value={customer} onChange={(event) => setCustomer(event.target.value)} placeholder="客户名字" />
+      <div className="customer-combobox">
+        <input
+          aria-autocomplete="list"
+          aria-expanded={showCustomerSuggestions && customerSuggestions.length > 0}
+          aria-label="顾客名称"
+          autoComplete="off"
+          role="combobox"
+          value={customer}
+          onBlur={() => window.setTimeout(() => setShowCustomerSuggestions(false), 150)}
+          onChange={(event) => {
+            setCustomer(event.target.value)
+            setShowCustomerSuggestions(true)
+          }}
+          onFocus={() => {
+            setCustomers(loadCustomers())
+            setShowCustomerSuggestions(true)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setShowCustomerSuggestions(false)
+          }}
+          placeholder="输入或选择顾客名字"
+        />
+        {showCustomerSuggestions && customerSuggestions.length > 0 && (
+          <div className="customer-suggestion-list" role="listbox">
+            {customerSuggestions.map((item) => (
+              <button
+                className="customer-suggestion-button"
+                key={item.name}
+                type="button"
+                onClick={() => {
+                  setCustomer(item.name)
+                  setShowCustomerSuggestions(false)
+                }}
+              >
+                <strong>👤 {item.name}</strong>
+                <span>{item.phone || '未填电话'} · 欠款RM{(item.debt || 0).toFixed(2)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <p>重量（g，最小0.01）</p>
       <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="例如 10" type="number" step="0.01" />
       <p>总售价（RM，可不填）</p>
