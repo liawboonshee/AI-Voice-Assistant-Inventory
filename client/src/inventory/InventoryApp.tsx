@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { getVoiceAdapter } from '../voice/voiceAdapter'
 import { speak } from '../utils/tts'
-import { isSameLocalDay, recordCashIn, recordProfit } from './Analytics'
+import { formatBusinessDate, isSameLocalDay, recordCashIn, recordProfit } from './Analytics'
 import { runInventoryTool } from './AITools'
 import Backup from './Backup'
 import Customers from './Customers'
@@ -31,6 +31,7 @@ type CustomerData = {
 }
 
 type Props = {
+  onLock?: () => void
   onOpenVoice?: () => void
 }
 
@@ -80,7 +81,7 @@ function DebtPage({ customers }: { customers: CustomerData[] }) {
   )
 }
 
-export default function InventoryApp({ onOpenVoice }: Props) {
+export default function InventoryApp({ onLock, onOpenVoice }: Props) {
   const [page, setPage] = useState<InventoryPage>('home')
   const [data, setData] = useState(loadInventory())
   const [records, setRecords] = useState(loadRecords())
@@ -151,10 +152,15 @@ export default function InventoryApp({ onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 3.1</h1>
-            <p>今天：{new Date().toLocaleDateString('zh-CN')}</p>
+            <h1>📦 库存宝 AI 3.2</h1>
+            <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
+            {onLock && (
+              <button aria-label="立即上锁" className="inventory-icon-action" type="button" onClick={onLock}>
+                🔒
+              </button>
+            )}
             {onOpenVoice && (
               <button aria-label="打开AI助手" className="inventory-icon-action" type="button" onClick={onOpenVoice}>
                 🤖

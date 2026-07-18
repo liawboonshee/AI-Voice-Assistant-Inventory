@@ -2,6 +2,25 @@ import type { RecordItem } from './Records'
 
 type DateParts = { year: number; month: number; day: number }
 
+const BUSINESS_TIME_ZONE = 'Asia/Kuala_Lumpur'
+
+function malaysiaDateParts(date: Date): DateParts | null {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: BUSINESS_TIME_ZONE,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).formatToParts(date)
+    const year = Number(parts.find((part) => part.type === 'year')?.value)
+    const month = Number(parts.find((part) => part.type === 'month')?.value)
+    const day = Number(parts.find((part) => part.type === 'day')?.value)
+    return validDateParts(year, month, day)
+  } catch {
+    return validDateParts(date.getFullYear(), date.getMonth() + 1, date.getDate())
+  }
+}
+
 function validDateParts(year: number, month: number, day: number): DateParts | null {
   const date = new Date(year, month - 1, day)
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
@@ -24,9 +43,7 @@ export function recordDateParts(value: string): DateParts | null {
 
   if (/^\d{4}-\d{2}-\d{2}T/.test(text)) {
     const date = new Date(text)
-    return Number.isNaN(date.getTime())
-      ? null
-      : { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }
+    return Number.isNaN(date.getTime()) ? null : malaysiaDateParts(date)
   }
 
   const yearFirst = text.match(/^(\d{4})[年/.\-](\d{1,2})[月/.\-](\d{1,2})/)
@@ -81,24 +98,43 @@ export function recordProfit(record: RecordItem): number {
 
 export function isSameLocalDay(value: string, target = new Date()): boolean {
   const date = recordDateParts(value)
+  const targetParts = malaysiaDateParts(target)
   return (
     date !== null &&
-    date.year === target.getFullYear() &&
-    date.month === target.getMonth() + 1 &&
-    date.day === target.getDate()
+    targetParts !== null &&
+    date.year === targetParts.year &&
+    date.month === targetParts.month &&
+    date.day === targetParts.day
   )
 }
 
 export function isSameLocalMonth(value: string, target = new Date()): boolean {
   const date = recordDateParts(value)
+  const targetParts = malaysiaDateParts(target)
   return (
     date !== null &&
-    date.year === target.getFullYear() &&
-    date.month === target.getMonth() + 1
+    targetParts !== null &&
+    date.year === targetParts.year &&
+    date.month === targetParts.month
   )
+}
+
+export function formatBusinessDate(target = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('zh-CN', {
+      timeZone: BUSINESS_TIME_ZONE,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).format(target)
+  } catch {
+    return target.toLocaleDateString('zh-CN')
+  }
 }
 
 export function formatRecordDate(value: string): string {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN')
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString('zh-CN', { timeZone: BUSINESS_TIME_ZONE })
 }
