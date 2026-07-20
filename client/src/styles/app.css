@@ -1076,6 +1076,34 @@ body {
 .record-search-input { margin: 4px 0 10px; }
 .record-entry p { margin: 5px 0; font-size: 0.84rem; }
 
+.record-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.record-entry-header h3 { margin: 0; }
+
+.inventory-page-shell .record-delete-button {
+  min-height: 32px;
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fff1f2;
+  color: #dc2626;
+  font-size: 0.7rem;
+}
+
+.record-delete-message {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #ecfdf3;
+  color: #15803d;
+  font-size: 0.78rem;
+}
+
 @media (max-width: 560px) {
   .inventory-app {
     padding-bottom: calc(55px + env(safe-area-inset-bottom));
@@ -1139,7 +1167,7 @@ body {
     font-size: 0.86rem;
   }
 
-  .inventory-page-shell button:not(.inventory-back-button):not(.customer-suggestion-button) {
+  .inventory-page-shell button:not(.inventory-back-button):not(.customer-suggestion-button):not(.record-delete-button) {
     min-height: 36px;
     margin-top: 5px;
     padding: 7px 11px;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatRecordDate, isSameLocalDay, isSameLocalMonth, recordCashIn, recordCashOut, recordProfit } from './Analytics'
-import { loadRecords, type RecordItem } from './Records'
+import { deleteSaleAndRestore, loadRecords, type RecordItem } from './Records'
 import { loadInventory } from './Storage'
 
 function recordLabel(item: RecordItem): string {
@@ -24,6 +24,7 @@ export default function RecordsPage() {
   const [records, setRecords] = useState(loadRecords())
   const [inventory, setInventory] = useState(loadInventory())
   const [search, setSearch] = useState('')
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -65,13 +66,24 @@ export default function RecordsPage() {
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase()
-    if (!keyword) return records
-    return records.filter((item) =>
-      [item.date, item.customer, item.source, item.note, recordLabel(item)]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword)),
-    )
+    return records
+      .map((item, originalIndex) => ({ item, originalIndex }))
+      .filter(({ item }) => !keyword ||
+        [item.date, item.customer, item.source, item.note, recordLabel(item)]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(keyword)),
+      )
   }, [records, search])
+
+  function removeSale(originalIndex: number, item: RecordItem) {
+    const confirmed = window.confirm(
+      `确定删除这笔旧出货吗？\n${item.customer || '未填写顾客'} · ${item.weight.toFixed(2)}g · RM${item.amount.toFixed(2)}\n\n删除后会回补库存，并撤销这笔收入、利润和欠款。`,
+    )
+    if (!confirmed) return
+    setMessage(deleteSaleAndRestore(originalIndex))
+    setRecords(loadRecords())
+    setInventory({ ...loadInventory() })
+  }
 
   return (
     <div>
@@ -88,11 +100,19 @@ export default function RecordsPage() {
       </section>
 
       <input className="record-search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索客户、供应来源或日期，例如：阿明" />
+      {message && <p className="record-delete-message">{message}</p>}
       {filtered.length === 0 && <p>暂无符合记录</p>}
 
-      {filtered.slice().reverse().map((item, index) => (
-        <section className="record-entry" key={`${item.date}-${records.length - index}`}>
-          <h3>{recordLabel(item)}</h3>
+      {filtered.slice().reverse().map(({ item, originalIndex }) => (
+        <section className="record-entry" key={`${item.date}-${originalIndex}`}>
+          <div className="record-entry-header">
+            <h3>{recordLabel(item)}</h3>
+            {item.type === 'sale' && (
+              <button className="record-delete-button" type="button" onClick={() => removeSale(originalIndex, item)}>
+                删除旧出货
+              </button>
+            )}
+          </div>
           <p>日期：{formatRecordDate(item.date)}</p>
           {item.customer && <p>客户：{item.customer}</p>}
           {item.source && <p>供应来源：{item.source}</p>}
