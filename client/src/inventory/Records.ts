@@ -139,9 +139,9 @@ export function deleteSaleAndRestore(index:number):string{
   const restoredCost=item.costAmount !== undefined
     ? Math.max(0, item.costAmount)
     : round(currentAverageCost * restoredWeight)
-  const profit=item.profitAmount !== undefined
-    ? item.profitAmount
-    : (item.amount || 0) - restoredCost
+  const profit=item.paymentMethod === 'none' || ((item.amount || 0) <= 0 && saleCashIn(item) <= 0)
+    ? 0
+    : saleCashIn(item) - restoredCost
 
   inventory.stock=round(inventory.stock + restoredWeight)
   inventory.totalWeightCost=round(inventory.totalWeightCost + restoredCost)

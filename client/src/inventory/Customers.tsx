@@ -71,6 +71,7 @@ export default function Customers() {
 
     const inventory = loadInventory()
     inventory.income = round(inventory.income + actualPayment)
+    inventory.profit = round(inventory.profit + actualPayment)
     saveInventory(inventory)
     saveRecord({
       type: 'income',
@@ -80,7 +81,7 @@ export default function Customers() {
       amount: actualPayment,
       paidAmount: actualPayment,
       costAmount: 0,
-      profitAmount: 0,
+      profitAmount: actualPayment,
       note: '客户还款',
     })
     setPay({ ...pay, [index]: '' })

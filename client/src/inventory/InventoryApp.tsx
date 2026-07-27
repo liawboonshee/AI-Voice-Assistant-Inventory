@@ -12,7 +12,7 @@ import { loadRecords, type RecordItem } from './Records'
 import RecordsPage from './RecordsPage'
 import Sale from './Sale'
 import Stock from './Stock'
-import { loadInventory } from './Storage'
+import { loadInventory, saveInventory } from './Storage'
 
 type InventoryPage =
   | 'home'
@@ -46,6 +46,22 @@ function loadCustomers(): CustomerData[] {
 
 function formatMoney(value: number): string {
   return `RM${value.toFixed(2)}`
+}
+
+function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
+
+function loadProfitSyncedInventory(records: RecordItem[]) {
+  const inventory = { ...loadInventory() }
+  if (records.length === 0) return inventory
+
+  const ledgerProfit = roundMoney(records.reduce((sum, item) => sum + recordProfit(item), 0))
+  if (Math.abs(inventory.profit - ledgerProfit) >= 0.005) {
+    inventory.profit = ledgerProfit
+    saveInventory(inventory)
+  }
+  return inventory
 }
 
 function recordTitle(item: RecordItem): string {
@@ -83,15 +99,16 @@ function DebtPage({ customers }: { customers: CustomerData[] }) {
 
 export default function InventoryApp({ onLock, onOpenVoice }: Props) {
   const [page, setPage] = useState<InventoryPage>('home')
-  const [data, setData] = useState(loadInventory())
   const [records, setRecords] = useState(loadRecords())
+  const [data, setData] = useState(() => loadProfitSyncedInventory(loadRecords()))
   const [customers, setCustomers] = useState(loadCustomers())
   const [isListening, setIsListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
 
   const refresh = useCallback(() => {
-    setData({ ...loadInventory() })
-    setRecords([...loadRecords()])
+    const nextRecords = loadRecords()
+    setData(loadProfitSyncedInventory(nextRecords))
+    setRecords([...nextRecords])
     setCustomers([...loadCustomers()])
   }, [])
 
@@ -152,7 +169,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 3.3</h1>
+            <h1>📦 库存宝 AI 3.4</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">

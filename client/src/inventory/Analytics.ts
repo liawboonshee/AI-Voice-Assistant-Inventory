@@ -87,13 +87,22 @@ export function recordCashOut(record: RecordItem): number {
 }
 
 export function recordProfit(record: RecordItem): number {
-  if (record.profitAmount !== undefined) return record.profitAmount
   if (record.type === 'purchase' || record.type === 'adjustment' || record.type === 'debt') return 0
   if (record.type === 'income') {
-    return record.note === '客户还款' ? 0 : Math.max(0, record.amount || 0)
+    // 欠款在出货时不算利润，顾客实际还款当天才计入。
+    if (record.note === '客户还款') return Math.max(0, recordCashIn(record) || record.amount || 0)
+    return record.profitAmount !== undefined
+      ? record.profitAmount
+      : Math.max(0, record.amount || 0)
   }
   if ((record.weight || 0) <= 0) return 0
-  return (record.amount || 0) - (record.costAmount || 0)
+  if (record.paymentMethod === 'none' || ((record.amount || 0) <= 0 && recordCashIn(record) <= 0)) {
+    return 0
+  }
+  const inferredCost = record.costAmount !== undefined
+    ? record.costAmount
+    : Math.max(0, (record.amount || 0) - (record.profitAmount || 0))
+  return recordCashIn(record) - inferredCost
 }
 
 export function isSameLocalDay(value: string, target = new Date()): boolean {

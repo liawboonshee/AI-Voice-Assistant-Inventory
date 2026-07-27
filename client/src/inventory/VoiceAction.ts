@@ -173,7 +173,8 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   const costPerGram = oldStock > 0 ? data.totalWeightCost / oldStock : 0
   const saleCost = roundMoney(costPerGram * weight)
   const hasAmount = payment.total > 0
-  const profitAmount = hasAmount ? roundMoney(payment.total - saleCost) : 0
+  // 欠款暂不计利润；顾客还款时才确认该部分利润。
+  const profitAmount = hasAmount ? roundMoney(payment.paidAmount - saleCost) : 0
 
   data.stock = roundMoney(data.stock - weight)
   data.totalWeightCost = Math.max(0, roundMoney(data.totalWeightCost - saleCost))

@@ -70,7 +70,8 @@ export default function Sale() {
     const costPerGram = oldStock > 0 ? data.totalWeightCost / oldStock : 0
     const saleCost = round(costPerGram * w)
     const hasAmount = payment.total > 0
-    const profitAmount = hasAmount ? round(payment.total - saleCost) : 0
+    // 欠款暂不计利润；只按实际收到的现金与转账确认利润。
+    const profitAmount = hasAmount ? round(payment.paidAmount - saleCost) : 0
     const customerName = customer.trim() || '未填写'
     if (payment.debtAmount > 0 && !customer.trim()) {
       setMessage('有欠款时必须填写顾客名字')
