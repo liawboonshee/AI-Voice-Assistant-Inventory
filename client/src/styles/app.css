@@ -746,11 +746,25 @@ body {
   width: 100%;
   min-height: 48px;
   padding: 11px 13px;
-  border: 1px solid #d8deeb;
+  border: 1.5px solid #9db4f5;
   border-radius: 14px;
-  background: #f8f9fd;
+  outline: none;
+  background: #eef4ff;
   color: #1f2937;
   font-size: 1rem;
+  box-shadow: inset 0 1px 2px rgba(49, 84, 233, 0.06);
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.inventory-page-shell input:not([type='checkbox']):not([type='file'])::placeholder {
+  color: #74819a;
+  opacity: 1;
+}
+
+.inventory-page-shell input:not([type='checkbox']):not([type='file']):focus {
+  border-color: #3154e9;
+  background: #fffbe8;
+  box-shadow: 0 0 0 3px rgba(49, 84, 233, 0.16);
 }
 
 .inventory-page-shell button:not(.inventory-back-button):not(.customer-suggestion-button) {
@@ -868,6 +882,26 @@ body {
 .inventory-payment-split input {
   min-width: 0;
   margin: 0;
+}
+
+.inventory-payment-split label:nth-child(1) input {
+  border-color: #78c99a;
+  background: #edfff4;
+}
+
+.inventory-payment-split label:nth-child(2) input {
+  border-color: #82adf5;
+  background: #eef6ff;
+}
+
+.inventory-payment-split label:nth-child(3) input {
+  border-color: #f0a3a3;
+  background: #fff1f1;
+}
+
+.inventory-payment-split label input:focus {
+  border-color: #3154e9;
+  background: #fffbe8;
 }
 
 .inventory-stock-summary,
