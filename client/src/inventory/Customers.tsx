@@ -28,9 +28,20 @@ export default function Customers() {
   const [records, setRecords] = useState(loadRecords())
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [search, setSearch] = useState('')
   const [pay, setPay] = useState<Record<number, string>>({})
   const [newDebt, setNewDebt] = useState<Record<number, string>>({})
   const [message, setMessage] = useState('')
+
+  const searchQuery = search.trim().toLowerCase().replace(/\s+/g, '')
+  const visibleCustomers = customers
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => {
+      if (!searchQuery) return true
+      const customerName = item.name.toLowerCase().replace(/\s+/g, '')
+      const customerPhone = (item.phone || '').toLowerCase().replace(/\s+/g, '')
+      return customerName.includes(searchQuery) || customerPhone.includes(searchQuery)
+    })
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -125,9 +136,19 @@ export default function Customers() {
       </div>
       <button type="button" onClick={addCustomer}>➕ 添加 / 更新客户</button>
       {message && <p>{message}</p>}
+      <input
+        aria-label="搜索顾客"
+        className="customer-search-input"
+        inputMode="search"
+        placeholder="🔎 搜索顾客名字或电话号码"
+        type="search"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
       {customers.length === 0 && <p>暂无客户</p>}
+      {customers.length > 0 && visibleCustomers.length === 0 && <p>找不到符合“{search.trim()}”的顾客</p>}
 
-      {customers.map((item, index) => {
+      {visibleCustomers.map(({ item, index }) => {
         const history = records.filter(
           (record) => record.type === 'sale' && record.customer === item.name && record.weight > 0,
         )

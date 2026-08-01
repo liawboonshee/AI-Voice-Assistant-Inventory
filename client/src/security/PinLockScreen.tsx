@@ -70,7 +70,9 @@ export function hasInventoryPin(): boolean {
 
 export default function PinLockScreen({ onUnlock }: Props) {
   const [storedPin, setStoredPin] = useState<StoredPin | null>(readStoredPin)
+  const [mode, setMode] = useState<'unlock' | 'change'>('unlock')
   const [pin, setPin] = useState('')
+  const [newPin, setNewPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -85,6 +87,14 @@ export default function PinLockScreen({ onUnlock }: Props) {
     }
     if (isSetup && pin !== confirmPin) {
       setMessage('两次输入的密码不一样')
+      return
+    }
+    if (!isSetup && mode === 'change' && !/^\d{4}$/.test(newPin)) {
+      setMessage('请输入新的4位数字密码')
+      return
+    }
+    if (!isSetup && mode === 'change' && newPin !== confirmPin) {
+      setMessage('两次输入的新密码不一样')
       return
     }
 
@@ -107,7 +117,24 @@ export default function PinLockScreen({ onUnlock }: Props) {
       const hash = await derivePinHash(pin, base64ToBytes(storedPin.salt), storedPin.iterations)
       if (!sameHash(hash, storedPin.hash)) {
         setPin('')
-        setMessage('密码错误，请重新输入')
+        setMessage(mode === 'change' ? '旧密码错误，不能修改' : '密码错误，请重新输入')
+        return
+      }
+
+      if (mode === 'change') {
+        const salt = crypto.getRandomValues(new Uint8Array(16))
+        const next: StoredPin = {
+          salt: bytesToBase64(salt),
+          hash: await derivePinHash(newPin, salt, PIN_ITERATIONS),
+          iterations: PIN_ITERATIONS,
+        }
+        localStorage.setItem(PIN_KEY, JSON.stringify(next))
+        setStoredPin(next)
+        setPin('')
+        setNewPin('')
+        setConfirmPin('')
+        setMode('unlock')
+        setMessage('✅ 密码修改成功，请输入新密码')
         return
       }
       onUnlock()
@@ -122,37 +149,66 @@ export default function PinLockScreen({ onUnlock }: Props) {
     <main className="pin-lock-screen">
       <form className="pin-lock-card" onSubmit={submit}>
         <div className="pin-lock-logo">📦</div>
-        <h1>{isSetup ? '设置库存宝密码' : '库存宝已上锁'}</h1>
-        <p>{isSetup ? '首次使用请设置4位数字密码' : '输入4位密码进入库存宝'}</p>
+        <h1>{isSetup ? '设置库存宝密码' : mode === 'change' ? '修改登录密码' : '库存宝已上锁'}</h1>
+        <p>{isSetup ? '首次使用请设置4位数字密码' : mode === 'change' ? '先验证旧密码，再设置新密码' : '输入4位密码进入库存宝'}</p>
         <input
-          aria-label="4位密码"
+          aria-label={mode === 'change' ? '旧的4位密码' : '4位密码'}
           autoFocus
           autoComplete={isSetup ? 'new-password' : 'current-password'}
           inputMode="numeric"
           maxLength={4}
           pattern="[0-9]{4}"
-          placeholder="••••"
+          placeholder={mode === 'change' ? '输入旧密码' : '••••'}
           type="password"
           value={pin}
           onChange={(event) => setPin(onlyFourDigits(event.target.value))}
         />
-        {isSetup && (
+        {!isSetup && mode === 'change' && (
+          <input
+            aria-label="新的4位密码"
+            autoComplete="new-password"
+            inputMode="numeric"
+            maxLength={4}
+            pattern="[0-9]{4}"
+            placeholder="输入新密码"
+            type="password"
+            value={newPin}
+            onChange={(event) => setNewPin(onlyFourDigits(event.target.value))}
+          />
+        )}
+        {(isSetup || mode === 'change') && (
           <input
             aria-label="确认4位密码"
             autoComplete="new-password"
             inputMode="numeric"
             maxLength={4}
             pattern="[0-9]{4}"
-            placeholder="再次输入4位密码"
+            placeholder={isSetup ? '再次输入4位密码' : '再次输入新密码'}
             type="password"
             value={confirmPin}
             onChange={(event) => setConfirmPin(onlyFourDigits(event.target.value))}
           />
         )}
-        {message && <div className="pin-lock-message">{message}</div>}
+        {message && <div className={`pin-lock-message${message.startsWith('✅') ? ' success' : ''}`}>{message}</div>}
         <button disabled={busy} type="submit">
-          {busy ? '处理中…' : isSetup ? '保存并进入' : '解锁'}
+          {busy ? '处理中…' : isSetup ? '保存并进入' : mode === 'change' ? '确认修改密码' : '解锁'}
         </button>
+        {!isSetup && (
+          <button
+            className="pin-lock-secondary-button"
+            disabled={busy}
+            type="button"
+            onClick={() => {
+              setPin('')
+              setNewPin('')
+              setConfirmPin('')
+              setMessage('')
+              setMode(mode === 'change' ? 'unlock' : 'change')
+            }}
+          >
+            {mode === 'change' ? '取消修改' : '修改密码'}
+          </button>
+        )}
         <small>密码使用 PBKDF2 加盐哈希保存，不会保存明文密码。</small>
       </form>
     </main>
