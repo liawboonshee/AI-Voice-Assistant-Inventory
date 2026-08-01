@@ -5,6 +5,13 @@ import { calculatePaymentBreakdown, paymentSummary } from './Payments'
 
 type CustomerData = { name: string; phone?: string; debt: number }
 
+const QUICK_SALES = [
+  { price: 50, weight: 0.25 },
+  { price: 80, weight: 0.4 },
+  { price: 100, weight: 0.53 },
+  { price: 300, weight: 2.5 },
+] as const
+
 function round(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100
 }
@@ -41,6 +48,16 @@ export default function Sale() {
   const customerSuggestions = customers
     .filter((item) => !customerQuery || item.name.toLowerCase().includes(customerQuery))
     .slice(0, 6)
+
+  const selectedPreset = QUICK_SALES.find(
+    (item) => Number(price) === item.price && Number(weight) === item.weight,
+  )
+
+  function selectQuickSale(priceValue: number, weightValue: number) {
+    setPrice(String(priceValue))
+    setWeight(String(weightValue))
+    setMessage('')
+  }
 
   const addSale = () => {
     const w = round(Number(weight))
@@ -117,6 +134,26 @@ export default function Sale() {
   return (
     <div>
       <h1>📤 出货</h1>
+      <p className="inventory-sale-preset-label">先选择出货金额</p>
+      <div className="inventory-sale-preset-grid">
+        {QUICK_SALES.map((item) => (
+          <button
+            aria-pressed={selectedPreset === item}
+            className={`inventory-sale-preset-button${selectedPreset === item ? ' active' : ''}`}
+            key={item.price}
+            type="button"
+            onClick={() => selectQuickSale(item.price, item.weight)}
+          >
+            <strong>RM{item.price}</strong>
+            <span>{item.weight.toFixed(2)}g</span>
+          </button>
+        ))}
+      </div>
+      {selectedPreset && (
+        <div className="inventory-sale-selection">
+          ✅ 已选择 RM{selectedPreset.price}，出货 {selectedPreset.weight.toFixed(2)}g
+        </div>
+      )}
       <p>客户</p>
       <div className="customer-combobox">
         <input
@@ -159,10 +196,13 @@ export default function Sale() {
           </div>
         )}
       </div>
-      <p>重量（g，最小0.01）</p>
-      <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="例如 10" type="number" step="0.01" />
-      <p>总售价（RM，可不填）</p>
-      <input value={price} onChange={(event) => setPrice(event.target.value)} placeholder="可留空；例如 800" type="number" step="0.01" />
+      <details className="inventory-manual-sale-fields">
+        <summary>✏️ 其他金额或重量（手动填写）</summary>
+        <p>重量（g，最小0.01）</p>
+        <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="例如 10" type="number" step="0.01" />
+        <p>总售价（RM，可不填）</p>
+        <input value={price} onChange={(event) => setPrice(event.target.value)} placeholder="可留空；例如 800" type="number" step="0.01" />
+      </details>
       <p>收款分配（都可不填）</p>
       <div className="inventory-payment-split">
         <label>

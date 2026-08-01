@@ -849,6 +849,78 @@ body {
   font-weight: 700;
 }
 
+.inventory-sale-preset-label {
+  color: #586174;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.inventory-sale-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 9px;
+}
+
+.inventory-page-shell .inventory-sale-preset-button {
+  display: grid;
+  min-height: 72px;
+  margin: 0;
+  padding: 10px;
+  place-items: center;
+  border: 2px solid #b8c7fa;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #f5f8ff, #eaf0ff);
+  color: #3154e9;
+  box-shadow: 0 5px 14px rgba(49, 84, 233, 0.1);
+}
+
+.inventory-sale-preset-button strong {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.inventory-sale-preset-button span {
+  color: #68758e;
+  font-size: 0.78rem;
+}
+
+.inventory-page-shell .inventory-sale-preset-button.active {
+  border-color: #ff7415;
+  background: linear-gradient(145deg, #ff8a16, #ff6415);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(255, 103, 22, 0.24);
+}
+
+.inventory-sale-preset-button.active span { color: rgba(255, 255, 255, 0.9); }
+
+.inventory-sale-selection {
+  padding: 8px 10px;
+  border-radius: 11px;
+  background: #ecfdf3;
+  color: #15803d;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.inventory-manual-sale-fields {
+  margin: 10px 0;
+  padding: 0 10px 10px;
+  border: 1px solid #dfe5f2;
+  border-radius: 13px;
+  background: #f8f9fd;
+}
+
+.inventory-manual-sale-fields summary {
+  padding: 10px 0;
+  color: #667085;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.inventory-manual-sale-fields p { font-size: 0.76rem; }
+
 .inventory-debt-page {
   display: flex;
   flex-direction: column;
@@ -1274,7 +1346,7 @@ body {
     font-size: 0.86rem;
   }
 
-  .inventory-page-shell button:not(.inventory-back-button):not(.customer-suggestion-button):not(.record-delete-button) {
+  .inventory-page-shell button:not(.inventory-back-button):not(.customer-suggestion-button):not(.record-delete-button):not(.inventory-sale-preset-button) {
     min-height: 36px;
     margin-top: 5px;
     padding: 7px 11px;

@@ -178,7 +178,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 3.7</h1>
+            <h1>📦 库存宝 AI 3.8</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
