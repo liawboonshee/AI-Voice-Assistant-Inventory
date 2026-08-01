@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { getVoiceAdapter } from '../voice/voiceAdapter'
 import { speak } from '../utils/tts'
-import { formatBusinessDate, isSameLocalDay, recordCashIn, recordProfit } from './Analytics'
+import {
+  formatBusinessDate,
+  isSameLocalDay,
+  recordCashAmount,
+  recordCashIn,
+  recordProfit,
+  recordTransferAmount,
+} from './Analytics'
 import { runInventoryTool } from './AITools'
 import Backup from './Backup'
 import Customers from './Customers'
@@ -119,6 +126,8 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
 
   const todayRecords = useMemo(() => records.filter((item) => isSameLocalDay(item.date)), [records])
   const todayIncome = todayRecords.reduce((sum, item) => sum + recordCashIn(item), 0)
+  const todayCash = todayRecords.reduce((sum, item) => sum + recordCashAmount(item), 0)
+  const todayTransfer = todayRecords.reduce((sum, item) => sum + recordTransferAmount(item), 0)
   const todayProfit = todayRecords.reduce((sum, item) => sum + recordProfit(item), 0)
   const todayShipment = todayRecords
     .filter((item) => item.type === 'sale' && item.weight > 0)
@@ -169,7 +178,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 3.6</h1>
+            <h1>📦 库存宝 AI 3.7</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
@@ -193,9 +202,21 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       {page === 'home' ? (
         <main className="inventory-home">
           <section className="inventory-stat-grid">
-            <div className="inventory-stat-card stat-green">
-              <span>今日收入</span>
-              <strong>{formatMoney(todayIncome)}</strong>
+            <div className="inventory-stat-card inventory-income-card stat-green">
+              <div className="inventory-income-total">
+                <span>今日收入</span>
+                <strong>{formatMoney(todayIncome)}</strong>
+              </div>
+              <div className="inventory-income-split">
+                <div>
+                  <span>💵 今日现金</span>
+                  <strong>{formatMoney(todayCash)}</strong>
+                </div>
+                <div>
+                  <span>🏦 今日转账</span>
+                  <strong>{formatMoney(todayTransfer)}</strong>
+                </div>
+              </div>
             </div>
             <div className="inventory-stat-card stat-orange">
               <span>今日盈利</span>
@@ -254,6 +275,12 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
                   <div className="inventory-recent-amount">
                     <strong>{item.weight > 0 ? `${item.weight.toFixed(2)}g` : item.note || '收入'}</strong>
                     <span>{formatMoney(Math.abs(item.amount))}</span>
+                    {recordCashAmount(item) > 0 && (
+                      <span className="inventory-payment-cash">现金 {formatMoney(recordCashAmount(item))}</span>
+                    )}
+                    {recordTransferAmount(item) > 0 && (
+                      <span className="inventory-payment-transfer">转账 {formatMoney(recordTransferAmount(item))}</span>
+                    )}
                   </div>
                 </div>
               ))

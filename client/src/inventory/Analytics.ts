@@ -82,6 +82,27 @@ export function recordCashIn(record: RecordItem): number {
   )
 }
 
+/** 记录中实际收到的现金。旧记录没有拆分字段时，除明确标注转账外按现金兼容。 */
+export function recordCashAmount(record: RecordItem): number {
+  if (record.type === 'purchase' || record.type === 'adjustment' || record.type === 'debt') return 0
+  if (record.cashAmount !== undefined || record.transferAmount !== undefined) {
+    return Math.max(0, record.cashAmount || 0)
+  }
+  if (record.paymentMethod === 'transfer' || record.paymentMethod === 'debt' || record.paymentMethod === 'none') {
+    return 0
+  }
+  return recordCashIn(record)
+}
+
+/** 记录中实际收到的转账。 */
+export function recordTransferAmount(record: RecordItem): number {
+  if (record.type === 'purchase' || record.type === 'adjustment' || record.type === 'debt') return 0
+  if (record.cashAmount !== undefined || record.transferAmount !== undefined) {
+    return Math.max(0, record.transferAmount || 0)
+  }
+  return record.paymentMethod === 'transfer' ? recordCashIn(record) : 0
+}
+
 export function recordCashOut(record: RecordItem): number {
   return record.type === 'purchase' ? Math.max(0, record.amount || 0) : 0
 }

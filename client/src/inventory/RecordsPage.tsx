@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatRecordDate, isSameLocalDay, isSameLocalMonth, recordCashIn, recordCashOut, recordProfit } from './Analytics'
+import {
+  formatRecordDate,
+  isSameLocalDay,
+  isSameLocalMonth,
+  recordCashAmount,
+  recordCashIn,
+  recordCashOut,
+  recordProfit,
+  recordTransferAmount,
+} from './Analytics'
 import { deleteSaleAndRestore, loadRecords, type RecordItem } from './Records'
 import { loadInventory } from './Storage'
 
@@ -38,6 +47,8 @@ export default function RecordsPage() {
     const todayRecords = records.filter((item) => isSameLocalDay(item.date))
     const monthRecords = records.filter((item) => isSameLocalMonth(item.date))
     const todayIncome = todayRecords.reduce((sum, item) => sum + recordCashIn(item), 0)
+    const todayCash = todayRecords.reduce((sum, item) => sum + recordCashAmount(item), 0)
+    const todayTransfer = todayRecords.reduce((sum, item) => sum + recordTransferAmount(item), 0)
     const todayCost = todayRecords
       .filter((item) => item.type === 'sale' && item.weight > 0)
       .reduce((sum, item) => sum + (item.costAmount || 0), 0)
@@ -53,6 +64,8 @@ export default function RecordsPage() {
     const cashOut = records.reduce((sum, item) => sum + recordCashOut(item), 0)
     return {
       todayIncome,
+      todayCash,
+      todayTransfer,
       todayCost,
       todayProfit,
       monthSales,
@@ -90,6 +103,8 @@ export default function RecordsPage() {
       <h1>📋 报表 / 交易记录</h1>
       <section className="records-summary-grid">
         <div><span>今日收入</span><strong>RM{summary.todayIncome.toFixed(2)}</strong></div>
+        <div><span>今日现金</span><strong>RM{summary.todayCash.toFixed(2)}</strong></div>
+        <div><span>今日转账</span><strong>RM{summary.todayTransfer.toFixed(2)}</strong></div>
         <div><span>今日成本</span><strong>RM{summary.todayCost.toFixed(2)}</strong></div>
         <div><span>今日利润</span><strong>RM{summary.todayProfit.toFixed(2)}</strong></div>
         <div><span>本月销售</span><strong>RM{summary.monthSales.toFixed(2)}</strong></div>
