@@ -129,6 +129,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
   const todayCash = todayRecords.reduce((sum, item) => sum + recordCashAmount(item), 0)
   const todayTransfer = todayRecords.reduce((sum, item) => sum + recordTransferAmount(item), 0)
   const todayProfit = todayRecords.reduce((sum, item) => sum + recordProfit(item), 0)
+  const totalIncome = records.reduce((sum, item) => sum + recordCashIn(item), 0)
   const todayShipment = todayRecords
     .filter((item) => item.type === 'sale' && item.weight > 0)
     .reduce((sum, item) => sum + item.weight, 0)
@@ -178,7 +179,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 3.9</h1>
+            <h1>📦 库存宝 AI 4.0</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
@@ -225,6 +226,10 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
             <div className="inventory-stat-card stat-blue">
               <span>总盈利</span>
               <strong>{formatMoney(data.profit)}</strong>
+            </div>
+            <div className="inventory-stat-card stat-teal">
+              <span>总收入</span>
+              <strong>{formatMoney(totalIncome)}</strong>
             </div>
             <div className="inventory-stat-card stat-purple">
               <span>当前库存</span>

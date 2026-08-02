@@ -110,6 +110,7 @@ export default function RecordsPage() {
         <div><span>本月销售</span><strong>RM{summary.monthSales.toFixed(2)}</strong></div>
         <div><span>本月利润</span><strong>RM{summary.monthProfit.toFixed(2)}</strong></div>
         <div><span>本月出货</span><strong>{summary.monthShipment.toFixed(2)}g</strong></div>
+        <div><span>总收入</span><strong>RM{summary.cashIn.toFixed(2)}</strong></div>
         <div><span>总利润</span><strong>RM{inventory.profit.toFixed(2)}</strong></div>
         <div><span>现金流</span><strong>RM{summary.cashFlow.toFixed(2)}</strong></div>
       </section>

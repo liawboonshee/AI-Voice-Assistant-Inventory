@@ -656,6 +656,7 @@ body {
 .stat-purple strong { color: #7c3aed; }
 .stat-red strong { color: #dc2626; }
 .stat-cyan strong { color: #0891b2; }
+.stat-teal strong { color: #0f766e; }
 
 .inventory-ai-button,
 .inventory-report-button {
