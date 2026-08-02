@@ -197,15 +197,13 @@ export default function Sale() {
           </div>
         )}
       </div>
-      <details className="inventory-manual-sale-fields">
-        <summary>✏️ 其他金额或重量（手动填写）</summary>
+      <details className="inventory-sale-extra-details">
+        <summary>✏️ 其他填写（重量、金额、收款方式）</summary>
         <p>重量（g，最小0.01）</p>
         <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="例如 10" type="number" step="0.01" />
         <p>总售价（RM，可不填）</p>
         <input value={price} onChange={(event) => setPrice(event.target.value)} placeholder="可留空；例如 800" type="number" step="0.01" />
-      </details>
-      <details className="inventory-sale-payment-details">
-        <summary>💳 收款方式（默认现金；转账或欠款点这里）</summary>
+        <p className="inventory-payment-heading">💳 收款方式（默认现金）</p>
         <div className="inventory-payment-split">
           <label>
             <span>💵 现金</span>
