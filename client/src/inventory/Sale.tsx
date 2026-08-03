@@ -40,7 +40,6 @@ export default function Sale() {
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
   const [weight, setWeight] = useState('')
   const [price, setPrice] = useState('')
-  const [cash, setCash] = useState('')
   const [transfer, setTransfer] = useState('')
   const [debt, setDebt] = useState('')
   const [message, setMessage] = useState('')
@@ -67,11 +66,22 @@ export default function Sale() {
       return
     }
 
+    const totalValue = price.trim() === '' ? undefined : Number(price)
+    const transferValue = transfer.trim() === '' ? undefined : Number(transfer)
+    const debtValue = debt.trim() === '' ? undefined : Number(debt)
+    const automaticCash = totalValue === undefined
+      ? undefined
+      : round(totalValue - (transferValue || 0) - (debtValue || 0))
+    if (automaticCash !== undefined && automaticCash < 0) {
+      setMessage('转账和欠款合计不能超过总售价')
+      return
+    }
+
     const payment = calculatePaymentBreakdown({
-      total: price.trim() === '' ? undefined : Number(price),
-      cashAmount: cash.trim() === '' ? undefined : Number(cash),
-      transferAmount: transfer.trim() === '' ? undefined : Number(transfer),
-      debtAmount: debt.trim() === '' ? undefined : Number(debt),
+      total: totalValue,
+      cashAmount: automaticCash,
+      transferAmount: transferValue,
+      debtAmount: debtValue,
     })
     if (typeof payment === 'string') {
       setMessage(payment)
@@ -122,7 +132,6 @@ export default function Sale() {
     setCustomer('')
     setWeight('')
     setPrice('')
-    setCash('')
     setTransfer('')
     setDebt('')
     setMessage(
@@ -203,22 +212,18 @@ export default function Sale() {
         <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="例如 10" type="number" step="0.01" />
         <p>总售价（RM，可不填）</p>
         <input value={price} onChange={(event) => setPrice(event.target.value)} placeholder="可留空；例如 800" type="number" step="0.01" />
-        <p className="inventory-payment-heading">💳 收款方式（默认现金）</p>
+        <p className="inventory-payment-heading">💳 收款方式（剩余金额自动算现金）</p>
         <div className="inventory-payment-split">
           <label>
-            <span>💵 现金</span>
-            <input value={cash} onChange={(event) => setCash(event.target.value)} placeholder="例如 300" type="number" step="0.01" />
-          </label>
-          <label>
             <span>🏦 转账</span>
-            <input value={transfer} onChange={(event) => setTransfer(event.target.value)} placeholder="例如 400" type="number" step="0.01" />
+            <input value={transfer} onChange={(event) => setTransfer(event.target.value)} placeholder="例如 200" type="number" step="0.01" />
           </label>
           <label>
             <span>🧾 欠款</span>
             <input value={debt} onChange={(event) => setDebt(event.target.value)} placeholder="可自动计算" type="number" step="0.01" />
           </label>
         </div>
-        <small>例如总售价800、现金300、转账400，系统会自动记顾客欠款100。</small>
+        <small>例如总售价300、转账200，其余RM100会自动记录为现金。</small>
       </details>
       <button className="inventory-save-sale-button" type="button" onClick={addSale}>✅ 保存出货</button>
       {message && <p>{message}</p>}
