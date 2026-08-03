@@ -775,6 +775,21 @@ body {
 .inventory-recent-amount .inventory-payment-cash { color: #16a34a; }
 .inventory-recent-amount .inventory-payment-transfer { color: #2563eb; }
 
+.sale-record-customer {
+  color: #2563eb !important;
+  font-weight: 850 !important;
+}
+
+.sale-record-weight {
+  color: #7c3aed !important;
+  font-weight: 850 !important;
+}
+
+.sale-record-amount {
+  color: #ea580c !important;
+  font-weight: 850 !important;
+}
+
 @media (max-width: 380px) {
   .inventory-income-card { grid-template-columns: 1fr; }
   .inventory-income-total {

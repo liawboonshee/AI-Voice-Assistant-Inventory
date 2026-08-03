@@ -179,7 +179,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 4.2</h1>
+            <h1>📦 库存宝 AI 4.3</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
@@ -275,11 +275,17 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
                 <div className="inventory-recent-row" key={`${item.date}-${index}`}>
                   <div>
                     <strong>{recordTitle(item)}</strong>
-                    <span>{item.customer || item.date}</span>
+                    <span className={item.type === 'sale' ? 'sale-record-customer' : undefined}>
+                      {item.customer || item.date}
+                    </span>
                   </div>
                   <div className="inventory-recent-amount">
-                    <strong>{item.weight > 0 ? `${item.weight.toFixed(2)}g` : item.note || '收入'}</strong>
-                    <span>{formatMoney(Math.abs(item.amount))}</span>
+                    <strong className={item.type === 'sale' && item.weight > 0 ? 'sale-record-weight' : undefined}>
+                      {item.weight > 0 ? `${item.weight.toFixed(2)}g` : item.note || '收入'}
+                    </strong>
+                    <span className={item.type === 'sale' ? 'sale-record-amount' : undefined}>
+                      {formatMoney(Math.abs(item.amount))}
+                    </span>
                     {recordCashAmount(item) > 0 && (
                       <span className="inventory-payment-cash">现金 {formatMoney(recordCashAmount(item))}</span>
                     )}

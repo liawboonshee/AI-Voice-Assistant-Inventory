@@ -130,11 +130,15 @@ export default function RecordsPage() {
             )}
           </div>
           <p>日期：{formatRecordDate(item.date)}</p>
-          {item.customer && <p>客户：{item.customer}</p>}
+          {item.customer && (
+            <p>客户：<strong className={item.type === 'sale' ? 'sale-record-customer' : undefined}>{item.customer}</strong></p>
+          )}
           {item.source && <p>供应来源：{item.source}</p>}
           {item.type === 'adjustment' && <p>库存变化：{item.weight >= 0 ? '+' : ''}{item.weight.toFixed(2)}g</p>}
-          {item.type !== 'adjustment' && item.weight > 0 && <p>重量：{item.weight.toFixed(2)}g</p>}
-          <p>金额：RM{Math.abs(item.amount).toFixed(2)}</p>
+          {item.type !== 'adjustment' && item.weight > 0 && (
+            <p>重量：<strong className={item.type === 'sale' ? 'sale-record-weight' : undefined}>{item.weight.toFixed(2)}g</strong></p>
+          )}
+          <p>金额：<strong className={item.type === 'sale' ? 'sale-record-amount' : undefined}>RM{Math.abs(item.amount).toFixed(2)}</strong></p>
           {item.type === 'sale' && <p>收款方式：{paymentLabel(item)}</p>}
           {item.type === 'sale' && (item.cashAmount || 0) > 0 && <p>现金：RM{item.cashAmount?.toFixed(2)}</p>}
           {item.type === 'sale' && (item.transferAmount || 0) > 0 && <p>转账：RM{item.transferAmount?.toFixed(2)}</p>}
