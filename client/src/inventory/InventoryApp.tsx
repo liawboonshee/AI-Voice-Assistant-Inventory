@@ -13,6 +13,7 @@ import {
 import { runInventoryTool } from './AITools'
 import Backup from './Backup'
 import Customers from './Customers'
+import Expense from './Expense'
 import Income from './Income'
 import Purchase from './Purchase'
 import { loadRecords, type RecordItem } from './Records'
@@ -31,6 +32,7 @@ type InventoryPage =
   | 'debt'
   | 'backup'
   | 'income'
+  | 'expense'
 
 type CustomerData = {
   name: string
@@ -76,6 +78,7 @@ function recordTitle(item: RecordItem): string {
   if (item.type === 'adjustment') return '🧮 库存修正'
   if (item.type === 'debt') return '🧾 新增欠款'
   if (item.type === 'income') return item.note === '客户还款' ? '💳 客户还款' : '💰 收入'
+  if (item.type === 'expense') return '💸 消费'
   if (item.weight === 0 && (item.paidAmount || 0) > 0) return '💳 客户还款'
   return '📤 出货'
 }
@@ -170,6 +173,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
     if (page === 'records') return <RecordsPage />
     if (page === 'backup') return <Backup />
     if (page === 'income') return <Income />
+    if (page === 'expense') return <Expense />
     if (page === 'debt') return <DebtPage customers={customers} />
     return null
   }
@@ -179,7 +183,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 4.4</h1>
+            <h1>📦 库存宝 AI 4.5</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
@@ -260,6 +264,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
             <button type="button" onClick={() => setPage('purchase')}>📥 进货</button>
             <button type="button" onClick={() => setPage('customer')}>👤 顾客</button>
             <button type="button" onClick={() => setPage('income')}>💰 收入</button>
+            <button type="button" onClick={() => setPage('expense')}>💸 消费</button>
           </section>
 
           <button className="inventory-report-button" type="button" onClick={() => setPage('records')}>

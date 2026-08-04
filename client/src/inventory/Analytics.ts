@@ -68,7 +68,7 @@ export function recordDateParts(value: string): DateParts | null {
 }
 
 export function recordCashIn(record: RecordItem): number {
-  if (record.type === 'purchase') return 0
+  if (record.type === 'purchase' || record.type === 'expense') return 0
   if (record.type === 'adjustment' || record.type === 'debt') return 0
   if (record.type === 'income') return Math.max(0, record.amount || 0)
   if (record.cashAmount !== undefined || record.transferAmount !== undefined) {
@@ -84,7 +84,7 @@ export function recordCashIn(record: RecordItem): number {
 
 /** 记录中实际收到的现金。旧记录没有拆分字段时，除明确标注转账外按现金兼容。 */
 export function recordCashAmount(record: RecordItem): number {
-  if (record.type === 'purchase' || record.type === 'adjustment' || record.type === 'debt') return 0
+  if (record.type === 'purchase' || record.type === 'expense' || record.type === 'adjustment' || record.type === 'debt') return 0
   if (record.cashAmount !== undefined || record.transferAmount !== undefined) {
     return Math.max(0, record.cashAmount || 0)
   }
@@ -96,7 +96,7 @@ export function recordCashAmount(record: RecordItem): number {
 
 /** 记录中实际收到的转账。 */
 export function recordTransferAmount(record: RecordItem): number {
-  if (record.type === 'purchase' || record.type === 'adjustment' || record.type === 'debt') return 0
+  if (record.type === 'purchase' || record.type === 'expense' || record.type === 'adjustment' || record.type === 'debt') return 0
   if (record.cashAmount !== undefined || record.transferAmount !== undefined) {
     return Math.max(0, record.transferAmount || 0)
   }
@@ -104,11 +104,13 @@ export function recordTransferAmount(record: RecordItem): number {
 }
 
 export function recordCashOut(record: RecordItem): number {
-  return record.type === 'purchase' ? Math.max(0, record.amount || 0) : 0
+  return record.type === 'purchase' || record.type === 'expense'
+    ? Math.max(0, record.amount || 0)
+    : 0
 }
 
 export function recordProfit(record: RecordItem): number {
-  if (record.type === 'purchase' || record.type === 'adjustment' || record.type === 'debt') return 0
+  if (record.type === 'purchase' || record.type === 'expense' || record.type === 'adjustment' || record.type === 'debt') return 0
   if (record.type === 'income') {
     // 欠款在出货时不算利润，顾客实际还款当天才计入。
     if (record.note === '客户还款') return Math.max(0, recordCashIn(record) || record.amount || 0)

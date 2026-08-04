@@ -3,7 +3,7 @@ import { loadInventory, saveInventory } from './Storage'
 
 export type RecordItem = {
 
-  type:'purchase' | 'sale' | 'income' | 'adjustment' | 'debt'
+  type:'purchase' | 'sale' | 'income' | 'expense' | 'adjustment' | 'debt'
 
   date:string
 

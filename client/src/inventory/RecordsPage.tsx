@@ -17,6 +17,7 @@ function recordLabel(item: RecordItem): string {
   if (item.type === 'adjustment') return '🧮 库存修正'
   if (item.type === 'debt') return '🧾 新增欠款'
   if (item.type === 'income') return item.note === '客户还款' ? '💳 客户还款' : '💰 收入'
+  if (item.type === 'expense') return '💸 消费'
   return '📤 出货'
 }
 
@@ -62,6 +63,9 @@ export default function RecordsPage() {
     const monthProfit = monthRecords.reduce((sum, item) => sum + recordProfit(item), 0)
     const cashIn = records.reduce((sum, item) => sum + recordCashIn(item), 0)
     const cashOut = records.reduce((sum, item) => sum + recordCashOut(item), 0)
+    const totalExpense = records
+      .filter((item) => item.type === 'expense')
+      .reduce((sum, item) => sum + Math.max(0, item.amount || 0), 0)
     return {
       todayIncome,
       todayCash,
@@ -73,6 +77,7 @@ export default function RecordsPage() {
       monthProfit,
       cashIn,
       cashOut,
+      totalExpense,
       cashFlow: cashIn - cashOut,
     }
   }, [records])
@@ -111,6 +116,7 @@ export default function RecordsPage() {
         <div><span>本月利润</span><strong>RM{summary.monthProfit.toFixed(2)}</strong></div>
         <div><span>本月出货</span><strong>{summary.monthShipment.toFixed(2)}g</strong></div>
         <div><span>总收入</span><strong>RM{summary.cashIn.toFixed(2)}</strong></div>
+        <div><span>总消费</span><strong>RM{summary.totalExpense.toFixed(2)}</strong></div>
         <div><span>总利润</span><strong>RM{inventory.profit.toFixed(2)}</strong></div>
         <div><span>现金流</span><strong>RM{summary.cashFlow.toFixed(2)}</strong></div>
       </section>
