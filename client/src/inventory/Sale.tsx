@@ -208,20 +208,11 @@ export default function Sale() {
       </div>
       <details className="inventory-sale-extra-details">
         <summary>✏️ 其他填写（重量、金额、收款方式）</summary>
-        <p>重量（g，最小0.01）</p>
-        <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="例如 10" type="number" step="0.01" />
-        <p>总售价（RM，可不填）</p>
-        <input value={price} onChange={(event) => setPrice(event.target.value)} placeholder="可留空；例如 800" type="number" step="0.01" />
-        <p className="inventory-payment-heading">💳 收款方式（剩余金额自动算现金）</p>
+        <input aria-label="重量" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量（g）" type="number" step="0.01" />
+        <input aria-label="总售价" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价（RM，可不填）" type="number" step="0.01" />
         <div className="inventory-payment-split">
-          <label>
-            <span>🏦 转账</span>
-            <input value={transfer} onChange={(event) => setTransfer(event.target.value)} placeholder="例如 200" type="number" step="0.01" />
-          </label>
-          <label>
-            <span>🧾 欠款</span>
-            <input value={debt} onChange={(event) => setDebt(event.target.value)} placeholder="可自动计算" type="number" step="0.01" />
-          </label>
+          <input aria-label="转账" value={transfer} onChange={(event) => setTransfer(event.target.value)} placeholder="转账（RM）" type="number" step="0.01" />
+          <input aria-label="欠款" value={debt} onChange={(event) => setDebt(event.target.value)} placeholder="欠款（RM）" type="number" step="0.01" />
         </div>
         <small>例如总售价300、转账200，其余RM100会自动记录为现金。</small>
       </details>

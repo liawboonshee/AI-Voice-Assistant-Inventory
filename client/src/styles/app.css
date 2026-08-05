@@ -1048,29 +1048,22 @@ body {
   margin: 8px 0 10px;
 }
 
-.inventory-payment-split label {
-  display: grid;
-  gap: 5px;
-  color: #586174;
-  font-size: 0.78rem;
-}
-
 .inventory-payment-split input {
   min-width: 0;
   margin: 0;
 }
 
-.inventory-payment-split label:nth-child(1) input {
+.inventory-payment-split input:nth-child(1) {
   border-color: #82adf5;
   background: #eef6ff;
 }
 
-.inventory-payment-split label:nth-child(2) input {
+.inventory-payment-split input:nth-child(2) {
   border-color: #f0a3a3;
   background: #fff1f1;
 }
 
-.inventory-payment-split label input:focus {
+.inventory-payment-split input:focus {
   border-color: #3154e9;
   background: #fffbe8;
 }
