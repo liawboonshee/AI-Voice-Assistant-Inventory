@@ -1,3 +1,4 @@
+import { addInventoryBatch, consumeInventoryBatches } from './Batches'
 import { loadInventory, saveInventory } from './Storage'
 import { currentRecordDate, saveRecord } from './Records'
 import { calculatePaymentBreakdown, paymentSummary } from './Payments'
@@ -138,7 +139,10 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   const data = loadInventory()
 
   if (command.type === 'purchase') {
-    const batchUnitCost = roundMoney(amount / weight)
+    const date = currentRecordDate()
+    const batchId = `B${Date.now()}`
+    const batch = addInventoryBatch(data, { id: batchId, date, weight, cost: amount })
+    const batchUnitCost = roundMoney(batch.unitCost)
     data.stock = roundMoney(data.stock + weight)
     data.totalWeightCost = roundMoney(data.totalWeightCost + amount)
     data.cost = roundMoney(data.cost + amount)
@@ -147,18 +151,18 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
 
     saveRecord({
       type: 'purchase',
-      date: currentRecordDate(),
+      date,
       weight,
       amount,
       costAmount: amount,
       profitAmount: 0,
-      batchId: `B${Date.now()}`,
+      batchId,
       unitCost: batchUnitCost,
       averageCostAfter,
       stockAfter: data.stock,
     })
 
-    return `✅ 已记录新批货：${weight.toFixed(2)}克，成本${amount.toFixed(2)}；库存平均成本已重算为${averageCostAfter.toFixed(2)}每克。`
+    return `✅ 已记录独立批次：${weight.toFixed(2)}克，成本${amount.toFixed(2)}；以后按最早批次先出货。`
   }
 
   if (data.stock < weight) {
@@ -169,15 +173,15 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   if (typeof payment === 'string') return payment
   const debtAmount = payment.debtAmount
 
-  const oldStock = data.stock
-  const costPerGram = oldStock > 0 ? data.totalWeightCost / oldStock : 0
-  const saleCost = roundMoney(costPerGram * weight)
+  const batchResult = consumeInventoryBatches(data, weight)
+  if (!batchResult) return '批次库存不足，请先到库存页面盘点修正。'
+  const saleCost = batchResult.saleCost
   const hasAmount = payment.total > 0
   // 欠款暂不计利润；顾客还款时才确认该部分利润。
   const profitAmount = hasAmount ? roundMoney(payment.paidAmount - saleCost) : 0
 
-  data.stock = roundMoney(data.stock - weight)
-  data.totalWeightCost = Math.max(0, roundMoney(data.totalWeightCost - saleCost))
+  data.stock = batchResult.stockAfter
+  data.totalWeightCost = batchResult.costAfter
   data.income = roundMoney(data.income + payment.paidAmount)
   data.profit = roundMoney(data.profit + profitAmount)
 
@@ -198,6 +202,7 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
     costAmount: saleCost,
     profitAmount,
     paymentMethod: payment.paymentMethod,
+    batchAllocations: batchResult.allocations,
     stockAfter: data.stock,
   })
 

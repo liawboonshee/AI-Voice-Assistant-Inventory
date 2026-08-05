@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { consumeInventoryBatches } from './Batches'
 import { loadInventory, saveInventory } from './Storage'
 import { currentRecordDate, saveRecord } from './Records'
 import { calculatePaymentBreakdown, paymentSummary } from './Payments'
@@ -94,20 +95,24 @@ export default function Sale() {
       return
     }
 
-    const oldStock = data.stock
-    const costPerGram = oldStock > 0 ? data.totalWeightCost / oldStock : 0
-    const saleCost = round(costPerGram * w)
-    const hasAmount = payment.total > 0
-    // 欠款暂不计利润；只按实际收到的现金与转账确认利润。
-    const profitAmount = hasAmount ? round(payment.paidAmount - saleCost) : 0
     const customerName = customer.trim() || '未填写'
     if (payment.debtAmount > 0 && !customer.trim()) {
       setMessage('有欠款时必须填写顾客名字')
       return
     }
 
-    data.stock = round(data.stock - w)
-    data.totalWeightCost = Math.max(0, round(data.totalWeightCost - saleCost))
+    const batchResult = consumeInventoryBatches(data, w)
+    if (!batchResult) {
+      setMessage('批次库存不足，请先到库存页面盘点修正')
+      return
+    }
+    const saleCost = batchResult.saleCost
+    const hasAmount = payment.total > 0
+    // 欠款暂不计利润；只按实际收到的现金与转账确认利润。
+    const profitAmount = hasAmount ? round(payment.paidAmount - saleCost) : 0
+
+    data.stock = batchResult.stockAfter
+    data.totalWeightCost = batchResult.costAfter
     data.income = round(data.income + payment.paidAmount)
     data.profit = round(data.profit + profitAmount)
     saveInventory(data)
@@ -126,6 +131,7 @@ export default function Sale() {
       costAmount: saleCost,
       profitAmount,
       paymentMethod: payment.paymentMethod,
+      batchAllocations: batchResult.allocations,
       stockAfter: data.stock,
     })
 
@@ -136,7 +142,7 @@ export default function Sale() {
     setDebt('')
     setMessage(
       hasAmount
-        ? `✅ 出货成功：${paymentSummary(payment)}；单笔利润RM${profitAmount.toFixed(2)}`
+        ? `✅ 出货成功：${paymentSummary(payment)}；FIFO批次成本RM${saleCost.toFixed(2)}，单笔利润RM${profitAmount.toFixed(2)}`
         : '✅ 出货成功，未填写金额，已扣除库存',
     )
   }

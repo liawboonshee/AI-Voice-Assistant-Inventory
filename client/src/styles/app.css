@@ -1069,12 +1069,41 @@ body {
 }
 
 .inventory-stock-summary,
-.inventory-stock-adjust {
+.inventory-stock-adjust,
+.inventory-batch-section {
   margin-top: 12px;
   padding: 16px;
   border: 1px solid #e3e7f1;
   border-radius: 18px;
   background: #fff;
+}
+
+.inventory-batch-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.inventory-batch-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f2f6ff;
+}
+
+.inventory-batch-card > div {
+  display: grid;
+  gap: 2px;
+}
+
+.inventory-batch-card > div:last-child { text-align: right; }
+
+.inventory-batch-card span {
+  color: #68758e;
+  font-size: 0.72rem;
 }
 
 .inventory-stock-summary p {
@@ -1376,11 +1405,21 @@ body {
   }
 
   .inventory-stock-summary,
-  .inventory-stock-adjust {
+  .inventory-stock-adjust,
+  .inventory-batch-section {
     margin-top: 7px;
     padding: 9px;
     border-radius: 13px;
   }
+
+  .inventory-batch-card {
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  .inventory-batch-card strong { font-size: 0.8rem; }
+
+  .inventory-batch-card span { font-size: 0.64rem; }
 
   .inventory-stock-summary {
     display: grid;

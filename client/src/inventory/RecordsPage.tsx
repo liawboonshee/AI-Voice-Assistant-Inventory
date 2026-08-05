@@ -153,6 +153,9 @@ export default function RecordsPage() {
           {item.averageCostAfter !== undefined && <p>重算平均成本：RM{item.averageCostAfter.toFixed(2)}/g</p>}
           {item.stockAfter !== undefined && <p>完成后库存：{item.stockAfter.toFixed(2)}g</p>}
           {item.type === 'sale' && item.weight > 0 && <p>单笔利润：RM{recordProfit(item).toFixed(2)}</p>}
+          {item.type === 'sale' && item.batchAllocations && item.batchAllocations.length > 0 && (
+            <p>FIFO批次：{item.batchAllocations.map((batch) => `${batch.weight.toFixed(2)}g / RM${batch.cost.toFixed(2)}`).join('＋')}</p>
+          )}
           {item.note && <p>备注：{item.note}</p>}
         </section>
       ))}

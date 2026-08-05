@@ -1,3 +1,4 @@
+import { loadInventoryBatches } from './Batches'
 import { loadInventory } from './Storage'
 import { loadRecords, type RecordItem } from './Records'
 import { parseVoiceCommand } from './VoiceCommand'
@@ -32,6 +33,10 @@ function describeLastRecord(record: RecordItem | undefined): string {
     return `最近一笔是${record.note || '收入'}：${record.amount.toFixed(2)}，时间${record.date}。`
   }
 
+  if (record.type === 'expense') {
+    return `最近一笔是消费：${record.amount.toFixed(2)}，备注${record.note || '未填写'}，时间${record.date}。`
+  }
+
   if (record.type === 'adjustment') {
     return `最近一笔是库存修正：变化${record.weight.toFixed(2)}克，修正后库存${(record.stockAfter || 0).toFixed(2)}克。`
   }
@@ -62,7 +67,8 @@ export function askInventory(input: string): string | null {
 
   if (command.query === 'stock') {
     const avgCost = data.stock > 0 ? data.totalWeightCost / data.stock : 0
-    return `目前库存${data.stock.toFixed(2)}克，库存本金${data.totalWeightCost.toFixed(2)}，平均成本${avgCost.toFixed(2)}每克。`
+    const batchCount = loadInventoryBatches(data).filter((batch) => batch.remainingWeight > 0).length
+    return `目前库存${data.stock.toFixed(2)}克，共${batchCount}个剩余批次，库存本金${data.totalWeightCost.toFixed(2)}，平均成本${avgCost.toFixed(2)}每克。`
   }
 
   if (command.query === 'income') {

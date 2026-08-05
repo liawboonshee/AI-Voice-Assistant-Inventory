@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { addInventoryBatch } from './Batches'
 import { currentRecordDate, saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
@@ -21,7 +22,16 @@ export default function Purchase() {
     }
 
     const data = loadInventory()
-    const batchUnitCost = round(c / w)
+    const date = currentRecordDate()
+    const batchId = `B${Date.now()}`
+    const batch = addInventoryBatch(data, {
+      id: batchId,
+      date,
+      source,
+      weight: w,
+      cost: c,
+    })
+    const batchUnitCost = round(batch.unitCost)
     data.stock = round(data.stock + w)
     data.totalWeightCost = round(data.totalWeightCost + c)
     data.cost = round(data.cost + c)
@@ -30,13 +40,13 @@ export default function Purchase() {
 
     saveRecord({
       type: 'purchase',
-      date: currentRecordDate(),
+      date,
       source: source.trim() || '未填写',
       weight: w,
       amount: c,
       costAmount: c,
       profitAmount: 0,
-      batchId: `B${Date.now()}`,
+      batchId,
       unitCost: batchUnitCost,
       averageCostAfter,
       stockAfter: data.stock,
@@ -45,7 +55,7 @@ export default function Purchase() {
     setWeight('')
     setCost('')
     setSource('')
-    setMessage(`✅ 新批次${w.toFixed(2)}g，批次成本RM${batchUnitCost.toFixed(2)}/g；库存平均成本已重算为RM${averageCostAfter.toFixed(2)}/g`)
+    setMessage(`✅ 已建立独立批次：${w.toFixed(2)}g，RM${batchUnitCost.toFixed(2)}/g；出货将按最早批次先扣`)
   }
 
   return (
@@ -58,7 +68,7 @@ export default function Purchase() {
       <p>总成本（RM）</p>
       <input value={cost} onChange={(event) => setCost(event.target.value)} placeholder="例如 4500" type="number" step="0.01" />
       <button type="button" onClick={addPurchase}>保存进货</button>
-      <small>每次加入新批货，系统会用剩余库存本金加新批成本，重新计算平均每克成本。</small>
+      <small>每次进货会建立独立批次；出货按最早进货批次先扣，并使用实际批次成本计算利润。</small>
       {message && <p>{message}</p>}
     </div>
   )

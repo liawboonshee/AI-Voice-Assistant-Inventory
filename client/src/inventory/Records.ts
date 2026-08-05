@@ -1,4 +1,5 @@
 import type { PaymentMethod } from './Payments'
+import { restoreInventoryBatchAllocations, type BatchAllocation } from './Batches'
 import { loadInventory, saveInventory } from './Storage'
 
 export type RecordItem = {
@@ -34,6 +35,9 @@ export type RecordItem = {
   paymentMethod?:PaymentMethod
 
   batchId?:string
+
+  // FIFO 出货所扣除的批次明细，用于利润核算与删除出货时恢复原批次。
+  batchAllocations?:BatchAllocation[]
 
   unitCost?:number
 
@@ -143,8 +147,14 @@ export function deleteSaleAndRestore(index:number):string{
     ? 0
     : saleCashIn(item) - restoredCost
 
-  inventory.stock=round(inventory.stock + restoredWeight)
-  inventory.totalWeightCost=round(inventory.totalWeightCost + restoredCost)
+  const restoredBatches=restoreInventoryBatchAllocations(
+    inventory,
+    item.batchAllocations,
+    restoredWeight,
+    restoredCost,
+  )
+  inventory.stock=restoredBatches.stockAfter
+  inventory.totalWeightCost=restoredBatches.costAfter
   inventory.income=Math.max(0, round(inventory.income - saleCashIn(item)))
   inventory.profit=round(inventory.profit - profit)
   saveInventory(inventory)

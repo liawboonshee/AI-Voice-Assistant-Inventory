@@ -30,6 +30,10 @@ customers:
 localStorage.getItem('customers'),
 
 
+batches:
+localStorage.getItem('inventory_batches_v1'),
+
+
 time:
 new Date().toLocaleString()
 
@@ -215,6 +219,26 @@ localStorage.setItem(
 data.customers
 
 )
+
+}
+
+
+
+if(data.batches){
+
+
+localStorage.setItem(
+
+'inventory_batches_v1',
+
+data.batches
+
+)
+
+}else{
+
+
+localStorage.removeItem('inventory_batches_v1')
 
 }
 
