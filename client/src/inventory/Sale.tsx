@@ -207,14 +207,13 @@ export default function Sale() {
         )}
       </div>
       <details className="inventory-sale-extra-details">
-        <summary>✏️ 其他填写（重量、金额、收款方式）</summary>
-        <input aria-label="重量" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量（g）" type="number" step="0.01" />
-        <input aria-label="总售价" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价（RM，可不填）" type="number" step="0.01" />
+        <summary>✏️ 其他填写</summary>
+        <input aria-label="重量" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量" type="number" step="0.01" />
+        <input aria-label="总售价" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价" type="number" step="0.01" />
         <div className="inventory-payment-split">
-          <input aria-label="转账" value={transfer} onChange={(event) => setTransfer(event.target.value)} placeholder="转账（RM）" type="number" step="0.01" />
-          <input aria-label="欠款" value={debt} onChange={(event) => setDebt(event.target.value)} placeholder="欠款（RM）" type="number" step="0.01" />
+          <input aria-label="转账" value={transfer} onChange={(event) => setTransfer(event.target.value)} placeholder="转账" type="number" step="0.01" />
+          <input aria-label="欠款" value={debt} onChange={(event) => setDebt(event.target.value)} placeholder="欠款" type="number" step="0.01" />
         </div>
-        <small>例如总售价300、转账200，其余RM100会自动记录为现金。</small>
       </details>
       <button className="inventory-save-sale-button" type="button" onClick={addSale}>✅ 保存出货</button>
       {message && <p>{message}</p>}
