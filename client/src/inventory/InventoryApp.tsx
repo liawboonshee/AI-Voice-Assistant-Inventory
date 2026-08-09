@@ -15,6 +15,7 @@ import Backup from './Backup'
 import Customers from './Customers'
 import Expense from './Expense'
 import Income from './Income'
+import { loadLotCycles } from './LotCycles'
 import Purchase from './Purchase'
 import { loadRecords, type RecordItem } from './Records'
 import RecordsPage from './RecordsPage'
@@ -111,13 +112,16 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
   const [page, setPage] = useState<InventoryPage>('home')
   const [records, setRecords] = useState(loadRecords())
   const [data, setData] = useState(() => loadProfitSyncedInventory(loadRecords()))
+  const [lotCycles, setLotCycles] = useState(() => loadLotCycles(loadInventory()))
   const [customers, setCustomers] = useState(loadCustomers())
   const [isListening, setIsListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
 
   const refresh = useCallback(() => {
     const nextRecords = loadRecords()
-    setData(loadProfitSyncedInventory(nextRecords))
+    const nextData = loadProfitSyncedInventory(nextRecords)
+    setData(nextData)
+    setLotCycles([...loadLotCycles(nextData)])
     setRecords([...nextRecords])
     setCustomers([...loadCustomers()])
   }, [])
@@ -138,6 +142,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
     .reduce((sum, item) => sum + item.weight, 0)
   const totalDebt = customers.reduce((sum, customer) => sum + (customer.debt || 0), 0)
   const recentRecords = [...records].reverse().slice(0, 4)
+  const activeLot = lotCycles.find((cycle) => cycle.status === 'active')
 
   const startInventoryVoice = async () => {
     if (isListening) return
@@ -183,7 +188,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 4.8</h1>
+            <h1>📦 库存宝 AI 4.9</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
@@ -207,6 +212,14 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       {page === 'home' ? (
         <main className="inventory-home">
           <section className="inventory-stat-grid">
+            <div className="inventory-stat-card stat-blue">
+              <span>{activeLot ? `第${activeLot.sequence}批收入` : '本批收入'}</span>
+              <strong>{formatMoney(activeLot?.receivedIncome || 0)}</strong>
+            </div>
+            <div className="inventory-stat-card stat-orange">
+              <span>{activeLot ? `第${activeLot.sequence}批盈利` : '本批盈利'}</span>
+              <strong>{formatMoney(activeLot?.profit || 0)}</strong>
+            </div>
             <div className="inventory-stat-card inventory-income-card stat-green">
               <div className="inventory-income-total">
                 <span>今日收入</span>

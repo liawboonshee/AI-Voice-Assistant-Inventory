@@ -34,6 +34,10 @@ batches:
 localStorage.getItem('inventory_batches_v1'),
 
 
+lotCycles:
+localStorage.getItem('inventory_lot_cycles_v1'),
+
+
 time:
 new Date().toLocaleString()
 
@@ -239,6 +243,26 @@ data.batches
 
 
 localStorage.removeItem('inventory_batches_v1')
+
+}
+
+
+
+if(data.lotCycles){
+
+
+localStorage.setItem(
+
+'inventory_lot_cycles_v1',
+
+data.lotCycles
+
+)
+
+}else{
+
+
+localStorage.removeItem('inventory_lot_cycles_v1')
 
 }
 

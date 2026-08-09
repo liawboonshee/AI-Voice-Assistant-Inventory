@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { consumeInventoryBatches } from './Batches'
+import { recordLotCycleSale } from './LotCycles'
 import { loadInventory, saveInventory } from './Storage'
 import { currentRecordDate, saveRecord } from './Records'
 import { calculatePaymentBreakdown, paymentSummary } from './Payments'
@@ -101,6 +102,7 @@ export default function Sale() {
       return
     }
 
+    const inventoryBeforeSale = { ...data }
     const batchResult = consumeInventoryBatches(data, w)
     if (!batchResult) {
       setMessage('批次库存不足，请先到库存页面盘点修正')
@@ -117,10 +119,25 @@ export default function Sale() {
     data.profit = round(data.profit + profitAmount)
     saveInventory(data)
 
+    const date = currentRecordDate()
+    const lotCycleId = recordLotCycleSale(inventoryBeforeSale, {
+      date,
+      weight: w,
+      amount: payment.total,
+      paidAmount: payment.paidAmount,
+      cashAmount: payment.cashAmount,
+      transferAmount: payment.transferAmount,
+      debtAmount: payment.debtAmount,
+      costAmount: saleCost,
+      profitAmount,
+      stockAfter: data.stock,
+      costAfter: data.totalWeightCost,
+    })
+
     saveCustomerSale(customerName, payment.debtAmount)
     saveRecord({
       type: 'sale',
-      date: currentRecordDate(),
+      date,
       customer: customerName,
       weight: w,
       amount: payment.total,
@@ -132,6 +149,7 @@ export default function Sale() {
       profitAmount,
       paymentMethod: payment.paymentMethod,
       batchAllocations: batchResult.allocations,
+      lotCycleId,
       stockAfter: data.stock,
     })
 
@@ -142,7 +160,7 @@ export default function Sale() {
     setDebt('')
     setMessage(
       hasAmount
-        ? `✅ 出货成功：${paymentSummary(payment)}；FIFO批次成本RM${saleCost.toFixed(2)}，单笔利润RM${profitAmount.toFixed(2)}`
+        ? `✅ 出货成功：${paymentSummary(payment)}；本批成本RM${saleCost.toFixed(2)}，单笔利润RM${profitAmount.toFixed(2)}`
         : '✅ 出货成功，未填写金额，已扣除库存',
     )
   }
@@ -165,11 +183,6 @@ export default function Sale() {
           </button>
         ))}
       </div>
-      {selectedPreset && (
-        <div className="inventory-sale-selection">
-          ✅ 已选择 RM{selectedPreset.price}，出货 {selectedPreset.weight.toFixed(2)}g
-        </div>
-      )}
       <p>客户</p>
       <div className="customer-combobox">
         <input
@@ -212,15 +225,24 @@ export default function Sale() {
           </div>
         )}
       </div>
-      <details className="inventory-sale-extra-details">
-        <summary>✏️ 其他填写</summary>
-        <input aria-label="重量" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量" type="number" step="0.01" />
-        <input aria-label="总售价" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价" type="number" step="0.01" />
-        <div className="inventory-payment-split">
+      <div className="inventory-sale-fields-grid">
+        <label className="inventory-sale-unit-field inventory-sale-weight-field">
+          <input aria-label="重量" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量" type="number" step="0.01" />
+          <strong>g</strong>
+        </label>
+        <label className="inventory-sale-unit-field inventory-sale-price-field">
+          <input aria-label="总售价" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价" type="number" step="0.01" />
+          <strong>RM</strong>
+        </label>
+        <label className="inventory-sale-unit-field inventory-sale-transfer-field">
           <input aria-label="转账" value={transfer} onChange={(event) => setTransfer(event.target.value)} placeholder="转账" type="number" step="0.01" />
+          <strong>RM</strong>
+        </label>
+        <label className="inventory-sale-unit-field inventory-sale-debt-field">
           <input aria-label="欠款" value={debt} onChange={(event) => setDebt(event.target.value)} placeholder="欠款" type="number" step="0.01" />
-        </div>
-      </details>
+          <strong>RM</strong>
+        </label>
+      </div>
       <button className="inventory-save-sale-button" type="button" onClick={addSale}>✅ 保存出货</button>
       {message && <p>{message}</p>}
     </div>

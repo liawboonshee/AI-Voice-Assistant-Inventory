@@ -1,4 +1,4 @@
-import { loadInventoryBatches } from './Batches'
+import { getActiveLotCycle } from './LotCycles'
 import { loadInventory } from './Storage'
 import { loadRecords, type RecordItem } from './Records'
 import { parseVoiceCommand } from './VoiceCommand'
@@ -67,8 +67,9 @@ export function askInventory(input: string): string | null {
 
   if (command.query === 'stock') {
     const avgCost = data.stock > 0 ? data.totalWeightCost / data.stock : 0
-    const batchCount = loadInventoryBatches(data).filter((batch) => batch.remainingWeight > 0).length
-    return `目前库存${data.stock.toFixed(2)}克，共${batchCount}个剩余批次，库存本金${data.totalWeightCost.toFixed(2)}，平均成本${avgCost.toFixed(2)}每克。`
+    const active = getActiveLotCycle(data)
+    const batchText = active ? `，当前是第${active.sequence}批` : ''
+    return `目前库存${data.stock.toFixed(2)}克${batchText}，库存本金${data.totalWeightCost.toFixed(2)}，平均成本${avgCost.toFixed(2)}每克。`
   }
 
   if (command.query === 'income') {

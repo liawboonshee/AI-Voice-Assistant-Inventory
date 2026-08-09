@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { addInventoryBatch } from './Batches'
+import { beginNewLotCycle } from './LotCycles'
 import { currentRecordDate, saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
@@ -24,6 +25,12 @@ export default function Purchase() {
     const data = loadInventory()
     const date = currentRecordDate()
     const batchId = `B${Date.now()}`
+    const lotCycle = beginNewLotCycle(data, {
+      date,
+      source,
+      weight: w,
+      cost: c,
+    })
     const batch = addInventoryBatch(data, {
       id: batchId,
       date,
@@ -47,6 +54,7 @@ export default function Purchase() {
       costAmount: c,
       profitAmount: 0,
       batchId,
+      lotCycleId: lotCycle.id,
       unitCost: batchUnitCost,
       averageCostAfter,
       stockAfter: data.stock,
@@ -55,7 +63,7 @@ export default function Purchase() {
     setWeight('')
     setCost('')
     setSource('')
-    setMessage(`✅ 已建立独立批次：${w.toFixed(2)}g，RM${batchUnitCost.toFixed(2)}/g；出货将按最早批次先扣`)
+    setMessage(`✅ 已开始第${lotCycle.sequence}批：进货${w.toFixed(2)}g，RM${batchUnitCost.toFixed(2)}/g；上一批已封存`)
   }
 
   return (
@@ -68,7 +76,7 @@ export default function Purchase() {
       <p>总成本（RM）</p>
       <input value={cost} onChange={(event) => setCost(event.target.value)} placeholder="例如 4500" type="number" step="0.01" />
       <button type="button" onClick={addPurchase}>保存进货</button>
-      <small>每次进货会建立独立批次；出货按最早进货批次先扣，并使用实际批次成本计算利润。</small>
+      <small>每次进货都会封存上一批，并开启新的批次包；上一批结余库存和本金会带入本批。</small>
       {message && <p>{message}</p>}
     </div>
   )

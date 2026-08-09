@@ -1,4 +1,5 @@
 import { addInventoryBatch, consumeInventoryBatches } from './Batches'
+import { beginNewLotCycle, recordLotCycleSale } from './LotCycles'
 import { loadInventory, saveInventory } from './Storage'
 import { currentRecordDate, saveRecord } from './Records'
 import { calculatePaymentBreakdown, paymentSummary } from './Payments'
@@ -141,6 +142,7 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   if (command.type === 'purchase') {
     const date = currentRecordDate()
     const batchId = `B${Date.now()}`
+    const lotCycle = beginNewLotCycle(data, { date, weight, cost: amount })
     const batch = addInventoryBatch(data, { id: batchId, date, weight, cost: amount })
     const batchUnitCost = roundMoney(batch.unitCost)
     data.stock = roundMoney(data.stock + weight)
@@ -157,12 +159,13 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
       costAmount: amount,
       profitAmount: 0,
       batchId,
+      lotCycleId: lotCycle.id,
       unitCost: batchUnitCost,
       averageCostAfter,
       stockAfter: data.stock,
     })
 
-    return `✅ 已记录独立批次：${weight.toFixed(2)}克，成本${amount.toFixed(2)}；以后按最早批次先出货。`
+    return `✅ 已开始第${lotCycle.sequence}批：进货${weight.toFixed(2)}克，成本${amount.toFixed(2)}；上一批已封存。`
   }
 
   if (data.stock < weight) {
@@ -173,6 +176,7 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   if (typeof payment === 'string') return payment
   const debtAmount = payment.debtAmount
 
+  const inventoryBeforeSale = { ...data }
   const batchResult = consumeInventoryBatches(data, weight)
   if (!batchResult) return '批次库存不足，请先到库存页面盘点修正。'
   const saleCost = batchResult.saleCost
@@ -185,13 +189,28 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
   data.income = roundMoney(data.income + payment.paidAmount)
   data.profit = roundMoney(data.profit + profitAmount)
 
+  const date = currentRecordDate()
+  const lotCycleId = recordLotCycleSale(inventoryBeforeSale, {
+    date,
+    weight,
+    amount: payment.total,
+    paidAmount: payment.paidAmount,
+    cashAmount: payment.cashAmount,
+    transferAmount: payment.transferAmount,
+    debtAmount,
+    costAmount: saleCost,
+    profitAmount,
+    stockAfter: data.stock,
+    costAfter: data.totalWeightCost,
+  })
+
   const customer = resolveKnownCustomerName(command.customer || '') || command.customer || '未填写'
   addCustomerDebt(customer, debtAmount)
 
   saveInventory(data)
   saveRecord({
     type: 'sale',
-    date: currentRecordDate(),
+    date,
     customer,
     weight,
     amount: payment.total,
@@ -203,6 +222,7 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
     profitAmount,
     paymentMethod: payment.paymentMethod,
     batchAllocations: batchResult.allocations,
+    lotCycleId,
     stockAfter: data.stock,
   })
 

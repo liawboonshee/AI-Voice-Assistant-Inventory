@@ -9,6 +9,7 @@ import {
   recordProfit,
   recordTransferAmount,
 } from './Analytics'
+import { loadLotCycles, type LotCycle } from './LotCycles'
 import { deleteSaleAndRestore, loadRecords, type RecordItem } from './Records'
 import { loadInventory } from './Storage'
 
@@ -30,9 +31,17 @@ function paymentLabel(item: RecordItem): string {
   return '现金'
 }
 
+function lotStatus(cycle: LotCycle): string {
+  if (cycle.status === 'active') return '进行中'
+  if (cycle.closeReason === 'sold_out') return '已售完'
+  if (cycle.closeReason === 'new_purchase') return '新进货时封存'
+  return '盘点结束'
+}
+
 export default function RecordsPage() {
   const [records, setRecords] = useState(loadRecords())
   const [inventory, setInventory] = useState(loadInventory())
+  const [lotCycles, setLotCycles] = useState(() => loadLotCycles(loadInventory()))
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
 
@@ -40,6 +49,7 @@ export default function RecordsPage() {
     const timer = window.setInterval(() => {
       setRecords(loadRecords())
       setInventory({ ...loadInventory() })
+      setLotCycles([...loadLotCycles(loadInventory())])
     }, 700)
     return () => window.clearInterval(timer)
   }, [])
@@ -121,6 +131,49 @@ export default function RecordsPage() {
         <div><span>现金流</span><strong>RM{summary.cashFlow.toFixed(2)}</strong></div>
       </section>
 
+      <section className="lot-package-section">
+        <h2>📦 一批货一个包</h2>
+        {lotCycles.length === 0 ? (
+          <p>还没有批次包，下一次进货会自动建立第1批。</p>
+        ) : (
+          <div className="lot-package-list">
+            {[...lotCycles].reverse().map((cycle) => (
+              <details
+                className={`lot-package-card${cycle.status === 'active' ? ' active' : ''}`}
+                key={cycle.id}
+              >
+                <summary>
+                  <span>
+                    <strong>📦 第{cycle.sequence}批</strong>
+                    <small>{lotStatus(cycle)}</small>
+                  </span>
+                  <strong>已收盈利 RM{cycle.profit.toFixed(2)}</strong>
+                </summary>
+                <div className="lot-package-meta">
+                  <span>开始：{formatRecordDate(cycle.startedAt)}</span>
+                  <span>来源：{cycle.source}</span>
+                </div>
+                <div className="lot-package-grid">
+                  <span>本次进货<strong>{cycle.purchaseWeight.toFixed(2)}g</strong></span>
+                  <span>进货成本<strong>RM{cycle.purchaseCost.toFixed(2)}</strong></span>
+                  <span>旧包结余带入<strong>{cycle.openingWeight.toFixed(2)}g</strong></span>
+                  <span>结余本金带入<strong>RM{cycle.openingCost.toFixed(2)}</strong></span>
+                  <span>本批出货<strong>{cycle.soldWeight.toFixed(2)}g</strong></span>
+                  <span>出货总售价<strong>RM{cycle.salesAmount.toFixed(2)}</strong></span>
+                  <span>本批实收<strong>RM{cycle.receivedIncome.toFixed(2)}</strong></span>
+                  <span>现金 / 转账<strong>RM{cycle.cashIncome.toFixed(2)} / RM{cycle.transferIncome.toFixed(2)}</strong></span>
+                  <span>本批欠款<strong>RM{cycle.debtAmount.toFixed(2)}</strong></span>
+                  <span>出货成本<strong>RM{cycle.saleCost.toFixed(2)}</strong></span>
+                  <span>本批盈利<strong>RM{cycle.profit.toFixed(2)}</strong></span>
+                  <span>{cycle.status === 'closed' ? '封包结余库存' : '当前结余库存'}<strong>{cycle.remainingWeight.toFixed(2)}g</strong></span>
+                  <span>{cycle.status === 'closed' ? '封包结余本金' : '当前结余本金'}<strong>RM{cycle.remainingCost.toFixed(2)}</strong></span>
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
+      </section>
+
       <input className="record-search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索客户、供应来源或日期，例如：阿明" />
       {message && <p className="record-delete-message">{message}</p>}
       {filtered.length === 0 && <p>暂无符合记录</p>}
@@ -153,9 +206,6 @@ export default function RecordsPage() {
           {item.averageCostAfter !== undefined && <p>重算平均成本：RM{item.averageCostAfter.toFixed(2)}/g</p>}
           {item.stockAfter !== undefined && <p>完成后库存：{item.stockAfter.toFixed(2)}g</p>}
           {item.type === 'sale' && item.weight > 0 && <p>单笔利润：RM{recordProfit(item).toFixed(2)}</p>}
-          {item.type === 'sale' && item.batchAllocations && item.batchAllocations.length > 0 && (
-            <p>FIFO批次：{item.batchAllocations.map((batch) => `${batch.weight.toFixed(2)}g / RM${batch.cost.toFixed(2)}`).join('＋')}</p>
-          )}
           {item.note && <p>备注：{item.note}</p>}
         </section>
       ))}

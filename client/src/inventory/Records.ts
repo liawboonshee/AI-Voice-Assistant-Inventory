@@ -1,5 +1,6 @@
 import type { PaymentMethod } from './Payments'
 import { restoreInventoryBatchAllocations, type BatchAllocation } from './Batches'
+import { reverseLotCycleSale } from './LotCycles'
 import { loadInventory, saveInventory } from './Storage'
 
 export type RecordItem = {
@@ -35,6 +36,8 @@ export type RecordItem = {
   paymentMethod?:PaymentMethod
 
   batchId?:string
+
+  lotCycleId?:string
 
   // FIFO 出货所扣除的批次明细，用于利润核算与删除出货时恢复原批次。
   batchAllocations?:BatchAllocation[]
@@ -158,6 +161,16 @@ export function deleteSaleAndRestore(index:number):string{
   inventory.income=Math.max(0, round(inventory.income - saleCashIn(item)))
   inventory.profit=round(inventory.profit - profit)
   saveInventory(inventory)
+  reverseLotCycleSale(item.lotCycleId, inventory, {
+    weight: restoredWeight,
+    amount: Math.max(0, item.amount || 0),
+    paidAmount: saleCashIn(item),
+    cashAmount: Math.max(0, item.cashAmount || 0),
+    transferAmount: Math.max(0, item.transferAmount || 0),
+    debtAmount: Math.max(0, item.debtAmount || 0),
+    costAmount: restoredCost,
+    profitAmount: profit,
+  })
 
   const debtAmount=Math.max(0, item.debtAmount || 0)
   if(debtAmount > 0 && item.customer){

@@ -781,7 +781,7 @@ body {
 }
 
 .sale-record-weight {
-  color: #7c3aed !important;
+  color: #059669 !important;
   font-weight: 850 !important;
 }
 
@@ -897,51 +897,88 @@ body {
 }
 
 .inventory-sale-preset-button span {
-  color: #68758e;
+  color: #059669;
   font-size: 0.7rem;
+  font-weight: 850;
 }
 
 .inventory-page-shell .inventory-sale-preset-button.active {
-  border-color: #ff7415;
-  background: linear-gradient(145deg, #ff8a16, #ff6415);
+  border-color: #06b6d4;
+  background: linear-gradient(145deg, #22d3ee, #0ea5e9);
   color: #fff;
-  box-shadow: 0 7px 18px rgba(255, 103, 22, 0.24);
+  box-shadow: 0 7px 18px rgba(14, 165, 233, 0.3);
 }
 
-.inventory-sale-preset-button.active span { color: rgba(255, 255, 255, 0.9); }
-
-.inventory-sale-selection {
-  padding: 8px 10px;
-  border-radius: 11px;
-  background: #ecfdf3;
-  color: #15803d;
-  font-size: 0.78rem;
-  font-weight: 700;
+.inventory-sale-preset-button.active span {
+  color: #fff7a8;
+  font-weight: 900;
 }
 
-.inventory-sale-extra-details {
-  margin: 10px 0;
-  padding: 0 10px 10px;
-  border: 1px solid #dfe5f2;
-  border-radius: 13px;
-  background: #f8f9fd;
+.inventory-sale-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin: 11px 0 4px;
 }
 
-.inventory-sale-extra-details summary {
-  padding: 10px 0;
-  color: #667085;
-  cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 700;
+.inventory-sale-unit-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  min-height: 60px;
+  padding-right: 12px;
+  overflow: hidden;
+  border: 1.5px solid #9db4f5;
+  border-radius: 15px;
+  background: #eef4ff;
+  box-shadow: inset 0 1px 2px rgba(49, 84, 233, 0.06);
 }
 
-.inventory-sale-extra-details p { font-size: 0.76rem; }
-
-.inventory-sale-extra-details .inventory-payment-heading {
-  margin-top: 12px;
-  color: #536078;
+.inventory-page-shell .inventory-sale-unit-field input:not([type='checkbox']):not([type='file']) {
+  min-width: 0;
+  min-height: 58px;
+  padding: 10px 6px 10px 13px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 1rem;
   font-weight: 750;
 }
+
+.inventory-sale-unit-field strong {
+  color: #3154e9;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.inventory-sale-weight-field strong { color: #059669; }
+
+.inventory-sale-unit-field:focus-within {
+  border-color: #3154e9;
+  background: #fffbe8;
+  box-shadow: 0 0 0 3px rgba(49, 84, 233, 0.14);
+}
+
+.inventory-sale-price-field {
+  border-color: #f2b37a;
+  background: #fff7ed;
+}
+
+.inventory-sale-price-field strong { color: #ea580c; }
+
+.inventory-sale-transfer-field {
+  border-color: #82adf5;
+  background: #eef6ff;
+}
+
+.inventory-sale-debt-field {
+  border-color: #f0a3a3;
+  background: #fff1f1;
+}
+
+.inventory-sale-debt-field strong { color: #dc2626; }
 
 .inventory-page-shell .inventory-save-sale-button {
   width: 100%;
@@ -1302,6 +1339,99 @@ body {
 .records-summary-grid span { color: #6b7280; font-size: 0.76rem; }
 .records-summary-grid strong { margin-top: 4px; color: #3154e9; font-size: 0.96rem; }
 
+.lot-package-section {
+  margin: 4px 0 12px;
+  padding: 11px;
+  border: 1px solid #dfe5f2;
+  border-radius: 16px;
+  background: #f7f9ff;
+}
+
+.lot-package-section h2 { margin: 0 0 9px; }
+
+.lot-package-list {
+  display: grid;
+  gap: 8px;
+}
+
+.lot-package-card {
+  overflow: hidden;
+  border: 1px solid #dce2ef;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.lot-package-card.active {
+  border-color: #7b8cff;
+  box-shadow: 0 5px 16px rgba(49, 84, 233, 0.1);
+}
+
+.lot-package-card summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.lot-package-card summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lot-package-card summary small {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #edf1ff;
+  color: #3154e9;
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+
+.lot-package-card summary > strong {
+  color: #db5b0b;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.lot-package-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 0 10px 8px;
+  color: #7b8494;
+  font-size: 0.7rem;
+}
+
+.lot-package-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+
+.lot-package-grid > span {
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: #f4f6fb;
+  color: #6b7280;
+  font-size: 0.68rem;
+}
+
+.lot-package-grid strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: #1f2937;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .record-search-input { margin: 4px 0 10px; }
 .record-entry p { margin: 5px 0; font-size: 0.84rem; }
 
@@ -1396,6 +1526,22 @@ body {
     font-size: 0.86rem;
   }
 
+  .inventory-sale-fields-grid { gap: 7px; margin-top: 8px; }
+
+  .inventory-sale-unit-field {
+    min-height: 54px;
+    padding-right: 9px;
+    border-radius: 11px;
+  }
+
+  .inventory-page-shell .inventory-sale-unit-field input:not([type='checkbox']):not([type='file']) {
+    min-height: 52px;
+    padding: 8px 4px 8px 10px;
+    font-size: 0.92rem;
+  }
+
+  .inventory-sale-unit-field strong { font-size: 0.8rem; }
+
   .inventory-page-shell button:not(.inventory-back-button):not(.customer-suggestion-button):not(.record-delete-button):not(.inventory-sale-preset-button):not(.inventory-save-sale-button) {
     min-height: 36px;
     margin-top: 5px;
@@ -1474,6 +1620,20 @@ body {
 
   .customer-summary-grid small { font-size: 0.6rem; }
   .customer-card-details summary { padding: 6px 1px; }
+
+  .lot-package-section {
+    margin-bottom: 9px;
+    padding: 8px;
+    border-radius: 13px;
+  }
+
+  .lot-package-section h2 { margin-bottom: 7px; font-size: 0.94rem; }
+  .lot-package-card summary { padding: 8px; }
+  .lot-package-card summary > strong { font-size: 0.72rem; }
+  .lot-package-meta { padding: 0 8px 6px; font-size: 0.64rem; }
+  .lot-package-grid { gap: 5px; padding: 0 8px 8px; }
+  .lot-package-grid > span { padding: 6px; font-size: 0.62rem; }
+  .lot-package-grid strong { font-size: 0.72rem; }
 
   .customer-debt-add-row,
   .customer-repay-row { gap: 5px; }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { loadInventoryBatches, resetInventoryBatches } from './Batches'
+import { resetInventoryBatches } from './Batches'
+import { syncLotCycleInventory } from './LotCycles'
 import { currentRecordDate, saveRecord } from './Records'
 import { loadInventory, saveInventory } from './Storage'
 
@@ -9,7 +10,6 @@ function round(value: number): number {
 
 export default function Stock() {
   const [data, setData] = useState(loadInventory())
-  const [batches, setBatches] = useState(() => loadInventoryBatches(loadInventory()))
   const [actualStock, setActualStock] = useState('')
   const [actualCost, setActualCost] = useState('')
   const [note, setNote] = useState('盘点修正')
@@ -19,7 +19,6 @@ export default function Stock() {
     const timer = window.setInterval(() => {
       const next = loadInventory()
       setData({ ...next })
-      setBatches([...loadInventoryBatches(next)])
     }, 500)
     return () => window.clearInterval(timer)
   }, [])
@@ -46,6 +45,7 @@ export default function Stock() {
     const date = currentRecordDate()
     resetInventoryBatches(nextStock, nextCost, date, note.trim() || '盘点修正')
     saveInventory(next)
+    syncLotCycleInventory(next, date)
     saveRecord({
       type: 'adjustment',
       date,
@@ -59,7 +59,6 @@ export default function Stock() {
     })
 
     setData(next)
-    setBatches([...loadInventoryBatches(next)])
     setActualStock('')
     setActualCost('')
     setMessage(`✅ 库存已由${oldStock.toFixed(2)}g修正为${nextStock.toFixed(2)}g`)
@@ -75,29 +74,6 @@ export default function Stock() {
         <p>累计进货成本：<strong>RM{data.cost.toFixed(2)}</strong></p>
         <p>收入：<strong>RM{data.income.toFixed(2)}</strong></p>
         <p>利润：<strong>RM{data.profit.toFixed(2)}</strong></p>
-      </section>
-
-      <section className="inventory-batch-section">
-        <h2>📦 剩余批次（FIFO）</h2>
-        {batches.filter((batch) => batch.remainingWeight > 0).length === 0 ? (
-          <p>暂无库存批次</p>
-        ) : (
-          <div className="inventory-batch-list">
-            {batches.filter((batch) => batch.remainingWeight > 0).map((batch, index) => (
-              <div className="inventory-batch-card" key={batch.id}>
-                <div>
-                  <strong>批次 {index + 1}</strong>
-                  <span>{batch.source}</span>
-                </div>
-                <div>
-                  <strong>{batch.remainingWeight.toFixed(2)}g</strong>
-                  <span>RM{batch.unitCost.toFixed(2)}/g · 本金RM{batch.remainingCost.toFixed(2)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <small>出货会从最上面的最早批次开始扣除。</small>
       </section>
 
       <section className="inventory-stock-adjust">
