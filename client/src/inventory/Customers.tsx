@@ -95,6 +95,7 @@ export default function Customers() {
       profitAmount: actualPayment,
       note: '客户还款',
     })
+    setRecords(loadRecords())
     setPay({ ...pay, [index]: '' })
     setMessage(`✅ ${customer.name}已还款RM${actualPayment.toFixed(2)}`)
   }
@@ -149,15 +150,26 @@ export default function Customers() {
       {customers.length > 0 && visibleCustomers.length === 0 && <p>找不到符合“{search.trim()}”的顾客</p>}
 
       {visibleCustomers.map(({ item, index }) => {
-        const history = records.filter(
+        const purchaseHistory = records.filter(
           (record) => record.type === 'sale' && record.customer === item.name && record.weight > 0,
         )
-        const totalWeight = history.reduce((sum, record) => sum + record.weight, 0)
-        const totalSpend = history.reduce((sum, record) => sum + record.amount, 0)
-        const totalPaid = history.reduce(
+        const repaymentHistory = records.filter(
+          (record) => record.type === 'income' && record.note === '客户还款' && record.customer === item.name,
+        )
+        const history = records.filter(
+          (record) => record.customer === item.name && (
+            (record.type === 'sale' && record.weight > 0) ||
+            (record.type === 'income' && record.note === '客户还款')
+          ),
+        )
+        const totalWeight = purchaseHistory.reduce((sum, record) => sum + record.weight, 0)
+        const totalSpend = purchaseHistory.reduce((sum, record) => sum + record.amount, 0)
+        const salePaid = purchaseHistory.reduce(
           (sum, record) => sum + (record.paidAmount ?? Math.max(0, record.amount - (record.debtAmount || 0))),
           0,
         )
+        const repaymentPaid = repaymentHistory.reduce((sum, record) => sum + record.amount, 0)
+        const totalPaid = salePaid + repaymentPaid
         return (
           <section className="customer-card" key={item.name}>
             <div className="customer-card-header">
@@ -184,16 +196,26 @@ export default function Customers() {
               )}
             </details>
             <details className="customer-card-details">
-              <summary>购买记录（{history.length}）</summary>
+              <summary>购买 / 还款记录（{history.length}）</summary>
               {history.length === 0 ? (
-                <p>暂无购买记录</p>
+                <p>暂无购买或还款记录</p>
               ) : (
-                history.slice().reverse().slice(0, 8).map((record, recordIndex) => (
-                  <p className="customer-history-row" key={`${record.date}-${recordIndex}`}>
-                    <span>{formatRecordDate(record.date)}</span>
-                    <strong>{record.weight.toFixed(2)}g · RM{record.amount.toFixed(2)}</strong>
-                  </p>
-                ))
+                history.slice().reverse().slice(0, 8).map((record, recordIndex) => {
+                  const isRepayment = record.type === 'income' && record.note === '客户还款'
+                  return (
+                    <p
+                      className={`customer-history-row${isRepayment ? ' customer-history-repayment' : ''}`}
+                      key={`${record.date}-${recordIndex}`}
+                    >
+                      <span>{formatRecordDate(record.date)}</span>
+                      <strong>
+                        {isRepayment
+                          ? `💳 还款 RM${record.amount.toFixed(2)}`
+                          : `${record.weight.toFixed(2)}g · RM${record.amount.toFixed(2)}`}
+                      </strong>
+                    </p>
+                  )
+                })
               )}
             </details>
           </section>
