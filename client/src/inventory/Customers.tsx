@@ -202,16 +202,30 @@ export default function Customers() {
               ) : (
                 history.slice().reverse().slice(0, 8).map((record, recordIndex) => {
                   const isRepayment = record.type === 'income' && record.note === '客户还款'
+                  const debtAmount = Math.max(0, record.debtAmount || 0)
                   return (
                     <p
-                      className={`customer-history-row${isRepayment ? ' customer-history-repayment' : ''}`}
+                      className={`customer-history-row${
+                        isRepayment
+                          ? ' customer-history-repayment'
+                          : debtAmount > 0
+                            ? ' customer-history-debt'
+                            : ''
+                      }`}
                       key={`${record.date}-${recordIndex}`}
                     >
                       <span>{formatRecordDate(record.date)}</span>
-                      <strong>
-                        {isRepayment
-                          ? `💳 还款 RM${record.amount.toFixed(2)}`
-                          : `${record.weight.toFixed(2)}g · RM${record.amount.toFixed(2)}`}
+                      <strong className="customer-history-value">
+                        <span className="customer-history-main">
+                          {isRepayment
+                            ? `💳 还款 RM${record.amount.toFixed(2)}`
+                            : `${record.weight.toFixed(2)}g · RM${record.amount.toFixed(2)}`}
+                        </span>
+                        {!isRepayment && (
+                          <small className="customer-history-status">
+                            {debtAmount > 0 ? `欠款 RM${debtAmount.toFixed(2)}` : '已付清'}
+                          </small>
+                        )}
                       </strong>
                     </p>
                   )

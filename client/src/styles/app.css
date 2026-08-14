@@ -1307,9 +1307,35 @@ body {
 
 .customer-history-row span { color: #7b8494; }
 
+.customer-history-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.customer-history-row .customer-history-main {
+  color: #1f2937;
+  font-weight: 850;
+}
+
+.customer-history-status {
+  color: #059669;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.customer-history-debt .customer-history-status {
+  color: #dc2626;
+}
+
 .customer-history-repayment strong {
   color: #059669;
   font-weight: 850;
+}
+
+.customer-history-repayment .customer-history-main {
+  color: #059669;
 }
 
 .customer-repay-row {
