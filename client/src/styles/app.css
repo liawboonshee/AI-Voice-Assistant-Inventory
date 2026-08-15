@@ -1235,6 +1235,85 @@ body {
   background: #fff;
 }
 
+.customer-card-collapsible {
+  padding: 0;
+}
+
+.customer-list-summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 52px;
+  padding: 9px 34px 9px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.customer-list-summary::-webkit-details-marker { display: none; }
+
+.customer-list-summary::after {
+  position: absolute;
+  right: 13px;
+  color: #64748b;
+  content: '›';
+  font-size: 1.2rem;
+  font-weight: 800;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.customer-card-collapsible[open] > .customer-list-summary::after {
+  transform: rotate(-90deg);
+}
+
+.customer-list-identity {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.customer-list-identity strong {
+  overflow: hidden;
+  color: #1f2937;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-list-identity small {
+  overflow: hidden;
+  color: #7b8494;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-list-debt {
+  flex: 0 0 auto;
+  color: #059669;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.customer-list-debt.has-debt { color: #dc2626; }
+
+.customer-card-expanded {
+  padding: 0 12px 10px;
+  border-top: 1px solid #eef0f6;
+}
+
+.customer-history-panel {
+  padding-top: 8px;
+  border-top: 1px solid #eef0f6;
+}
+
+.customer-history-panel h4 {
+  color: #586174;
+  font-size: 0.78rem;
+}
+
 .customer-card h3,
 .customer-card h4,
 .record-entry h3 { margin: 0 0 8px; }

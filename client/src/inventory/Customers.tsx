@@ -171,68 +171,75 @@ export default function Customers() {
         const repaymentPaid = repaymentHistory.reduce((sum, record) => sum + record.amount, 0)
         const totalPaid = salePaid + repaymentPaid
         return (
-          <section className="customer-card" key={item.name}>
-            <div className="customer-card-header">
-              <h3>👤 {item.name}</h3>
-              <span>{item.phone || '未填电话'}</span>
-            </div>
-            <div className="customer-summary-grid">
-              <span><small>购买</small>{totalWeight.toFixed(2)}g</span>
-              <span><small>消费</small>RM{totalSpend.toFixed(2)}</span>
-              <span><small>已付</small>RM{totalPaid.toFixed(2)}</span>
-              <strong><small>欠款</small>RM{item.debt.toFixed(2)}</strong>
-            </div>
-            <details className="customer-card-details">
-              <summary>欠款操作</summary>
-              <div className="customer-debt-add-row">
-                <input type="number" min="0" step="0.01" placeholder="新增欠款金额" value={newDebt[index] || ''} onChange={(event) => setNewDebt({ ...newDebt, [index]: event.target.value })} />
-                <button type="button" onClick={() => addDebt(index)}>新增</button>
+          <details className="customer-card customer-card-collapsible" key={item.name}>
+            <summary className="customer-list-summary">
+              <span className="customer-list-identity">
+                <strong>👤 {item.name}</strong>
+                <small>{item.phone || '未填电话'}</small>
+              </span>
+              <span className={`customer-list-debt${item.debt > 0 ? ' has-debt' : ''}`}>
+                欠款 RM{item.debt.toFixed(2)}
+              </span>
+            </summary>
+            <div className="customer-card-expanded">
+              <div className="customer-summary-grid">
+                <span><small>购买</small>{totalWeight.toFixed(2)}g</span>
+                <span><small>消费</small>RM{totalSpend.toFixed(2)}</span>
+                <span><small>已付</small>RM{totalPaid.toFixed(2)}</span>
+                <strong><small>欠款</small>RM{item.debt.toFixed(2)}</strong>
               </div>
-              {item.debt > 0 && (
-                <div className="customer-repay-row">
-                  <input type="number" placeholder="还款金额" value={pay[index] || ''} onChange={(event) => setPay({ ...pay, [index]: event.target.value })} />
-                  <button type="button" onClick={() => repay(index)}>还款</button>
+              <details className="customer-card-details">
+                <summary>欠款操作</summary>
+                <div className="customer-debt-add-row">
+                  <input type="number" min="0" step="0.01" placeholder="新增欠款金额" value={newDebt[index] || ''} onChange={(event) => setNewDebt({ ...newDebt, [index]: event.target.value })} />
+                  <button type="button" onClick={() => addDebt(index)}>新增</button>
                 </div>
-              )}
-            </details>
-            <details className="customer-card-details">
-              <summary>购买 / 还款记录（{history.length}）</summary>
-              {history.length === 0 ? (
-                <p>暂无购买或还款记录</p>
-              ) : (
-                history.slice().reverse().slice(0, 8).map((record, recordIndex) => {
-                  const isRepayment = record.type === 'income' && record.note === '客户还款'
-                  const debtAmount = Math.max(0, record.debtAmount || 0)
-                  return (
-                    <p
-                      className={`customer-history-row${
-                        isRepayment
-                          ? ' customer-history-repayment'
-                          : debtAmount > 0
-                            ? ' customer-history-debt'
-                            : ''
-                      }`}
-                      key={`${record.date}-${recordIndex}`}
-                    >
-                      <span>{formatRecordDate(record.date)}</span>
-                      <strong className="customer-history-value">
-                        <span className="customer-history-main">
-                          {isRepayment
-                            ? `💳 还款 RM${record.amount.toFixed(2)}`
-                            : `${record.weight.toFixed(2)}g · RM${record.amount.toFixed(2)}`}
-                        </span>
-                        {!isRepayment && (
-                          <small className="customer-history-status">
-                            {debtAmount > 0 ? `欠款 RM${debtAmount.toFixed(2)}` : '已付清'}
-                          </small>
-                        )}
-                      </strong>
-                    </p>
-                  )
-                })
-              )}
-            </details>
-          </section>
+                {item.debt > 0 && (
+                  <div className="customer-repay-row">
+                    <input type="number" placeholder="还款金额" value={pay[index] || ''} onChange={(event) => setPay({ ...pay, [index]: event.target.value })} />
+                    <button type="button" onClick={() => repay(index)}>还款</button>
+                  </div>
+                )}
+              </details>
+              <div className="customer-history-panel">
+                <h4>购买 / 还款记录（{history.length}）</h4>
+                {history.length === 0 ? (
+                  <p>暂无购买或还款记录</p>
+                ) : (
+                  history.slice().reverse().slice(0, 8).map((record, recordIndex) => {
+                    const isRepayment = record.type === 'income' && record.note === '客户还款'
+                    const debtAmount = Math.max(0, record.debtAmount || 0)
+                    return (
+                      <p
+                        className={`customer-history-row${
+                          isRepayment
+                            ? ' customer-history-repayment'
+                            : debtAmount > 0
+                              ? ' customer-history-debt'
+                              : ''
+                        }`}
+                        key={`${record.date}-${recordIndex}`}
+                      >
+                        <span>{formatRecordDate(record.date)}</span>
+                        <strong className="customer-history-value">
+                          <span className="customer-history-main">
+                            {isRepayment
+                              ? `💳 还款 RM${record.amount.toFixed(2)}`
+                              : `${record.weight.toFixed(2)}g · RM${record.amount.toFixed(2)}`}
+                          </span>
+                          {!isRepayment && (
+                            <small className="customer-history-status">
+                              {debtAmount > 0 ? `欠款 RM${debtAmount.toFixed(2)}` : '已付清'}
+                            </small>
+                          )}
+                        </strong>
+                      </p>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          </details>
         )
       })}
     </div>

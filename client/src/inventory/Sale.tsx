@@ -168,21 +168,6 @@ export default function Sale() {
   return (
     <div>
       <h1>📤 出货</h1>
-      <p className="inventory-sale-preset-label">先选择出货金额</p>
-      <div className="inventory-sale-preset-grid">
-        {QUICK_SALES.map((item) => (
-          <button
-            aria-pressed={selectedPreset === item}
-            className={`inventory-sale-preset-button${selectedPreset === item ? ' active' : ''}`}
-            key={item.price}
-            type="button"
-            onClick={() => selectQuickSale(item.price, item.weight)}
-          >
-            <strong>RM{item.price}</strong>
-            <span>{item.weight.toFixed(2)}g</span>
-          </button>
-        ))}
-      </div>
       <p>客户</p>
       <div className="customer-combobox">
         <input
@@ -242,6 +227,21 @@ export default function Sale() {
           <input aria-label="欠款" value={debt} onChange={(event) => setDebt(event.target.value)} placeholder="欠款" type="number" step="0.01" />
           <strong>RM</strong>
         </label>
+      </div>
+      <p className="inventory-sale-preset-label">快捷出货选项（点击自动填写）</p>
+      <div className="inventory-sale-preset-grid">
+        {QUICK_SALES.map((item) => (
+          <button
+            aria-pressed={selectedPreset === item}
+            className={`inventory-sale-preset-button${selectedPreset === item ? ' active' : ''}`}
+            key={item.price}
+            type="button"
+            onClick={() => selectQuickSale(item.price, item.weight)}
+          >
+            <strong>RM{item.price}</strong>
+            <span>{item.weight.toFixed(2)}g</span>
+          </button>
+        ))}
       </div>
       <button className="inventory-save-sale-button" type="button" onClick={addSale}>✅ 保存出货</button>
       {message && <p>{message}</p>}
