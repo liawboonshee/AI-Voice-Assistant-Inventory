@@ -36,6 +36,15 @@ function saveCustomerSale(name: string, debtAmount: number): void {
   localStorage.setItem('customers', JSON.stringify(customers))
 }
 
+function repayCustomerDebt(name: string, amount: number): void {
+  if (amount <= 0) return
+  const customers = loadCustomers()
+  const customer = customers.find((item) => item.name === name)
+  if (!customer) return
+  customer.debt = Math.max(0, round((customer.debt || 0) - amount))
+  localStorage.setItem('customers', JSON.stringify(customers))
+}
+
 export default function Sale() {
   const [customers, setCustomers] = useState<CustomerData[]>(loadCustomers)
   const [customer, setCustomer] = useState('')
@@ -71,9 +80,25 @@ export default function Sale() {
     const totalValue = price.trim() === '' ? undefined : Number(price)
     const transferValue = transfer.trim() === '' ? undefined : Number(transfer)
     const debtValue = debt.trim() === '' ? undefined : Number(debt)
+    let saleTransferValue = transferValue
+    let oldDebtPayment = 0
+    if (
+      totalValue !== undefined &&
+      transferValue !== undefined &&
+      Number.isFinite(totalValue) &&
+      Number.isFinite(transferValue) &&
+      transferValue > totalValue
+    ) {
+      if ((debtValue || 0) > 0) {
+        setMessage('转账超过总售价时不能同时新增本次欠款')
+        return
+      }
+      saleTransferValue = round(totalValue)
+      oldDebtPayment = round(transferValue - totalValue)
+    }
     const automaticCash = totalValue === undefined
       ? undefined
-      : round(totalValue - (transferValue || 0) - (debtValue || 0))
+      : round(totalValue - (saleTransferValue || 0) - (debtValue || 0))
     if (automaticCash !== undefined && automaticCash < 0) {
       setMessage('转账和欠款合计不能超过总售价')
       return
@@ -82,7 +107,7 @@ export default function Sale() {
     const payment = calculatePaymentBreakdown({
       total: totalValue,
       cashAmount: automaticCash,
-      transferAmount: transferValue,
+      transferAmount: saleTransferValue,
       debtAmount: debtValue,
     })
     if (typeof payment === 'string') {
@@ -101,6 +126,18 @@ export default function Sale() {
       setMessage('有欠款时必须填写顾客名字')
       return
     }
+    if (oldDebtPayment > 0) {
+      const existingCustomer = loadCustomers().find((item) => item.name === customer.trim())
+      if (!customer.trim() || !existingCustomer) {
+        setMessage('转账超过总售价时必须选择已有顾客，才能扣除旧账')
+        return
+      }
+      const existingDebt = Math.max(0, existingCustomer.debt || 0)
+      if (oldDebtPayment > existingDebt) {
+        setMessage(`多余转账RM${oldDebtPayment.toFixed(2)}超过该顾客旧欠款RM${existingDebt.toFixed(2)}`)
+        return
+      }
+    }
 
     const inventoryBeforeSale = { ...data }
     const batchResult = consumeInventoryBatches(data, w)
@@ -115,8 +152,8 @@ export default function Sale() {
 
     data.stock = batchResult.stockAfter
     data.totalWeightCost = batchResult.costAfter
-    data.income = round(data.income + payment.paidAmount)
-    data.profit = round(data.profit + profitAmount)
+    data.income = round(data.income + payment.paidAmount + oldDebtPayment)
+    data.profit = round(data.profit + profitAmount + oldDebtPayment)
     saveInventory(data)
 
     const date = currentRecordDate()
@@ -135,6 +172,7 @@ export default function Sale() {
     })
 
     saveCustomerSale(customerName, payment.debtAmount)
+    repayCustomerDebt(customerName, oldDebtPayment)
     saveRecord({
       type: 'sale',
       date,
@@ -152,6 +190,21 @@ export default function Sale() {
       lotCycleId,
       stockAfter: data.stock,
     })
+    if (oldDebtPayment > 0) {
+      saveRecord({
+        type: 'income',
+        date,
+        customer: customerName,
+        weight: 0,
+        amount: oldDebtPayment,
+        transferAmount: oldDebtPayment,
+        paidAmount: oldDebtPayment,
+        costAmount: 0,
+        profitAmount: oldDebtPayment,
+        paymentMethod: 'transfer',
+        note: '客户还款',
+      })
+    }
 
     setCustomer('')
     setWeight('')
@@ -160,7 +213,9 @@ export default function Sale() {
     setDebt('')
     setMessage(
       hasAmount
-        ? `✅ 出货成功：${paymentSummary(payment)}；本批成本RM${saleCost.toFixed(2)}，单笔利润RM${profitAmount.toFixed(2)}`
+        ? `✅ 出货成功：${paymentSummary(payment)}${
+          oldDebtPayment > 0 ? `；多余转账RM${oldDebtPayment.toFixed(2)}已扣旧账` : ''
+        }；本批成本RM${saleCost.toFixed(2)}，单笔利润RM${profitAmount.toFixed(2)}`
         : '✅ 出货成功，未填写金额，已扣除库存',
     )
   }
