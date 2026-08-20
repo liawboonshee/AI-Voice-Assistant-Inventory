@@ -1417,6 +1417,18 @@ body {
   color: #059669;
 }
 
+.customer-history-more-button {
+  width: 100%;
+  margin-top: 7px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5ff;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #3154e9;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
 .customer-repay-row {
   display: grid;
   grid-template-columns: 1fr auto;

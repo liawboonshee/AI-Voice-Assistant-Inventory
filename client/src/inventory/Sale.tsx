@@ -267,11 +267,11 @@ export default function Sale() {
       </div>
       <div className="inventory-sale-fields-grid">
         <label className="inventory-sale-unit-field inventory-sale-weight-field">
-          <input aria-label="重量" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量" type="number" step="0.01" />
+          <input aria-label="重量（g）" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量（g）" type="number" step="0.01" />
           <strong>g</strong>
         </label>
         <label className="inventory-sale-unit-field inventory-sale-price-field">
-          <input aria-label="总售价" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价" type="number" step="0.01" />
+          <input aria-label="总售价（RM）" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价（RM）" type="number" step="0.01" />
           <strong>RM</strong>
         </label>
         <label className="inventory-sale-unit-field inventory-sale-transfer-field">

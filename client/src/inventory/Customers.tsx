@@ -31,6 +31,7 @@ export default function Customers() {
   const [search, setSearch] = useState('')
   const [pay, setPay] = useState<Record<number, string>>({})
   const [newDebt, setNewDebt] = useState<Record<number, string>>({})
+  const [historyLimits, setHistoryLimits] = useState<Record<string, number>>({})
   const [message, setMessage] = useState('')
 
   const searchQuery = search.trim().toLowerCase().replace(/\s+/g, '')
@@ -162,6 +163,9 @@ export default function Customers() {
             (record.type === 'income' && record.note === '客户还款')
           ),
         )
+        const newestHistory = history.slice().reverse()
+        const historyLimit = historyLimits[item.name] || 8
+        const visibleHistory = newestHistory.slice(0, historyLimit)
         const totalWeight = purchaseHistory.reduce((sum, record) => sum + record.weight, 0)
         const totalSpend = purchaseHistory.reduce((sum, record) => sum + record.amount, 0)
         const salePaid = purchaseHistory.reduce(
@@ -206,36 +210,50 @@ export default function Customers() {
                 {history.length === 0 ? (
                   <p>暂无购买或还款记录</p>
                 ) : (
-                  history.slice().reverse().slice(0, 8).map((record, recordIndex) => {
-                    const isRepayment = record.type === 'income' && record.note === '客户还款'
-                    const debtAmount = Math.max(0, record.debtAmount || 0)
-                    return (
-                      <p
-                        className={`customer-history-row${
-                          isRepayment
-                            ? ' customer-history-repayment'
-                            : debtAmount > 0
-                              ? ' customer-history-debt'
-                              : ''
-                        }`}
-                        key={`${record.date}-${recordIndex}`}
+                  <>
+                    {visibleHistory.map((record, recordIndex) => {
+                      const isRepayment = record.type === 'income' && record.note === '客户还款'
+                      const debtAmount = Math.max(0, record.debtAmount || 0)
+                      return (
+                        <p
+                          className={`customer-history-row${
+                            isRepayment
+                              ? ' customer-history-repayment'
+                              : debtAmount > 0
+                                ? ' customer-history-debt'
+                                : ''
+                          }`}
+                          key={`${record.date}-${recordIndex}`}
+                        >
+                          <span>{formatRecordDate(record.date)}</span>
+                          <strong className="customer-history-value">
+                            <span className="customer-history-main">
+                              {isRepayment
+                                ? `💳 还款 RM${record.amount.toFixed(2)}`
+                                : `${record.weight.toFixed(2)}g · RM${record.amount.toFixed(2)}`}
+                            </span>
+                            {!isRepayment && (
+                              <small className="customer-history-status">
+                                {debtAmount > 0 ? `欠款 RM${debtAmount.toFixed(2)}` : '已付清'}
+                              </small>
+                            )}
+                          </strong>
+                        </p>
+                      )
+                    })}
+                    {historyLimit < newestHistory.length && (
+                      <button
+                        className="customer-history-more-button"
+                        type="button"
+                        onClick={() => setHistoryLimits((limits) => ({
+                          ...limits,
+                          [item.name]: Math.min((limits[item.name] || 8) + 8, newestHistory.length),
+                        }))}
                       >
-                        <span>{formatRecordDate(record.date)}</span>
-                        <strong className="customer-history-value">
-                          <span className="customer-history-main">
-                            {isRepayment
-                              ? `💳 还款 RM${record.amount.toFixed(2)}`
-                              : `${record.weight.toFixed(2)}g · RM${record.amount.toFixed(2)}`}
-                          </span>
-                          {!isRepayment && (
-                            <small className="customer-history-status">
-                              {debtAmount > 0 ? `欠款 RM${debtAmount.toFixed(2)}` : '已付清'}
-                            </small>
-                          )}
-                        </strong>
-                      </p>
-                    )
-                  })
+                        查看更早记录（剩余{newestHistory.length - historyLimit}笔）
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
