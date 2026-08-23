@@ -18,7 +18,7 @@ export default function Purchase() {
     const w = round(Number(weight))
     const c = round(Number(cost))
     if (!Number.isFinite(w) || w < 0.01 || !Number.isFinite(c) || c <= 0) {
-      setMessage('请输入至少0.01g的重量和正确成本')
+      setMessage('请输入至少0.01G的重量和正确成本')
       return
     }
 
@@ -63,18 +63,18 @@ export default function Purchase() {
     setWeight('')
     setCost('')
     setSource('')
-    setMessage(`✅ 已开始第${lotCycle.sequence}批：进货${w.toFixed(2)}g，RM${batchUnitCost.toFixed(2)}/g；上一批已封存`)
+    setMessage(`✅ 已开始第${lotCycle.sequence}批：进货${w.toFixed(2)}G，RM${batchUnitCost.toFixed(2)}/G；上一批已封存`)
   }
 
   return (
     <div>
       <h1>📥 进货</h1>
       <p>供应来源（可选）</p>
-      <input value={source} onChange={(event) => setSource(event.target.value)} placeholder="例如：阿强供应商" />
-      <p>重量（g，最小0.01）</p>
-      <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="例如 125" type="number" step="0.01" />
+      <input value={source} onChange={(event) => setSource(event.target.value)} placeholder="供应来源（可选）" />
+      <p>重量（G，最小0.01）</p>
+      <input value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量（G）" type="number" step="0.01" />
       <p>总成本（RM）</p>
-      <input value={cost} onChange={(event) => setCost(event.target.value)} placeholder="例如 4500" type="number" step="0.01" />
+      <input value={cost} onChange={(event) => setCost(event.target.value)} placeholder="总成本（RM）" type="number" step="0.01" />
       <button type="button" onClick={addPurchase}>保存进货</button>
       <small>每次进货都会封存上一批，并开启新的批次包；上一批结余库存和本金会带入本批。</small>
       {message && <p>{message}</p>}

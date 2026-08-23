@@ -250,7 +250,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
             </div>
             <div className="inventory-stat-card stat-purple">
               <span>当前库存</span>
-              <strong>{data.stock.toFixed(2)}g</strong>
+              <strong>{data.stock.toFixed(2)}G</strong>
             </div>
             <div className="inventory-stat-card stat-red">
               <span>欠款总额</span>
@@ -258,7 +258,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
             </div>
             <div className="inventory-stat-card stat-cyan">
               <span>今日出货</span>
-              <strong>{todayShipment.toFixed(2)}g</strong>
+              <strong>{todayShipment.toFixed(2)}G</strong>
             </div>
           </section>
 
@@ -299,7 +299,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
                   </div>
                   <div className="inventory-recent-amount">
                     <strong className={item.type === 'sale' && item.weight > 0 ? 'sale-record-weight' : undefined}>
-                      {item.weight > 0 ? `${item.weight.toFixed(2)}g` : item.note || '收入'}
+                      {item.weight > 0 ? `${item.weight.toFixed(2)}G` : item.note || '收入'}
                     </strong>
                     <span className={item.type === 'sale' ? 'sale-record-amount' : undefined}>
                       {formatMoney(Math.abs(item.amount))}

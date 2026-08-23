@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { currentRecordDate, loadRecords, saveRecord } from './Records'
+import { currentRecordDate, loadRecords, renameCustomerRecords, saveRecord } from './Records'
 import { formatRecordDate } from './Analytics'
 import { loadInventory, saveInventory } from './Storage'
 
@@ -32,6 +32,9 @@ export default function Customers() {
   const [pay, setPay] = useState<Record<number, string>>({})
   const [newDebt, setNewDebt] = useState<Record<number, string>>({})
   const [historyLimits, setHistoryLimits] = useState<Record<string, number>>({})
+  const [editingCustomer, setEditingCustomer] = useState<number | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
   const [message, setMessage] = useState('')
 
   const searchQuery = search.trim().toLowerCase().replace(/\s+/g, '')
@@ -67,6 +70,52 @@ export default function Customers() {
     setName('')
     setPhone('')
     setMessage(existing ? '✅ 客户资料已更新' : '✅ 客户已添加')
+  }
+
+  function startCustomerEdit(index: number) {
+    const customer = customers[index]
+    if (!customer) return
+    setEditingCustomer(index)
+    setEditName(customer.name)
+    setEditPhone(customer.phone || '')
+    setMessage('')
+  }
+
+  function saveCustomerEdit(index: number) {
+    const customer = customers[index]
+    const nextName = editName.trim()
+    if (!customer || !nextName) {
+      setMessage('请输入顾客名字')
+      return
+    }
+    if (customers.some((item, itemIndex) => itemIndex !== index && item.name === nextName)) {
+      setMessage(`已经有顾客“${nextName}”，请使用其他名字`)
+      return
+    }
+
+    const previousName = customer.name
+    const list = customers.map((item, itemIndex) => itemIndex === index
+      ? { ...item, name: nextName, phone: editPhone.trim() || undefined }
+      : item)
+    saveCustomers(list)
+    setCustomers(list)
+
+    if (previousName !== nextName) {
+      setRecords(renameCustomerRecords(previousName, nextName))
+      setHistoryLimits((limits) => {
+        const nextLimits = { ...limits }
+        if (nextLimits[previousName] !== undefined) {
+          nextLimits[nextName] = nextLimits[previousName]
+          delete nextLimits[previousName]
+        }
+        return nextLimits
+      })
+    }
+
+    setEditingCustomer(null)
+    setEditName('')
+    setEditPhone('')
+    setMessage(`✅ ${nextName}的资料已修改`)
   }
 
   function repay(index: number) {
@@ -186,8 +235,30 @@ export default function Customers() {
               </span>
             </summary>
             <div className="customer-card-expanded">
+              <div className="customer-edit-action-row">
+                <button type="button" onClick={() => startCustomerEdit(index)}>✏️ 修改顾客</button>
+              </div>
+              {editingCustomer === index && (
+                <div className="customer-edit-panel">
+                  <input
+                    aria-label="修改顾客名字"
+                    value={editName}
+                    onChange={(event) => setEditName(event.target.value)}
+                    placeholder="顾客名字"
+                  />
+                  <input
+                    aria-label="修改顾客电话"
+                    value={editPhone}
+                    onChange={(event) => setEditPhone(event.target.value)}
+                    placeholder="电话（可选）"
+                    type="tel"
+                  />
+                  <button type="button" onClick={() => saveCustomerEdit(index)}>保存修改</button>
+                  <button className="customer-edit-cancel-button" type="button" onClick={() => setEditingCustomer(null)}>取消</button>
+                </div>
+              )}
               <div className="customer-summary-grid">
-                <span><small>购买</small>{totalWeight.toFixed(2)}g</span>
+                <span><small>购买</small>{totalWeight.toFixed(2)}G</span>
                 <span><small>消费</small>RM{totalSpend.toFixed(2)}</span>
                 <span><small>已付</small>RM{totalPaid.toFixed(2)}</span>
                 <strong><small>欠款</small>RM{item.debt.toFixed(2)}</strong>
@@ -230,7 +301,7 @@ export default function Customers() {
                             <span className="customer-history-main">
                               {isRepayment
                                 ? `💳 还款 RM${record.amount.toFixed(2)}`
-                                : `${record.weight.toFixed(2)}g · RM${record.amount.toFixed(2)}`}
+                                : `${record.weight.toFixed(2)}G · RM${record.amount.toFixed(2)}`}
                             </span>
                             {!isRepayment && (
                               <small className="customer-history-status">

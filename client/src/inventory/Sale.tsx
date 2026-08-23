@@ -73,7 +73,7 @@ export default function Sale() {
   const addSale = () => {
     const w = round(Number(weight))
     if (!Number.isFinite(w) || w < 0.01) {
-      setMessage('请输入至少0.01g的重量；售价可以留空')
+      setMessage('请输入至少0.01G的重量；售价可以留空')
       return
     }
 
@@ -117,7 +117,7 @@ export default function Sale() {
 
     const data = loadInventory()
     if (data.stock < w) {
-      setMessage(`库存不足，目前只有${data.stock.toFixed(2)}g`)
+      setMessage(`库存不足，目前只有${data.stock.toFixed(2)}G`)
       return
     }
 
@@ -267,8 +267,8 @@ export default function Sale() {
       </div>
       <div className="inventory-sale-fields-grid">
         <label className="inventory-sale-unit-field inventory-sale-weight-field">
-          <input aria-label="重量（g）" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量（g）" type="number" step="0.01" />
-          <strong>g</strong>
+          <input aria-label="重量（G）" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量（G）" type="number" step="0.01" />
+          <strong>G</strong>
         </label>
         <label className="inventory-sale-unit-field inventory-sale-price-field">
           <input aria-label="总售价（RM）" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价（RM）" type="number" step="0.01" />
@@ -294,7 +294,7 @@ export default function Sale() {
             onClick={() => selectQuickSale(item.price, item.weight)}
           >
             <strong>RM{item.price}</strong>
-            <span>{item.weight.toFixed(2)}g</span>
+            <span>{item.weight.toFixed(2)}G</span>
           </button>
         ))}
       </div>

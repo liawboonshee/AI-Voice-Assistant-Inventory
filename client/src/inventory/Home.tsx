@@ -261,7 +261,7 @@ return(
 
 📦 当前库存：
 
-{data.stock.toFixed(2)} g
+{data.stock.toFixed(2)} G
 
 </p>
 
@@ -272,7 +272,7 @@ return(
 
 📤 总出货：
 
-{totalSaleWeight.toFixed(2)} g
+{totalSaleWeight.toFixed(2)} G
 
 </p>
 

@@ -903,14 +903,14 @@ body {
 }
 
 .inventory-page-shell .inventory-sale-preset-button.active {
-  border-color: #06b6d4;
-  background: linear-gradient(145deg, #22d3ee, #0ea5e9);
+  border-color: #f59e0b;
+  background: linear-gradient(145deg, #fb923c, #f97316);
   color: #fff;
-  box-shadow: 0 7px 18px rgba(14, 165, 233, 0.3);
+  box-shadow: 0 7px 18px rgba(249, 115, 22, 0.34);
 }
 
 .inventory-sale-preset-button.active span {
-  color: #fff7a8;
+  color: #fff;
   font-weight: 900;
 }
 
@@ -1302,6 +1302,48 @@ body {
 .customer-card-expanded {
   padding: 0 12px 10px;
   border-top: 1px solid #eef0f6;
+}
+
+.customer-edit-action-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 7px;
+}
+
+.customer-edit-action-row button {
+  width: auto;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 9px;
+  font-size: 0.72rem;
+}
+
+.customer-edit-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 7px;
+  padding: 9px;
+  border: 1px solid #cbd5ff;
+  border-radius: 11px;
+  background: #f5f7ff;
+}
+
+.customer-edit-panel input,
+.customer-edit-panel button {
+  min-width: 0;
+  margin: 0;
+}
+
+.customer-edit-panel button {
+  padding: 8px;
+  font-size: 0.76rem;
+}
+
+.customer-edit-cancel-button {
+  border-color: #d7dce8;
+  background: #fff !important;
+  color: #586174 !important;
 }
 
 .customer-history-panel {

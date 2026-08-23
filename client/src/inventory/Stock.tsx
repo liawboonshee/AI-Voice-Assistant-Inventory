@@ -61,16 +61,16 @@ export default function Stock() {
     setData(next)
     setActualStock('')
     setActualCost('')
-    setMessage(`✅ 库存已由${oldStock.toFixed(2)}g修正为${nextStock.toFixed(2)}g`)
+    setMessage(`✅ 库存已由${oldStock.toFixed(2)}G修正为${nextStock.toFixed(2)}G`)
   }
 
   return (
     <div className="inventory-stock-page">
       <h1>📦 库存详情</h1>
       <section className="inventory-stock-summary">
-        <p>剩余库存：<strong>{data.stock.toFixed(2)}g</strong></p>
+        <p>剩余库存：<strong>{data.stock.toFixed(2)}G</strong></p>
         <p>库存本金：<strong>RM{data.totalWeightCost.toFixed(2)}</strong></p>
-        <p>平均成本：<strong>RM{avgCost.toFixed(2)}/g</strong></p>
+        <p>平均成本：<strong>RM{avgCost.toFixed(2)}/G</strong></p>
         <p>累计进货成本：<strong>RM{data.cost.toFixed(2)}</strong></p>
         <p>收入：<strong>RM{data.income.toFixed(2)}</strong></p>
         <p>利润：<strong>RM{data.profit.toFixed(2)}</strong></p>
@@ -80,8 +80,8 @@ export default function Stock() {
         <h2>🧮 修改库存 / 盘点修正</h2>
         <div className="inventory-stock-form-grid">
           <label>
-            <span>实际重量（g）</span>
-            <input type="number" min="0" step="0.01" value={actualStock} onChange={(event) => setActualStock(event.target.value)} placeholder={`目前 ${data.stock.toFixed(2)}g`} />
+            <span>实际重量（G）</span>
+            <input type="number" min="0" step="0.01" value={actualStock} onChange={(event) => setActualStock(event.target.value)} placeholder={`目前 ${data.stock.toFixed(2)}G`} />
           </label>
           <label>
             <span>实际本金（RM，可不填）</span>

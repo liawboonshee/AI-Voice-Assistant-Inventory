@@ -105,7 +105,7 @@ export default function RecordsPage() {
 
   function removeSale(originalIndex: number, item: RecordItem) {
     const confirmed = window.confirm(
-      `确定删除这笔旧出货吗？\n${item.customer || '未填写顾客'} · ${item.weight.toFixed(2)}g · RM${item.amount.toFixed(2)}\n\n删除后会回补库存，并撤销这笔收入、利润和欠款。`,
+      `确定删除这笔旧出货吗？\n${item.customer || '未填写顾客'} · ${item.weight.toFixed(2)}G · RM${item.amount.toFixed(2)}\n\n删除后会回补库存，并撤销这笔收入、利润和欠款。`,
     )
     if (!confirmed) return
     setMessage(deleteSaleAndRestore(originalIndex))
@@ -124,7 +124,7 @@ export default function RecordsPage() {
         <div><span>今日利润</span><strong>RM{summary.todayProfit.toFixed(2)}</strong></div>
         <div><span>本月销售</span><strong>RM{summary.monthSales.toFixed(2)}</strong></div>
         <div><span>本月利润</span><strong>RM{summary.monthProfit.toFixed(2)}</strong></div>
-        <div><span>本月出货</span><strong>{summary.monthShipment.toFixed(2)}g</strong></div>
+        <div><span>本月出货</span><strong>{summary.monthShipment.toFixed(2)}G</strong></div>
         <div><span>总收入</span><strong>RM{summary.cashIn.toFixed(2)}</strong></div>
         <div><span>总消费</span><strong>RM{summary.totalExpense.toFixed(2)}</strong></div>
         <div><span>总利润</span><strong>RM{inventory.profit.toFixed(2)}</strong></div>
@@ -154,18 +154,18 @@ export default function RecordsPage() {
                   <span>来源：{cycle.source}</span>
                 </div>
                 <div className="lot-package-grid">
-                  <span>本次进货<strong>{cycle.purchaseWeight.toFixed(2)}g</strong></span>
+                  <span>本次进货<strong>{cycle.purchaseWeight.toFixed(2)}G</strong></span>
                   <span>进货成本<strong>RM{cycle.purchaseCost.toFixed(2)}</strong></span>
-                  <span>旧包结余带入<strong>{cycle.openingWeight.toFixed(2)}g</strong></span>
+                  <span>旧包结余带入<strong>{cycle.openingWeight.toFixed(2)}G</strong></span>
                   <span>结余本金带入<strong>RM{cycle.openingCost.toFixed(2)}</strong></span>
-                  <span>本批出货<strong>{cycle.soldWeight.toFixed(2)}g</strong></span>
+                  <span>本批出货<strong>{cycle.soldWeight.toFixed(2)}G</strong></span>
                   <span>出货总售价<strong>RM{cycle.salesAmount.toFixed(2)}</strong></span>
                   <span>本批实收<strong>RM{cycle.receivedIncome.toFixed(2)}</strong></span>
                   <span>现金 / 转账<strong>RM{cycle.cashIncome.toFixed(2)} / RM{cycle.transferIncome.toFixed(2)}</strong></span>
                   <span>本批欠款<strong>RM{cycle.debtAmount.toFixed(2)}</strong></span>
                   <span>出货成本<strong>RM{cycle.saleCost.toFixed(2)}</strong></span>
                   <span>本批盈利<strong>RM{cycle.profit.toFixed(2)}</strong></span>
-                  <span>{cycle.status === 'closed' ? '封包结余库存' : '当前结余库存'}<strong>{cycle.remainingWeight.toFixed(2)}g</strong></span>
+                  <span>{cycle.status === 'closed' ? '封包结余库存' : '当前结余库存'}<strong>{cycle.remainingWeight.toFixed(2)}G</strong></span>
                   <span>{cycle.status === 'closed' ? '封包结余本金' : '当前结余本金'}<strong>RM{cycle.remainingCost.toFixed(2)}</strong></span>
                 </div>
               </details>
@@ -193,18 +193,18 @@ export default function RecordsPage() {
             <p>客户：<strong className={item.type === 'sale' ? 'sale-record-customer' : undefined}>{item.customer}</strong></p>
           )}
           {item.source && <p>供应来源：{item.source}</p>}
-          {item.type === 'adjustment' && <p>库存变化：{item.weight >= 0 ? '+' : ''}{item.weight.toFixed(2)}g</p>}
+          {item.type === 'adjustment' && <p>库存变化：{item.weight >= 0 ? '+' : ''}{item.weight.toFixed(2)}G</p>}
           {item.type !== 'adjustment' && item.weight > 0 && (
-            <p>重量：<strong className={item.type === 'sale' ? 'sale-record-weight' : undefined}>{item.weight.toFixed(2)}g</strong></p>
+            <p>重量：<strong className={item.type === 'sale' ? 'sale-record-weight' : undefined}>{item.weight.toFixed(2)}G</strong></p>
           )}
           <p>金额：<strong className={item.type === 'sale' ? 'sale-record-amount' : undefined}>RM{Math.abs(item.amount).toFixed(2)}</strong></p>
           {item.type === 'sale' && <p>收款方式：{paymentLabel(item)}</p>}
           {item.type === 'sale' && (item.cashAmount || 0) > 0 && <p>现金：RM{item.cashAmount?.toFixed(2)}</p>}
           {item.type === 'sale' && (item.transferAmount || 0) > 0 && <p>转账：RM{item.transferAmount?.toFixed(2)}</p>}
           {(item.debtAmount || 0) > 0 && <p>欠款：RM{item.debtAmount?.toFixed(2)}</p>}
-          {item.type === 'purchase' && item.unitCost !== undefined && <p>本批成本：RM{item.unitCost.toFixed(2)}/g</p>}
-          {item.averageCostAfter !== undefined && <p>重算平均成本：RM{item.averageCostAfter.toFixed(2)}/g</p>}
-          {item.stockAfter !== undefined && <p>完成后库存：{item.stockAfter.toFixed(2)}g</p>}
+          {item.type === 'purchase' && item.unitCost !== undefined && <p>本批成本：RM{item.unitCost.toFixed(2)}/G</p>}
+          {item.averageCostAfter !== undefined && <p>重算平均成本：RM{item.averageCostAfter.toFixed(2)}/G</p>}
+          {item.stockAfter !== undefined && <p>完成后库存：{item.stockAfter.toFixed(2)}G</p>}
           {item.type === 'sale' && item.weight > 0 && <p>单笔利润：RM{recordProfit(item).toFixed(2)}</p>}
           {item.note && <p>备注：{item.note}</p>}
         </section>

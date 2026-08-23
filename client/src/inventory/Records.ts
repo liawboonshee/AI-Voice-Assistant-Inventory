@@ -93,6 +93,16 @@ export function saveRecord(item:RecordItem){
 
 }
 
+/** 修改顾客姓名时同步全部旧交易，确保购买、欠款和还款历史不会断开。 */
+export function renameCustomerRecords(currentName:string, nextName:string):RecordItem[]{
+  const records=loadRecords()
+  const updated=records.map((item) => item.customer === currentName
+    ? { ...item, customer: nextName }
+    : item)
+  localStorage.setItem(KEY, JSON.stringify(updated))
+  return updated
+}
+
 export function currentRecordDate():string{
 
   return new Date().toISOString()
@@ -190,5 +200,5 @@ export function deleteSaleAndRestore(index:number):string{
 
   records.splice(index,1)
   localStorage.setItem(KEY, JSON.stringify(records))
-  return `✅ 已删除旧出货，库存回补${restoredWeight.toFixed(2)}g`
+  return `✅ 已删除旧出货，库存回补${restoredWeight.toFixed(2)}G`
 }
