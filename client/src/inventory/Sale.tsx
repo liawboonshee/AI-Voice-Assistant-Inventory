@@ -53,6 +53,7 @@ export default function Sale() {
   const [price, setPrice] = useState('')
   const [transfer, setTransfer] = useState('')
   const [debt, setDebt] = useState('')
+  const [selectedPresetPrice, setSelectedPresetPrice] = useState<number | null>(null)
   const [message, setMessage] = useState('')
 
   const customerQuery = customer.trim().toLowerCase()
@@ -60,13 +61,10 @@ export default function Sale() {
     .filter((item) => !customerQuery || item.name.toLowerCase().includes(customerQuery))
     .slice(0, 6)
 
-  const selectedPreset = QUICK_SALES.find(
-    (item) => Number(price) === item.price && Number(weight) === item.weight,
-  )
-
   function selectQuickSale(priceValue: number, weightValue: number) {
     setPrice(String(priceValue))
     setWeight(String(weightValue))
+    setSelectedPresetPrice(priceValue)
     setMessage('')
   }
 
@@ -211,6 +209,7 @@ export default function Sale() {
     setPrice('')
     setTransfer('')
     setDebt('')
+    setSelectedPresetPrice(null)
     setMessage(
       hasAmount
         ? `✅ 出货成功：${paymentSummary(payment)}${
@@ -267,11 +266,17 @@ export default function Sale() {
       </div>
       <div className="inventory-sale-fields-grid">
         <label className="inventory-sale-unit-field inventory-sale-weight-field">
-          <input aria-label="重量（G）" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="重量（G）" type="number" step="0.01" />
+          <input aria-label="重量（G）" value={weight} onChange={(event) => {
+            setWeight(event.target.value)
+            setSelectedPresetPrice(null)
+          }} placeholder="重量（G）" type="number" step="0.01" />
           <strong>G</strong>
         </label>
         <label className="inventory-sale-unit-field inventory-sale-price-field">
-          <input aria-label="总售价（RM）" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="总售价（RM）" type="number" step="0.01" />
+          <input aria-label="总售价（RM）" value={price} onChange={(event) => {
+            setPrice(event.target.value)
+            setSelectedPresetPrice(null)
+          }} placeholder="总售价（RM）" type="number" step="0.01" />
           <strong>RM</strong>
         </label>
         <label className="inventory-sale-unit-field inventory-sale-transfer-field">
@@ -287,8 +292,8 @@ export default function Sale() {
       <div className="inventory-sale-preset-grid">
         {QUICK_SALES.map((item) => (
           <button
-            aria-pressed={selectedPreset === item}
-            className={`inventory-sale-preset-button${selectedPreset === item ? ' active' : ''}`}
+            aria-pressed={selectedPresetPrice === item.price}
+            className={`inventory-sale-preset-button${selectedPresetPrice === item.price ? ' active' : ''}`}
             key={item.price}
             type="button"
             onClick={() => selectQuickSale(item.price, item.weight)}
