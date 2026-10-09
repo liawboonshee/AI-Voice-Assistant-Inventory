@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - inventory-v1
+      - agent/fix-inventory-backup-20261010
 
   workflow_dispatch:
 
@@ -38,9 +39,13 @@ jobs:
         working-directory: client/android
         run: echo "sdk.dir=${ANDROID_HOME}" > local.properties
 
-      - name: npm install
+      - name: npm ci
         working-directory: client
-        run: npm install
+        run: npm ci
+
+      - name: Verify inventory backup restore and save results
+        working-directory: client
+        run: npm run test:backup
 
       - name: Verify cloud build config
         run: |

@@ -1,10 +1,11 @@
 {
   "name": "chatgpt-voice-ai-pro",
   "private": true,
-  "version": "4.9.0",
+  "version": "4.9.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test:backup": "node --experimental-strip-types --test scripts/backup.test.mjs",
     "build": "tsc --noEmit && vite build",
     "build:apk": "node scripts/verify-build-env.mjs && npm run cap:sync",
     "preview": "vite preview",
