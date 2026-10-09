@@ -104,7 +104,7 @@ jobs:
           KUCUNBAO_STORE_PASSWORD: ${{ secrets.KUCUNBAO_STORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
           KUCUNBAO_KEY_ALIAS: ${{ secrets.KUCUNBAO_KEY_ALIAS || secrets.KEY_ALIAS }}
           KUCUNBAO_KEY_PASSWORD: ${{ secrets.KUCUNBAO_KEY_PASSWORD || secrets.KEY_PASSWORD }}
-        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+        run: chmod +x gradlew && ./gradlew testReleaseUnitTest assembleRelease --no-daemon
 
       - name: Prepare fixed-signature APK
         run: cp client/android/app/build/outputs/apk/release/app-release.apk KuCunBao-AI-release.apk

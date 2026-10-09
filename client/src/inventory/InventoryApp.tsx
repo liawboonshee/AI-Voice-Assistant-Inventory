@@ -12,6 +12,7 @@ import {
 } from './Analytics'
 import { runInventoryTool } from './AITools'
 import Backup from './Backup'
+import { consumeBackupResume } from './BackupUi'
 import Customers from './Customers'
 import Expense from './Expense'
 import Income from './Income'
@@ -117,6 +118,10 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
   const [isListening, setIsListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
 
+  useEffect(() => {
+    if (consumeBackupResume()) setPage('backup')
+  }, [])
+
   const refresh = useCallback(() => {
     const nextRecords = loadRecords()
     const nextData = loadProfitSyncedInventory(nextRecords)
@@ -188,7 +193,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 4.9.1</h1>
+            <h1>📦 库存宝 AI 4.9.2</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">

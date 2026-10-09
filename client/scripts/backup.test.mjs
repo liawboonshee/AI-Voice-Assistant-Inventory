@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createBackup, parseBackup, restoreBackup, backupSummary } from '../src/inventory/BackupData.ts'
-import { saveWithPicker } from '../src/inventory/BackupExport.ts'
+import { saveWithPicker, shareVerifiedFile, copyVerifiedText } from '../src/inventory/BackupExport.ts'
+import { backupUi, requestBackupResume, consumeBackupResume } from '../src/inventory/BackupUi.ts'
 
 class MemoryStorage {
   constructor(values = {}) { this.values = new Map(Object.entries(values)); this.failOnce = null }
@@ -88,10 +89,57 @@ test('native failure propagates instead of claiming success', async () => {
 })
 
 test('success uses the actual file name returned by the picker', async () => {
-  const message = await saveWithPicker(async () => ({saved: true, fileName: '库存宝备份(1).json'}), '库存宝备份.json', backupText())
+  const message = await saveWithPicker(async () => ({saved: true, fileName: '库存宝备份(1).json', byteCount: Buffer.byteLength(backupText(), 'utf8')}), '库存宝备份.json', backupText())
   assert.match(message, /已保存：库存宝备份\(1\).json/)
 })
 
 test('unverified native response cannot report a successful backup', async () => {
   await assert.rejects(saveWithPicker(async () => ({}), '库存宝.json', backupText()), /未能确认/)
+})
+
+test('zero-byte native save cannot report success', async () => {
+  await assert.rejects(saveWithPicker(async () => ({saved: true, fileName: '空备份.json', byteCount: 0}), '库存宝.json', backupText()), /未能确认/)
+})
+
+test('partial native save cannot report success', async () => {
+  await assert.rejects(saveWithPicker(async () => ({saved: true, fileName: '部分.json', byteCount: 10}), '库存宝.json', backupText()), /未能确认/)
+})
+
+test('sharing opens only a full byte-verified file and does not claim delivery', async () => {
+  const text = backupText()
+  const message = await shareVerifiedFile(async () => ({prepared: true, opened: true, fileName: '库存宝.json', byteCount: Buffer.byteLength(text, 'utf8')}), '库存宝.json', text)
+  assert.match(message, /已打开分享窗口/)
+  assert.ok(!message.includes('已传送'))
+})
+
+test('zero-byte shared file is rejected', async () => {
+  await assert.rejects(shareVerifiedFile(async () => ({prepared: true, opened: true, fileName: '空.json', byteCount: 0}), '库存宝.json', backupText()), /未准备完整/)
+})
+
+test('clipboard must acknowledge the copy before reporting success', async () => {
+  await assert.rejects(copyVerifiedText(async () => ({}), backupText()), /复制未完成/)
+  assert.match(await copyVerifiedText(async () => ({copied: true}), backupText()), /备份文字已复制/)
+})
+
+test('pending export and outcome survive PIN screen unmount and remount', () => {
+  backupUi.update({busy: true, message: '正在保存', text: backupText()})
+  const unsubscribe = backupUi.subscribe(() => {})
+  unsubscribe()
+  assert.equal(backupUi.getSnapshot().busy, true)
+  let latest
+  const newUnsubscribe = backupUi.subscribe(() => { latest = backupUi.getSnapshot() })
+  backupUi.update({busy: false, message: '保存未完成，请分享备份'})
+  assert.equal(latest.busy, false)
+  assert.match(latest.message, /分享备份/)
+  assert.equal(latest.text, backupText())
+  newUnsubscribe()
+})
+
+test('return from native picker resumes the backup page once after unlocking', () => {
+  const previous = globalThis.sessionStorage
+  globalThis.sessionStorage = new MemoryStorage()
+  requestBackupResume()
+  assert.equal(consumeBackupResume(), true)
+  assert.equal(consumeBackupResume(), false)
+  globalThis.sessionStorage = previous
 })
