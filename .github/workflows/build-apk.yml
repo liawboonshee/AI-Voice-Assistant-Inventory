@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - inventory-v1
+      - agent/fix-inventory-backup-20261010
 
   workflow_dispatch:
 
@@ -38,9 +39,13 @@ jobs:
         working-directory: client/android
         run: echo "sdk.dir=${ANDROID_HOME}" > local.properties
 
-      - name: npm install
+      - name: npm ci
         working-directory: client
-        run: npm install
+        run: npm ci
+
+      - name: Verify inventory backup restore and save results
+        working-directory: client
+        run: npm run test:backup
 
       - name: Verify cloud build config
         run: |
@@ -99,7 +104,7 @@ jobs:
           KUCUNBAO_STORE_PASSWORD: ${{ secrets.KUCUNBAO_STORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
           KUCUNBAO_KEY_ALIAS: ${{ secrets.KUCUNBAO_KEY_ALIAS || secrets.KEY_ALIAS }}
           KUCUNBAO_KEY_PASSWORD: ${{ secrets.KUCUNBAO_KEY_PASSWORD || secrets.KEY_PASSWORD }}
-        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+        run: chmod +x gradlew && ./gradlew testReleaseUnitTest assembleRelease --no-daemon
 
       - name: Prepare fixed-signature APK
         run: cp client/android/app/build/outputs/apk/release/app-release.apk KuCunBao-AI-release.apk
