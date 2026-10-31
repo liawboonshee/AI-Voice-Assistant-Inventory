@@ -1,3 +1,4 @@
+import { PACKS, emptyPacks, packsWeight, validPacks, type PackCounts } from './Packs.ts'
 import type { RecordItem } from './Records'
 
 export type Employee = { id: string; name: string }
@@ -38,4 +39,25 @@ export function stockError(total: number, records: RecordItem[], weight: number,
   if (units(weight) > units(available)) return `${employeeId ? '员工' : '你手里'}库存不足，目前只有${available.toFixed(2)}G`
   if (units(weight) > units(total)) return '总库存不足，请先核对库存'
   return null
+}
+
+export function employeePacks(records: RecordItem[], employeeId: string): PackCounts {
+  const result = emptyPacks()
+  for (const item of records) {
+    if (item.employeeId !== employeeId || !validPacks(item.packCounts)) continue
+    const direction = item.employeeMovement === 'give' ? 1 : item.employeeMovement === 'return' || item.type === 'sale' ? -1 : 0
+    for (const pack of PACKS) result[pack.key] += direction * item.packCounts[pack.key]
+  }
+  return result
+}
+export function employeePackError(records: RecordItem[], employeeId: string, requested: PackCounts): string | null {
+  const available = employeePacks(records, employeeId)
+  if (!validPacks(requested) || packsWeight(requested) <= 0) return '请至少填写1个货品，数量必须是整数'
+  for (const pack of PACKS) {
+    if (requested[pack.key] > available[pack.key]) return `${pack.label}数量不足，员工手里只剩${available[pack.key]}个`
+  }
+  return null
+}
+export function employeeUnsortedWeight(records: RecordItem[], employeeId: string): number {
+  return Math.max(0, Math.round((employeeStock(records, employeeId) - packsWeight(employeePacks(records, employeeId))) * 100) / 100)
 }

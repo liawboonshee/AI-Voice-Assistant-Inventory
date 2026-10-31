@@ -45,7 +45,7 @@ jobs:
 
       - name: Verify inventory backup restore and save results
         working-directory: client
-        run: npm run test:backup && npm run test:employees
+        run: npm run test:backup && npm run test:employees && npm run test:packs
 
       - name: Verify cloud build config
         run: |
@@ -108,14 +108,14 @@ jobs:
 
       - name: Prepare fixed-signature APK
         run: |
-          cp client/android/app/build/outputs/apk/release/app-release.apk EmployeeLedger-4.9.3.apk
+          cp client/android/app/build/outputs/apk/release/app-release.apk EmployeeLedger-4.9.4.apk
           aapt_path=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n1)
-          "$aapt_path" dump badging EmployeeLedger-4.9.3.apk > packaged-metadata.txt
+          "$aapt_path" dump badging EmployeeLedger-4.9.4.apk > packaged-metadata.txt
           grep -F "package: name='com.chatgpt.employee.ledger'" packaged-metadata.txt
 
       - name: Upload fixed-signature release APK
         uses: actions/upload-artifact@v4
         with:
-          name: EmployeeLedger-4.9.3
-          path: EmployeeLedger-4.9.3.apk
+          name: EmployeeLedger-4.9.4
+          path: EmployeeLedger-4.9.4.apk
           if-no-files-found: error

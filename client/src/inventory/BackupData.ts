@@ -1,3 +1,5 @@
+import { packsWeight, validPacks } from './Packs.ts'
+
 const fields = [
   ['inventory', 'inventory_data', '库存'],
   ['records', 'inventory_records', '交易记录'],
@@ -88,6 +90,13 @@ export function parseBackup(text: string): InventoryBackup {
       }
     } else if (!Array.isArray(value) || !value.every(isObject)) {
       throw new Error('备份里的' + label + '列表格式错误')
+    }
+    if (field === 'records') {
+      for (const item of value as Record<string, unknown>[]) {
+        if (item.packCounts !== undefined && (!validPacks(item.packCounts) || typeof item.weight !== 'number' || Math.round(packsWeight(item.packCounts) * 100) !== Math.round(item.weight * 100))) {
+          throw new Error('备份里的规格数量与重量不一致')
+        }
+      }
     }
     if (field === 'employees') {
       const employees = value as Record<string, unknown>[]

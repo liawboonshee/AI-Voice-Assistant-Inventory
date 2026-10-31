@@ -1,3 +1,4 @@
+import type { PackCounts } from './Packs'
 import type { PaymentMethod } from './Payments'
 import { restoreInventoryBatchAllocations, type BatchAllocation } from './Batches'
 import { reverseLotCycleSale } from './LotCycles'
@@ -7,6 +8,7 @@ export type RecordItem = {
 
   type:'purchase' | 'sale' | 'income' | 'expense' | 'adjustment' | 'debt'
 
+  packCounts?:PackCounts
   employeeId?:string
   employeeName?:string
   employeeMovement?:'give' | 'return'

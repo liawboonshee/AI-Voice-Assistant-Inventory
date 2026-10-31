@@ -1,3 +1,4 @@
+import { packSummary } from './Packs'
 import { useEffect, useMemo, useState } from 'react'
 import {
   formatRecordDate,
@@ -190,6 +191,7 @@ export default function RecordsPage() {
             )}
           </div>
           <p>日期：{formatRecordDate(item.date)}</p>
+          {item.packCounts && <p className="pack-balance">规格数量：{packSummary(item.packCounts)}</p>}
           {item.employeeName && <p>员工：<strong>{item.employeeName}</strong></p>}
           {item.customer && (
             <p>客户：<strong className={item.type === 'sale' ? 'sale-record-customer' : undefined}>{item.customer}</strong></p>

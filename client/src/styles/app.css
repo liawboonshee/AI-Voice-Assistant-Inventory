@@ -1835,3 +1835,14 @@ body {
 .employee-history { margin:10px 0; }
 .employee-history p { margin:6px 0; }
 .inventory-app select { width:100%; min-height:46px; margin:6px 0; padding:10px; border-radius:10px; font-size:16px; color:inherit; background:#18283f; border:1px solid #54718f; }
+
+.pack-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.pack-field { min-width:0; padding:12px 8px; border:1px solid #46617c; border-radius:12px; background:rgba(29,168,158,.08); text-align:center; }
+.pack-field strong { display:block; font-size:19px; color:#27d4b1; margin-bottom:8px; }
+.pack-stepper { display:flex; align-items:center; gap:4px; }
+.inventory-app .pack-stepper button { flex:0 0 32px; width:32px; min-height:40px; padding:3px; margin:0; font-size:22px; }
+.inventory-app .pack-stepper input { flex:1; min-width:0; width:0; text-align:center; font-size:20px; padding:8px 0; margin:0; }
+.pack-stepper button:disabled { opacity:.35; }
+.pack-total { border-radius:10px; background:rgba(25,203,170,.16); padding:12px; font-size:18px; }
+.pack-balance { line-height:1.8; color:#48d7bd; overflow-wrap:anywhere; }
+.employee-legacy { padding:12px; border:1px solid #c9a35d; border-radius:10px; }

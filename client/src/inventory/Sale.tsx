@@ -1,5 +1,7 @@
+import { emptyPackInputs, parsePacks, packsWeight, packSummary } from './Packs'
+import PackQuantityFields from './PackQuantityFields'
 import { useState } from 'react'
-import { employeeStock, loadEmployees, ownerStock, stockError } from './EmployeesData'
+import { employeePacks, employeePackError, employeeStock, loadEmployees, ownerStock, stockError } from './EmployeesData'
 import { loadRecords } from './Records'
 import { consumeInventoryBatches } from './Batches'
 import { recordLotCycleSale } from './LotCycles'
@@ -8,14 +10,6 @@ import { currentRecordDate, saveRecord } from './Records'
 import { calculatePaymentBreakdown, paymentSummary } from './Payments'
 
 type CustomerData = { name: string; phone?: string; debt: number }
-
-const QUICK_SALES = [
-  { price: 50, weight: 0.25 },
-  { price: 80, weight: 0.4 },
-  { price: 100, weight: 0.53 },
-  { price: 150, weight: 1 },
-  { price: 300, weight: 2.5 },
-] as const
 
 function round(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100
@@ -54,11 +48,10 @@ export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: s
   const [customers, setCustomers] = useState<CustomerData[]>(loadCustomers)
   const [customer, setCustomer] = useState('')
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
-  const [weight, setWeight] = useState('')
+  const [quantities, setQuantities] = useState(emptyPackInputs)
   const [price, setPrice] = useState('')
   const [transfer, setTransfer] = useState('')
   const [debt, setDebt] = useState('')
-  const [selectedPresetPrice, setSelectedPresetPrice] = useState<number | null>(null)
   const [message, setMessage] = useState('')
 
   const customerQuery = customer.trim().toLowerCase()
@@ -66,17 +59,12 @@ export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: s
     .filter((item) => !customerQuery || item.name.toLowerCase().includes(customerQuery))
     .slice(0, 6)
 
-  function selectQuickSale(priceValue: number, weightValue: number) {
-    setPrice(String(priceValue))
-    setWeight(String(weightValue))
-    setSelectedPresetPrice(priceValue)
-    setMessage('')
-  }
-
   const addSale = () => {
-    const w = round(Number(weight))
+    let packCounts
+    try { packCounts = parsePacks(quantities) } catch (error) { setMessage(error instanceof Error ? error.message : '数量不正确'); return }
+    const w = packsWeight(packCounts)
     if (!Number.isFinite(w) || w < 0.01) {
-      setMessage('请输入至少0.01G的重量；售价可以留空')
+      setMessage('请填写各规格的出货数量（至少1个）；售价可以留空')
       return
     }
 
@@ -119,7 +107,7 @@ export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: s
     }
 
     const data = loadInventory()
-    const allocationError = stockError(data.stock, loadRecords(), w, employeeId)
+    const allocationError = (employeeId ? employeePackError(loadRecords(), employeeId, packCounts) : null) || stockError(data.stock, loadRecords(), w, employeeId)
     if (employeeId && !selectedEmployee) { setMessage('找不到员工，请重新选择'); return }
     if (allocationError) {
       setMessage(allocationError)
@@ -180,6 +168,7 @@ export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: s
     repayCustomerDebt(customerName, oldDebtPayment)
     saveRecord({
       type: 'sale',
+      packCounts,
       employeeId: selectedEmployee?.id,
       employeeName: selectedEmployee?.name,
       date,
@@ -216,11 +205,10 @@ export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: s
     }
 
     setCustomer('')
-    setWeight('')
+    setQuantities(emptyPackInputs())
     setPrice('')
     setTransfer('')
     setDebt('')
-    setSelectedPresetPrice(null)
     setMessage(
       hasAmount
         ? `✅ 出货成功：${paymentSummary(payment)}${
@@ -238,6 +226,8 @@ export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: s
         {employees.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select></label>
       <p>可出货：<strong>{(employeeId ? employeeStock(loadRecords(), employeeId) : ownerStock(loadInventory().stock, loadRecords())).toFixed(2)}G</strong></p>
+      {employeeId && <p className="pack-balance">手里剩余：{packSummary(employeePacks(loadRecords(), employeeId), true)}</p>}
+      <PackQuantityFields value={quantities} onChange={setQuantities} />
       <p>客户</p>
       <div className="customer-combobox">
         <input
@@ -281,17 +271,9 @@ export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: s
         )}
       </div>
       <div className="inventory-sale-fields-grid">
-        <label className="inventory-sale-unit-field inventory-sale-weight-field">
-          <input aria-label="重量（G）" value={weight} onChange={(event) => {
-            setWeight(event.target.value)
-            setSelectedPresetPrice(null)
-          }} placeholder="重量（G）" type="number" step="0.01" />
-          <strong>G</strong>
-        </label>
         <label className="inventory-sale-unit-field inventory-sale-price-field">
           <input aria-label="总售价（RM）" value={price} onChange={(event) => {
             setPrice(event.target.value)
-            setSelectedPresetPrice(null)
           }} placeholder="总售价（RM）" type="number" step="0.01" />
           <strong>RM</strong>
         </label>
@@ -303,21 +285,6 @@ export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: s
           <input aria-label="欠款" value={debt} onChange={(event) => setDebt(event.target.value)} placeholder="欠款" type="number" step="0.01" />
           <strong>RM</strong>
         </label>
-      </div>
-      <p className="inventory-sale-preset-label">快捷出货选项（点击自动填写）</p>
-      <div className="inventory-sale-preset-grid">
-        {QUICK_SALES.map((item) => (
-          <button
-            aria-pressed={selectedPresetPrice === item.price}
-            className={`inventory-sale-preset-button${selectedPresetPrice === item.price ? ' active' : ''}`}
-            key={item.price}
-            type="button"
-            onClick={() => selectQuickSale(item.price, item.weight)}
-          >
-            <strong>RM{item.price}</strong>
-            <span>{item.weight.toFixed(2)}G</span>
-          </button>
-        ))}
       </div>
       <button className="inventory-save-sale-button" type="button" onClick={addSale}>✅ 保存出货</button>
       {message && <p>{message}</p>}
