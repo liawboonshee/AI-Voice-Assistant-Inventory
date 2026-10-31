@@ -21,6 +21,8 @@ import Purchase from './Purchase'
 import { loadRecords, type RecordItem } from './Records'
 import RecordsPage from './RecordsPage'
 import Sale from './Sale'
+import Employees from './Employees'
+import { heldStock, ownerStock } from './EmployeesData'
 import Stock from './Stock'
 import { loadInventory, saveInventory } from './Storage'
 
@@ -35,6 +37,7 @@ type InventoryPage =
   | 'backup'
   | 'income'
   | 'expense'
+  | 'employees'
 
 type CustomerData = {
   name: string
@@ -76,6 +79,7 @@ function loadProfitSyncedInventory(records: RecordItem[]) {
 }
 
 function recordTitle(item: RecordItem): string {
+  if (item.employeeMovement) return `${item.employeeMovement === 'give' ? '📦 分货给' : '↩️ 退货：'}${item.employeeName || '员工'}`
   if (item.type === 'purchase') return '📥 进货'
   if (item.type === 'adjustment') return '🧮 库存修正'
   if (item.type === 'debt') return '🧾 新增欠款'
@@ -110,6 +114,7 @@ function DebtPage({ customers }: { customers: CustomerData[] }) {
 }
 
 export default function InventoryApp({ onLock, onOpenVoice }: Props) {
+  const [saleEmployeeId, setSaleEmployeeId] = useState('')
   const [page, setPage] = useState<InventoryPage>('home')
   const [records, setRecords] = useState(loadRecords())
   const [data, setData] = useState(() => loadProfitSyncedInventory(loadRecords()))
@@ -177,7 +182,8 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
 
   const pageContent = () => {
     if (page === 'purchase') return <Purchase />
-    if (page === 'sale') return <Sale />
+    if (page === 'sale') return <Sale initialEmployeeId={saleEmployeeId} />
+    if (page === 'employees') return <Employees onSale={id => { setSaleEmployeeId(id); setPage('sale') }} />
     if (page === 'customer') return <Customers />
     if (page === 'stock') return <Stock />
     if (page === 'records') return <RecordsPage />
@@ -193,7 +199,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📒 记账宝 4.9.2</h1>
+            <h1>📒 记账宝 4.9.3</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
@@ -254,7 +260,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
               <strong>{formatMoney(totalIncome)}</strong>
             </div>
             <div className="inventory-stat-card stat-purple">
-              <span>当前库存</span>
+              <span>全部未售库存</span>
               <strong>{data.stock.toFixed(2)}G</strong>
             </div>
             <div className="inventory-stat-card stat-red">
@@ -277,8 +283,13 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
 
           {voiceText && <div className="inventory-voice-result">{voiceText}</div>}
 
+          <section className="employee-summary">
+            <div><span>你手里</span><strong>{ownerStock(data.stock, records).toFixed(2)}G</strong></div>
+            <div><span>员工手里</span><strong>{heldStock(records).toFixed(2)}G</strong></div>
+          </section>
           <section className="inventory-quick-grid">
-            <button type="button" onClick={() => setPage('sale')}>📤 出货</button>
+            <button type="button" onClick={() => setPage('employees')}>👥 员工存货 / 分货</button>
+            <button type="button" onClick={() => { setSaleEmployeeId(''); setPage('sale') }}>📤 出货</button>
             <button type="button" onClick={() => setPage('purchase')}>📥 进货</button>
             <button type="button" onClick={() => setPage('customer')}>👤 顾客</button>
             <button type="button" onClick={() => setPage('income')}>💰 收入</button>
@@ -299,7 +310,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
                   <div>
                     <strong>{recordTitle(item)}</strong>
                     <span className={item.type === 'sale' ? 'sale-record-customer' : undefined}>
-                      {item.customer || item.date}
+                      {[item.employeeName, item.customer].filter(Boolean).join(' · ') || item.date}
                     </span>
                   </div>
                   <div className="inventory-recent-amount">
@@ -335,14 +346,14 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
           ['home', '🏠', '首页'],
           ['sale', '📤', '出货'],
           ['stock', '📦', '库存'],
-          ['customer', '👥', '顾客'],
+          ['employees', '👥', '员工'],
           ['debt', '🧾', '欠款'],
         ].map(([key, icon, label]) => (
           <button
             className={page === key ? 'active' : ''}
             key={key}
             type="button"
-            onClick={() => setPage(key as InventoryPage)}
+            onClick={() => { if (key === 'sale') setSaleEmployeeId(''); setPage(key as InventoryPage) }}
           >
             <span>{icon}</span>
             {label}

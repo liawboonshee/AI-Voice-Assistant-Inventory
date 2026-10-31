@@ -1,3 +1,5 @@
+import { ownerStock } from './EmployeesData'
+import { loadRecords } from './Records'
 import { addInventoryBatch, consumeInventoryBatches } from './Batches'
 import { beginNewLotCycle, recordLotCycleSale } from './LotCycles'
 import { loadInventory, saveInventory } from './Storage'
@@ -168,8 +170,8 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
     return `✅ 已开始第${lotCycle.sequence}批：进货${weight.toFixed(2)}克，成本${amount.toFixed(2)}；上一批已封存。`
   }
 
-  if (data.stock < weight) {
-    return `库存不足。目前只有${data.stock.toFixed(2)}克，不能出货${weight.toFixed(2)}克。`
+  if (ownerStock(data.stock, loadRecords()) < weight) {
+    return `库存不足。你手里只有${ownerStock(data.stock, loadRecords()).toFixed(2)}克；员工出货请到员工页面记录，不能出货${weight.toFixed(2)}克。`
   }
 
   const payment = paymentForCommand(command)

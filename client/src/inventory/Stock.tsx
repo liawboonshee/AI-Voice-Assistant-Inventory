@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { heldStock, ownerStock } from './EmployeesData'
+import { loadRecords } from './Records'
 import { resetInventoryBatches } from './Batches'
 import { syncLotCycleInventory } from './LotCycles'
 import { currentRecordDate, saveRecord } from './Records'
@@ -31,6 +33,8 @@ export default function Stock() {
       setMessage('实际库存必须是0或更大的数字')
       return
     }
+
+    if (nextStock < heldStock(loadRecords())) { setMessage('总库存不能少于员工手里合计；请先记录员工出货或退货'); return }
 
     let nextCost = actualCost.trim() === '' ? round(avgCost * nextStock) : round(Number(actualCost))
     if (!Number.isFinite(nextCost) || nextCost < 0) {
@@ -68,7 +72,9 @@ export default function Stock() {
     <div className="inventory-stock-page">
       <h1>📦 库存详情</h1>
       <section className="inventory-stock-summary">
-        <p>剩余库存：<strong>{data.stock.toFixed(2)}G</strong></p>
+        <p>全部未售库存：<strong>{data.stock.toFixed(2)}G</strong></p>
+        <p>你手里：<strong>{ownerStock(data.stock, loadRecords()).toFixed(2)}G</strong></p>
+        <p>员工手里：<strong>{heldStock(loadRecords()).toFixed(2)}G</strong></p>
         <p>库存本金：<strong>RM{data.totalWeightCost.toFixed(2)}</strong></p>
         <p>平均成本：<strong>RM{avgCost.toFixed(2)}/G</strong></p>
         <p>累计进货成本：<strong>RM{data.cost.toFixed(2)}</strong></p>
@@ -77,7 +83,7 @@ export default function Stock() {
       </section>
 
       <section className="inventory-stock-adjust">
-        <h2>🧮 修改库存 / 盘点修正</h2>
+        <h2>🧮 修改库存 / 盘点修正</h2><p>这里填写你和全部员工合计的未售库存。</p>
         <div className="inventory-stock-form-grid">
           <label>
             <span>实际重量（G）</span>

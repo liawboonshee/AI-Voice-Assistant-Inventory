@@ -45,7 +45,7 @@ jobs:
 
       - name: Verify inventory backup restore and save results
         working-directory: client
-        run: npm run test:backup
+        run: npm run test:backup && npm run test:employees
 
       - name: Verify cloud build config
         run: |
@@ -107,11 +107,11 @@ jobs:
         run: chmod +x gradlew && ./gradlew testReleaseUnitTest assembleRelease --no-daemon
 
       - name: Prepare fixed-signature APK
-        run: cp client/android/app/build/outputs/apk/release/app-release.apk JiZhangBao-4.9.2.apk
+        run: cp client/android/app/build/outputs/apk/release/app-release.apk JiZhangBao-4.9.3.apk
 
       - name: Upload fixed-signature release APK
         uses: actions/upload-artifact@v4
         with:
-          name: JiZhangBao-4.9.2
-          path: JiZhangBao-4.9.2.apk
+          name: JiZhangBao-4.9.3
+          path: JiZhangBao-4.9.3.apk
           if-no-files-found: error

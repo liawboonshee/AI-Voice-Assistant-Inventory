@@ -1819,3 +1819,19 @@ body {
   .inventory-app { max-width: 720px; margin: 0 auto; }
   .inventory-bottom-nav { right: max(0px, calc((100vw - 720px) / 2)); left: max(0px, calc((100vw - 720px) / 2)); }
 }
+
+/* Employee inventory, sized for one-phone bookkeeping. */
+.employee-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin:14px 0; }
+.employee-summary > div,.employee-detail,.employee-history { background:rgba(100,140,200,.12); border:1px solid rgba(120,160,220,.25); padding:14px; border-radius:14px; }
+.employee-summary span,.employee-summary strong,.employee-card span,.employee-card b,.employee-history small { display:block; }
+.employee-summary strong,.employee-card b { color:#19cbaa; font-size:24px; margin:5px 0; }
+.employee-add { display:flex; gap:8px; align-items:center; }
+.employee-add input { min-width:0; flex:1; }
+.employee-add button { width:auto; flex-shrink:0; }
+.employee-cards { display:grid; gap:10px; margin:16px 0; }
+.employee-card { text-align:left; width:100%; border:2px solid transparent !important; }
+.employee-card.active { border-color:#19cbaa !important; background:rgba(25,203,170,.18) !important; }
+.employee-detail label { display:block; margin:14px 0; }
+.employee-history { margin:10px 0; }
+.employee-history p { margin:6px 0; }
+.inventory-app select { width:100%; min-height:46px; margin:6px 0; padding:10px; border-radius:10px; font-size:16px; color:inherit; background:#18283f; border:1px solid #54718f; }

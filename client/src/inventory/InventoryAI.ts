@@ -1,3 +1,4 @@
+import { heldStock, ownerStock } from './EmployeesData'
 import { getActiveLotCycle } from './LotCycles'
 import { loadInventory } from './Storage'
 import { loadRecords, type RecordItem } from './Records'
@@ -25,6 +26,7 @@ function sum(records: RecordItem[], field: 'weight' | 'amount'): number {
 function describeLastRecord(record: RecordItem | undefined): string {
   if (!record) return '目前还没有交易记录。'
 
+  if (record.employeeMovement) return `最近一笔是${record.employeeMovement === 'give' ? '分货给' : '收回'}${record.employeeName || '员工'}，${record.weight.toFixed(2)}G。`
   if (record.type === 'purchase') {
     return `最近一笔是进货：${record.weight.toFixed(2)}克，成本${record.amount.toFixed(2)}，时间${record.date}。`
   }
@@ -69,7 +71,7 @@ export function askInventory(input: string): string | null {
     const avgCost = data.stock > 0 ? data.totalWeightCost / data.stock : 0
     const active = getActiveLotCycle(data)
     const batchText = active ? `，当前是第${active.sequence}批` : ''
-    return `目前库存${data.stock.toFixed(2)}克${batchText}，库存本金${data.totalWeightCost.toFixed(2)}，平均成本${avgCost.toFixed(2)}每克。`
+    return `全部未售库存${data.stock.toFixed(2)}克，你手里${ownerStock(data.stock, allRecords).toFixed(2)}克，员工手里${heldStock(allRecords).toFixed(2)}克${batchText}，库存本金${data.totalWeightCost.toFixed(2)}，平均成本${avgCost.toFixed(2)}每克。`
   }
 
   if (command.query === 'income') {

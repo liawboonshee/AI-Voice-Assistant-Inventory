@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test:employees": "node --experimental-strip-types --test scripts/employees.test.mjs",
     "test:backup": "node --experimental-strip-types --test scripts/backup.test.mjs",
     "build": "tsc --noEmit && vite build",
     "build:apk": "node scripts/verify-build-env.mjs && npm run cap:sync",

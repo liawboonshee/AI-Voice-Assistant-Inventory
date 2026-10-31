@@ -43,6 +43,7 @@ function mergeFollowUp(command: VoiceCommand, text: string): VoiceCommand {
 export function runInventoryTool(input: string): string | null {
   const text = input.trim()
   if (!text) return null
+  if (/员工|分货|退货/.test(text) && !/多少|查询|查看|剩余|剩下/.test(text)) { pendingCommand = null; return '请到员工页面选择员工，记录分货、退货或出货。' }
 
   if (/^(取消|不要了|算了|重来|清除)$/.test(text)) {
     if (!pendingCommand) return null

@@ -3,6 +3,7 @@ const fields = [
   ['records', 'inventory_records', '交易记录'],
   ['customers', 'customers', '顾客'],
   ['batches', 'inventory_batches_v1', '进货批次'],
+  ['employees', 'inventory_employees_v1', '员工'],
   ['lotCycles', 'inventory_lot_cycles_v1', '批次汇总'],
 ] as const
 
@@ -27,6 +28,7 @@ export function createBackup(storage: Storage, now = new Date()): InventoryBacku
     records: storage.getItem('inventory_records'),
     customers: storage.getItem('customers'),
     batches: storage.getItem('inventory_batches_v1'),
+    employees: storage.getItem('inventory_employees_v1'),
     lotCycles: storage.getItem('inventory_lot_cycles_v1'),
   }
 }
@@ -58,12 +60,13 @@ export function parseBackup(text: string): InventoryBackup {
     records: null,
     customers: null,
     batches: null,
+    employees: null,
     lotCycles: null,
   }
 
   for (const [field, , label] of fields) {
     const raw = data[field]
-    if (raw === null || (raw === undefined && (field === 'batches' || field === 'lotCycles'))) {
+    if (raw === null || (raw === undefined && (field === 'batches' || field === 'lotCycles' || field === 'employees'))) {
       continue
     }
     if (typeof raw !== 'string') {
@@ -86,6 +89,12 @@ export function parseBackup(text: string): InventoryBackup {
     } else if (!Array.isArray(value) || !value.every(isObject)) {
       throw new Error('备份里的' + label + '列表格式错误')
     }
+    if (field === 'employees') {
+      const employees = value as Record<string, unknown>[]
+      if (employees.some(item => typeof item.id !== 'string' || !item.id || typeof item.name !== 'string' || !item.name.trim()) || new Set(employees.map(item => item.id)).size !== employees.length) {
+        throw new Error('备份里的员工资料格式错误')
+      }
+    }
     backup[field] = raw
   }
   return backup
@@ -100,7 +109,7 @@ export function backupSummary(backup: InventoryBackup) {
   }
 }
 
-/** Roll back all five keys if storage fails during restore. Unrelated settings stay intact. */
+/** Roll back all business keys if storage fails during restore. Unrelated settings stay intact. */
 export function restoreBackup(storage: Storage, text: string): void {
   const backup = parseBackup(text)
   const previous = fields.map(([, key]) => [key, storage.getItem(key)] as const)

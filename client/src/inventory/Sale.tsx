@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { employeeStock, loadEmployees, ownerStock, stockError } from './EmployeesData'
+import { loadRecords } from './Records'
 import { consumeInventoryBatches } from './Batches'
 import { recordLotCycleSale } from './LotCycles'
 import { loadInventory, saveInventory } from './Storage'
@@ -45,7 +47,10 @@ function repayCustomerDebt(name: string, amount: number): void {
   localStorage.setItem('customers', JSON.stringify(customers))
 }
 
-export default function Sale() {
+export default function Sale({ initialEmployeeId = '' }: { initialEmployeeId?: string }) {
+  const [employees] = useState(loadEmployees)
+  const [employeeId, setEmployeeId] = useState(initialEmployeeId)
+  const selectedEmployee = employees.find(item => item.id === employeeId)
   const [customers, setCustomers] = useState<CustomerData[]>(loadCustomers)
   const [customer, setCustomer] = useState('')
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
@@ -114,8 +119,10 @@ export default function Sale() {
     }
 
     const data = loadInventory()
-    if (data.stock < w) {
-      setMessage(`库存不足，目前只有${data.stock.toFixed(2)}G`)
+    const allocationError = stockError(data.stock, loadRecords(), w, employeeId)
+    if (employeeId && !selectedEmployee) { setMessage('找不到员工，请重新选择'); return }
+    if (allocationError) {
+      setMessage(allocationError)
       return
     }
 
@@ -173,6 +180,8 @@ export default function Sale() {
     repayCustomerDebt(customerName, oldDebtPayment)
     saveRecord({
       type: 'sale',
+      employeeId: selectedEmployee?.id,
+      employeeName: selectedEmployee?.name,
       date,
       customer: customerName,
       weight: w,
@@ -191,6 +200,8 @@ export default function Sale() {
     if (oldDebtPayment > 0) {
       saveRecord({
         type: 'income',
+        employeeId: selectedEmployee?.id,
+        employeeName: selectedEmployee?.name,
         date,
         customer: customerName,
         weight: 0,
@@ -222,6 +233,11 @@ export default function Sale() {
   return (
     <div>
       <h1>📤 出货</h1>
+      <label>从谁手里出货？<select aria-label="出货员工" value={employeeId} onChange={event => { setEmployeeId(event.target.value); setMessage('') }}>
+        <option value="">我手里的货</option>
+        {employees.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+      </select></label>
+      <p>可出货：<strong>{(employeeId ? employeeStock(loadRecords(), employeeId) : ownerStock(loadInventory().stock, loadRecords())).toFixed(2)}G</strong></p>
       <p>客户</p>
       <div className="customer-combobox">
         <input

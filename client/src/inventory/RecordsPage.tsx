@@ -14,6 +14,7 @@ import { deleteSaleAndRestore, loadRecords, type RecordItem } from './Records'
 import { loadInventory } from './Storage'
 
 function recordLabel(item: RecordItem): string {
+  if (item.employeeMovement) return item.employeeMovement === 'give' ? '📦 员工分货' : '↩️ 员工退货'
   if (item.type === 'purchase') return '📥 进货'
   if (item.type === 'adjustment') return '🧮 库存修正'
   if (item.type === 'debt') return '🧾 新增欠款'
@@ -97,7 +98,7 @@ export default function RecordsPage() {
     return records
       .map((item, originalIndex) => ({ item, originalIndex }))
       .filter(({ item }) => !keyword ||
-        [item.date, item.customer, item.source, item.note, recordLabel(item)]
+        [item.date, item.employeeName, item.customer, item.source, item.note, recordLabel(item)]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(keyword)),
       )
@@ -105,7 +106,7 @@ export default function RecordsPage() {
 
   function removeSale(originalIndex: number, item: RecordItem) {
     const confirmed = window.confirm(
-      `确定删除这笔旧出货吗？\n${item.customer || '未填写顾客'} · ${item.weight.toFixed(2)}G · RM${item.amount.toFixed(2)}\n\n删除后会回补库存，并撤销这笔收入、利润和欠款。`,
+      `确定删除这笔旧出货吗？\n${item.employeeName ? item.employeeName + ' · ' : ''}${item.customer || '未填写顾客'} · ${item.weight.toFixed(2)}G · RM${item.amount.toFixed(2)}\n\n删除后会回补原持货人的库存，并撤销这笔收入、利润和欠款。`,
     )
     if (!confirmed) return
     setMessage(deleteSaleAndRestore(originalIndex))
@@ -174,7 +175,7 @@ export default function RecordsPage() {
         )}
       </section>
 
-      <input className="record-search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索客户、供应来源或日期，例如：阿明" />
+      <input className="record-search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索员工、客户、供应来源或日期，例如：阿明" />
       {message && <p className="record-delete-message">{message}</p>}
       {filtered.length === 0 && <p>暂无符合记录</p>}
 
@@ -189,12 +190,13 @@ export default function RecordsPage() {
             )}
           </div>
           <p>日期：{formatRecordDate(item.date)}</p>
+          {item.employeeName && <p>员工：<strong>{item.employeeName}</strong></p>}
           {item.customer && (
             <p>客户：<strong className={item.type === 'sale' ? 'sale-record-customer' : undefined}>{item.customer}</strong></p>
           )}
           {item.source && <p>供应来源：{item.source}</p>}
-          {item.type === 'adjustment' && <p>库存变化：{item.weight >= 0 ? '+' : ''}{item.weight.toFixed(2)}G</p>}
-          {item.type !== 'adjustment' && item.weight > 0 && (
+          {item.type === 'adjustment' && !item.employeeMovement && <p>库存变化：{item.weight >= 0 ? '+' : ''}{item.weight.toFixed(2)}G</p>}
+          {(item.type !== 'adjustment' || item.employeeMovement) && item.weight > 0 && (
             <p>重量：<strong className={item.type === 'sale' ? 'sale-record-weight' : undefined}>{item.weight.toFixed(2)}G</strong></p>
           )}
           <p>金额：<strong className={item.type === 'sale' ? 'sale-record-amount' : undefined}>RM{Math.abs(item.amount).toFixed(2)}</strong></p>

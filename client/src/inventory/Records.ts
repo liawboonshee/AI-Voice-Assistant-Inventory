@@ -7,6 +7,10 @@ export type RecordItem = {
 
   type:'purchase' | 'sale' | 'income' | 'expense' | 'adjustment' | 'debt'
 
+  employeeId?:string
+  employeeName?:string
+  employeeMovement?:'give' | 'return'
+
   date:string
 
   customer?:string
