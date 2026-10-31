@@ -9,7 +9,7 @@ android {
     namespace "com.chatgpt.voice.pro"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.chatgpt.voice.pro"
+        applicationId "com.chatgpt.ledger.copy"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 41

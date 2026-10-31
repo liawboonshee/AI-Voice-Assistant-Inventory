@@ -1,11 +1,11 @@
-name: Build Android APK
+name: Build Ledger Copy APK
 
 on:
   push:
     branches:
       - main
       - inventory-v1
-      - agent/fix-inventory-backup-20261010
+      - agent/ledger-copy-4.9.2
 
   workflow_dispatch:
 
@@ -107,11 +107,11 @@ jobs:
         run: chmod +x gradlew && ./gradlew testReleaseUnitTest assembleRelease --no-daemon
 
       - name: Prepare fixed-signature APK
-        run: cp client/android/app/build/outputs/apk/release/app-release.apk KuCunBao-AI-release.apk
+        run: cp client/android/app/build/outputs/apk/release/app-release.apk JiZhangBao-4.9.2.apk
 
       - name: Upload fixed-signature release APK
         uses: actions/upload-artifact@v4
         with:
-          name: KuCunBao-AI-fixed-signature
-          path: KuCunBao-AI-release.apk
+          name: JiZhangBao-4.9.2
+          path: JiZhangBao-4.9.2.apk
           if-no-files-found: error

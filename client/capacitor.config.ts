@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.chatgpt.voice.pro',
-  appName: 'ChatGPT Voice AI Pro',
+  appId: 'com.chatgpt.ledger.copy',
+  appName: '记账宝',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
