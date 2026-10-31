@@ -1,3 +1,4 @@
+import { recordCashIn } from './Analytics.ts'
 import { PACKS, emptyPacks, packsWeight, validPacks, type PackCounts } from './Packs.ts'
 import type { RecordItem } from './Records'
 
@@ -61,3 +62,30 @@ export function employeePackError(records: RecordItem[], employeeId: string, req
 export function employeeUnsortedWeight(records: RecordItem[], employeeId: string): number {
   return Math.max(0, Math.round((employeeStock(records, employeeId) - packsWeight(employeePacks(records, employeeId))) * 100) / 100)
 }
+
+/** Cumulative package and sale totals; transfers and repayments are not sales. */
+export function employeeSummary(records: RecordItem[], employeeId: string) {
+  const remaining = employeePacks(records, employeeId)
+  const sold = emptyPacks()
+  let amountCents = 0, receivedCents = 0, debtCents = 0, legacyUnits = 0
+  const cents = (value: number) => Number.isFinite(value) ? Math.round((Math.max(0, value) + Number.EPSILON) * 100) : 0
+  for (const item of records) {
+    if (item.employeeId !== employeeId || item.type !== 'sale') continue
+    if (validPacks(item.packCounts)) {
+      for (const pack of PACKS) sold[pack.key] += item.packCounts[pack.key]
+    } else { legacyUnits += units(item.weight || 0) }
+    amountCents += cents(item.amount || 0)
+    receivedCents += cents(recordCashIn(item))
+    debtCents += cents(item.debtAmount || 0)
+  }
+  return {
+    remaining, sold,
+    remainingCount: Object.values(remaining).reduce((a, b) => a + b, 0),
+    soldCount: Object.values(sold).reduce((a, b) => a + b, 0),
+    salesAmount: amountCents / 100,
+    receivedAtSale: receivedCents / 100,
+    debtAtSale: debtCents / 100,
+    legacySaleWeight: legacyUnits / 100,
+  }
+}
+export type EmployeeSummary = ReturnType<typeof employeeSummary>

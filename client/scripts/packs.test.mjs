@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { PACKS, emptyPacks, emptyPackInputs, parsePacks, packsWeight, packSummary, validPacks } from '../src/inventory/Packs.ts'
-import { employeePacks, employeePackError, employeeStock, employeeUnsortedWeight, ownerStock } from '../src/inventory/EmployeesData.ts'
+import { employeeSummary, employeePacks, employeePackError, employeeStock, employeeUnsortedWeight, ownerStock } from '../src/inventory/EmployeesData.ts'
 import { createBackup, restoreBackup, parseBackup } from '../src/inventory/BackupData.ts'
 const packs = (values = {}) => ({...emptyPacks(),...values})
 const item = (employeeId, quantities, action) => ({ employeeId, packCounts: quantities, weight: packsWeight(quantities), date: '2026-10-31T08:00:00Z', amount: 0, type: action === 'sale' ? 'sale' : 'adjustment', ...(action === 'sale' ? {} : {employeeMovement:action}) })
@@ -65,4 +65,33 @@ test('backup round trip preserves every pack count; mismatched or fractional cou
  assert.throws(()=>parseBackup(JSON.stringify(mismatched)),/规格数量与重量不一致/)
  const fractional={...backup,records:JSON.stringify([{...item('a',packs({g625:1}),'give'),packCounts:packs({g625:1.5})}])}
  assert.throws(()=>parseBackup(JSON.stringify(fractional)),/规格数量与重量不一致/)
+})
+
+test('employee summary shows pieces remaining, pieces sold and total sale value, keeping cash and debt separate',()=>{
+  const give=item('a',packs({g1:10,g053:4,g040:2,g025:4,g250:3,g625:2}),'give')
+  const sale={...item('a',packs({g1:2,g053:1,g250:1,g625:1}),'sale'),amount:1000,paidAmount:700,debtAmount:300}
+  const returned=item('a',packs({g1:1,g025:2}),'return')
+  const other={...item('b',packs({g625:3}),'sale'),amount:9999,paidAmount:9999}
+  const repayment={employeeId:'a',type:'income',weight:0,amount:300,paidAmount:300,note:'客户还款',date:'later'}
+  const summary=employeeSummary([give,sale,returned,other,repayment],'a')
+  assert.equal(summary.remainingCount,17)
+  assert.equal(summary.soldCount,5)
+  assert.equal(summary.salesAmount,1000)
+  assert.equal(summary.receivedAtSale,700)
+  assert.equal(summary.debtAtSale,300)
+  assert.equal(summary.remaining.g625,1)
+  assert.equal(summary.sold.g625,1)
+  const reversed=employeeSummary([give,returned,other],'a')
+  assert.equal(reversed.remainingCount,22)
+  assert.equal(reversed.soldCount,0)
+  assert.equal(reversed.salesAmount,0)
+})
+test('summary retains legacy sale money without guessing counts, sums currency exactly',()=>{
+  const legacy={employeeId:'a',type:'sale',weight:2.5,amount:0.1,paidAmount:0.1,date:'old'}
+  const sale={...item('a',packs({g025:2}),'sale'),amount:0.2,paidAmount:0.2}
+  const summary=employeeSummary([legacy,sale],'a')
+  assert.equal(summary.salesAmount,0.3)
+  assert.equal(summary.receivedAtSale,0.3)
+  assert.equal(summary.soldCount,2)
+  assert.equal(summary.legacySaleWeight,2.5)
 })

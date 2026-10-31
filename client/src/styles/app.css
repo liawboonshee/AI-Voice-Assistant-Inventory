@@ -1846,3 +1846,20 @@ body {
 .pack-total { border-radius:10px; background:rgba(25,203,170,.16); padding:12px; font-size:18px; }
 .pack-balance { line-height:1.8; color:#48d7bd; overflow-wrap:anywhere; }
 .employee-legacy { padding:12px; border:1px solid #c9a35d; border-radius:10px; }
+
+.inventory-app .employee-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:12px 0; text-align:left; }
+.inventory-app .employee-metric { display:block; min-width:0; border-radius:10px; padding:12px; background:rgba(0,0,0,.15); }
+.inventory-app .employee-metric > span { font-size:13px; opacity:.85; }
+.inventory-app .employee-metric strong { display:block; font-size:26px; line-height:1.4; overflow-wrap:anywhere; margin-top:3px; }
+.inventory-app .employee-metric small { display:inline; font-size:14px; }
+.inventory-app .employee-metric.remaining strong { color:#38dfbb; }
+.inventory-app .employee-metric.sold strong { color:#69bdff; }
+.inventory-app .employee-metric.amount { grid-column:1/-1; }
+.inventory-app .employee-metric.amount strong { color:#ffd36b; }
+.inventory-app .employee-name { display:block; font-size:21px; }
+.employee-pack-table { width:100%; border-collapse:collapse; font-size:15px; margin:18px 0; }
+.employee-pack-table caption { text-align:left; font-weight:bold; margin-bottom:10px; }
+.employee-pack-table th,.employee-pack-table td { padding:11px 6px; text-align:right; border-bottom:1px solid rgba(120,160,220,.25); }
+.employee-pack-table th:first-child { text-align:left; }
+.employee-pack-table td:nth-child(2) { color:#38dfbb; font-weight:bold; }
+.employee-pack-table td:nth-child(3) { color:#69bdff; font-weight:bold; }
