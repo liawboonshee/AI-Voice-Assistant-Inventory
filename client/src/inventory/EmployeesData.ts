@@ -1,4 +1,4 @@
-import { recordCashIn } from './Analytics.ts'
+import { recordCashAmount, recordCashIn, recordTransferAmount } from './Analytics.ts'
 import { PACKS, emptyPacks, packsWeight, validPacks, type PackCounts } from './Packs.ts'
 import type { RecordItem } from './Records'
 
@@ -67,7 +67,7 @@ export function employeeUnsortedWeight(records: RecordItem[], employeeId: string
 export function employeeSummary(records: RecordItem[], employeeId: string) {
   const remaining = employeePacks(records, employeeId)
   const sold = emptyPacks()
-  let amountCents = 0, receivedCents = 0, debtCents = 0, legacyUnits = 0
+  let amountCents = 0, receivedCents = 0, debtCents = 0, cashCents = 0, transferCents = 0, legacyUnits = 0
   const cents = (value: number) => Number.isFinite(value) ? Math.round((Math.max(0, value) + Number.EPSILON) * 100) : 0
   for (const item of records) {
     if (item.employeeId !== employeeId || item.type !== 'sale') continue
@@ -76,6 +76,8 @@ export function employeeSummary(records: RecordItem[], employeeId: string) {
     } else { legacyUnits += units(item.weight || 0) }
     amountCents += cents(item.amount || 0)
     receivedCents += cents(recordCashIn(item))
+    cashCents += cents(recordCashAmount(item))
+    transferCents += cents(recordTransferAmount(item))
     debtCents += cents(item.debtAmount || 0)
   }
   return {
@@ -84,6 +86,8 @@ export function employeeSummary(records: RecordItem[], employeeId: string) {
     soldCount: Object.values(sold).reduce((a, b) => a + b, 0),
     salesAmount: amountCents / 100,
     receivedAtSale: receivedCents / 100,
+    cashAtSale: cashCents / 100,
+    transferAtSale: transferCents / 100,
     debtAtSale: debtCents / 100,
     legacySaleWeight: legacyUnits / 100,
   }

@@ -1863,3 +1863,7 @@ body {
 .employee-pack-table th:first-child { text-align:left; }
 .employee-pack-table td:nth-child(2) { color:#38dfbb; font-weight:bold; }
 .employee-pack-table td:nth-child(3) { color:#69bdff; font-weight:bold; }
+
+.inventory-app .employee-metric.cash strong { color:#ffd36b; }
+.inventory-app .employee-metric.transfer strong { color:#a9a0ff; }
+.inventory-app .employee-metric.cash strong,.inventory-app .employee-metric.transfer strong { font-size:22px; }

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { employeeSummary, employeePacks, employeePackError, employeeUnsortedWeight, addEmployee, employeeStock, heldStock, loadEmployees, ownerStock, stockError } from './EmployeesData'
 import { currentRecordDate, loadRecords, saveRecord } from './Records'
 import { loadInventory } from './Storage'
-import { formatRecordDate, isSameLocalDay, recordCashIn } from './Analytics'
+import { formatRecordDate, isSameLocalDay, recordCashAmount, recordTransferAmount } from './Analytics'
 
 export default function Employees({ onSale }: { onSale: (id: string) => void }) {
   const [employees, setEmployees] = useState(loadEmployees)
@@ -59,7 +59,7 @@ export default function Employees({ onSale }: { onSale: (id: string) => void }) 
       <div><span>员工手里合计</span><strong>{heldStock(records).toFixed(2)}G</strong></div>
       <div><span>全部未售库存</span><strong>{total.toFixed(2)}G</strong></div>
     </section>
-    <p>员工卡片显示累计统计：手里剩几个、已出了几个、出货金额。填写各规格几个，自动计算总G数；每位员工按规格独立扣减。分货和退货不算销售收入。员工出货时才扣总库存；由你在这台手机统一记账。</p>
+    <p>员工卡片显示累计统计：手里剩几个、已出了几个、现金和转账。填写各规格几个，自动计算总G数；每位员工按规格独立扣减。分货和退货不算销售收入。员工出货时才扣总库存；由你在这台手机统一记账。</p>
     <div className="employee-add"><input aria-label="新员工名字" value={name} onChange={e => setName(e.target.value)} placeholder="员工名字" /><button type="button" onClick={create}>新增员工</button></div>
     {message && <p role="status">{message}</p>}
     {employees.length === 0 && <p>先新增员工，再记录分货。</p>}
@@ -72,21 +72,21 @@ export default function Employees({ onSale }: { onSale: (id: string) => void }) 
         <span>剩余重量 {employeeStock(records, employee.id).toFixed(2)}G</span>
         <span className="pack-balance">{packSummary(employeePacks(records, employee.id), true)}</span>
         <span>今日出货 {sales.filter(item => isSameLocalDay(item.date)).reduce((sum, item) => sum + item.weight, 0).toFixed(2)}G</span>
-        <span>出货时实收 RM{summary.receivedAtSale.toFixed(2)} · 出货时记欠 RM{summary.debtAtSale.toFixed(2)}</span>
+        <span>出货总售价 RM{summary.salesAmount.toFixed(2)} · 出货时记欠 RM{summary.debtAtSale.toFixed(2)}</span>
         {summary.legacySaleWeight > 0 && <span>旧出货 {summary.legacySaleWeight.toFixed(2)}G 未记录个数，金额已计入</span>}
       </button>
     })}</div>
     {current && <section className="employee-detail">
       <h2>{current.name}</h2>
       <EmployeeMetrics summary={selectedSummary} />
-      <p>剩余重量 {employeeStock(records, current.id).toFixed(2)}G · 出货金额按累计总售价统计。</p>
+      <p>剩余重量 {employeeStock(records, current.id).toFixed(2)}G · 手里现金只累计出货时收的现金，转账另列。</p>
       <table className="employee-pack-table">
         <caption>各规格剩余 / 出货数量</caption>
         <thead><tr><th scope="col">规格</th><th scope="col">手里剩余</th><th scope="col">累计已出</th></tr></thead>
         <tbody>{PACKS.map(pack => <tr key={pack.key}><th scope="row">{pack.label}</th><td>{selectedSummary.remaining[pack.key]} 个</td><td>{selectedSummary.sold[pack.key]} 个</td></tr>)}</tbody>
       </table>
-      <p>出货时实收 RM{selectedSummary.receivedAtSale.toFixed(2)} · 出货时记欠 RM{selectedSummary.debtAtSale.toFixed(2)}</p>
-      <small>上方收款和记欠是出货时的累计数，后续还款请查看顾客账目。</small>
+      <p>出货总售价 RM{selectedSummary.salesAmount.toFixed(2)} · 出货时记欠 RM{selectedSummary.debtAtSale.toFixed(2)}</p>
+      <small>现金与转账分开累计，不含欠款；这里按出货时的收款统计，后续还款请查看顾客账目。</small>
       {selectedSummary.legacySaleWeight > 0 && <p>旧出货 {selectedSummary.legacySaleWeight.toFixed(2)}G 没有记录规格，未推算个数；金额已计入。</p>}
       {employeeUnsortedWeight(records, current.id) > 0 && <div className="employee-legacy"><p>旧记录未分规格：{employeeUnsortedWeight(records, current.id).toFixed(2)}G。先退回这部分旧库存，再按实际规格重新分货。</p><button type="button" onClick={returnLegacy}>将这部分旧库存退回我手里</button></div>}
       <button type="button" onClick={() => onSale(current.id)}>📤 记录这位员工出货</button>
@@ -101,7 +101,7 @@ export default function Employees({ onSale }: { onSale: (id: string) => void }) 
         <small>{formatRecordDate(item.date)}</small>
         {item.packCounts && <p className="pack-balance">{packSummary(item.packCounts)}</p>}
         {item.customer && <p>顾客：{item.customer}</p>}
-        {item.type === 'sale' && <p>售价 RM{item.amount.toFixed(2)} · 已收 RM{recordCashIn(item).toFixed(2)} · 本次欠款 RM{(item.debtAmount || 0).toFixed(2)}</p>}
+        {item.type === 'sale' && <p>售价 RM{item.amount.toFixed(2)} · 现金 RM{recordCashAmount(item).toFixed(2)} · 转账 RM{recordTransferAmount(item).toFixed(2)} · 本次欠款 RM{(item.debtAmount || 0).toFixed(2)}</p>}
         {item.note && <p>{item.note}</p>}
       </article>)}
     </section>}

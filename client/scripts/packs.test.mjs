@@ -95,3 +95,27 @@ test('summary retains legacy sale money without guessing counts, sums currency e
   assert.equal(summary.soldCount,2)
   assert.equal(summary.legacySaleWeight,2.5)
 })
+
+test('employee cash and transfers are separate; credit, other employees and non-sales cannot inflate cash',()=>{
+  const mixed={...item('a',packs({g1:1}),'sale'),amount:300,cashAmount:100,transferAmount:150,debtAmount:50,paidAmount:250,paymentMethod:'mixed'}
+  const transfer={...item('a',packs({g250:1}),'sale'),amount:80,paidAmount:80,paymentMethod:'transfer'}
+  const debtOnly={...item('a',packs({g053:1}),'sale'),amount:100,paidAmount:0,debtAmount:100,paymentMethod:'debt'}
+  const other={...mixed,employeeId:'b',cashAmount:9999}
+  const distribution={...item('a',packs({g625:1}),'give'),amount:9999,cashAmount:9999}
+  const summary=employeeSummary([mixed,transfer,debtOnly,other,distribution],'a')
+  assert.equal(summary.cashAtSale,100)
+  assert.equal(summary.transferAtSale,230)
+  assert.equal(summary.receivedAtSale,330)
+  assert.equal(summary.salesAmount,480)
+  assert.equal(summary.debtAtSale,150)
+  const afterDelete=employeeSummary([transfer,debtOnly,distribution],'a')
+  assert.equal(afterDelete.cashAtSale,0)
+  assert.equal(afterDelete.transferAtSale,80)
+})
+test('legacy cash-only receipts and fractional currency remain exact in separate totals',()=>{
+  const cash={...item('a',packs({g025:1}),'sale'),amount:0.1,paidAmount:0.1,paymentMethod:'cash'}
+  const mixed={...item('a',packs({g025:1}),'sale'),amount:0.5,cashAmount:0.2,transferAmount:0.3,paymentMethod:'mixed'}
+  const summary=employeeSummary([cash,mixed],'a')
+  assert.equal(summary.cashAtSale,0.3)
+  assert.equal(summary.transferAtSale,0.3)
+})
