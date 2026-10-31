@@ -1,11 +1,11 @@
-name: Build Ledger Copy APK
+name: Build Standalone Employee Ledger APK
 
 on:
   push:
     branches:
       - main
       - inventory-v1
-      - agent/ledger-copy-4.9.2
+      - agent/employee-ledger-standalone
 
   workflow_dispatch:
 
@@ -107,11 +107,15 @@ jobs:
         run: chmod +x gradlew && ./gradlew testReleaseUnitTest assembleRelease --no-daemon
 
       - name: Prepare fixed-signature APK
-        run: cp client/android/app/build/outputs/apk/release/app-release.apk JiZhangBao-4.9.3.apk
+        run: |
+          cp client/android/app/build/outputs/apk/release/app-release.apk EmployeeLedger-4.9.3.apk
+          aapt_path=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n1)
+          "$aapt_path" dump badging EmployeeLedger-4.9.3.apk > packaged-metadata.txt
+          grep -F "package: name='com.chatgpt.employee.ledger'" packaged-metadata.txt
 
       - name: Upload fixed-signature release APK
         uses: actions/upload-artifact@v4
         with:
-          name: JiZhangBao-4.9.3
-          path: JiZhangBao-4.9.3.apk
+          name: EmployeeLedger-4.9.3
+          path: EmployeeLedger-4.9.3.apk
           if-no-files-found: error

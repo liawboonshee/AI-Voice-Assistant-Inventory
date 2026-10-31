@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.chatgpt.ledger.copy',
-  appName: '记账宝',
+  appId: 'com.chatgpt.employee.ledger',
+  appName: '员工记账宝',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

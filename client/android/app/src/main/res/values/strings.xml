@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">记账宝</string>
-    <string name="title_activity_main">记账宝</string>
-    <string name="package_name">com.chatgpt.ledger.copy</string>
-    <string name="custom_url_scheme">com.chatgpt.ledger.copy</string>
+    <string name="app_name">员工记账宝</string>
+    <string name="title_activity_main">员工记账宝</string>
+    <string name="package_name">com.chatgpt.employee.ledger</string>
+    <string name="custom_url_scheme">com.chatgpt.employee.ledger</string>
 </resources>

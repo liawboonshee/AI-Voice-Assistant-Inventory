@@ -149,8 +149,8 @@ export default function PinLockScreen({ onUnlock }: Props) {
     <main className="pin-lock-screen">
       <form className="pin-lock-card" onSubmit={submit}>
         <div className="pin-lock-logo">📦</div>
-        <h1>{isSetup ? '设置记账宝密码' : mode === 'change' ? '修改登录密码' : '记账宝已上锁'}</h1>
-        <p>{isSetup ? '首次使用请设置4位数字密码' : mode === 'change' ? '先验证旧密码，再设置新密码' : '输入4位密码进入记账宝'}</p>
+        <h1>{isSetup ? '设置员工记账宝密码' : mode === 'change' ? '修改登录密码' : '员工记账宝已上锁'}</h1>
+        <p>{isSetup ? '首次使用请设置4位数字密码' : mode === 'change' ? '先验证旧密码，再设置新密码' : '输入4位密码进入员工记账宝'}</p>
         <input
           aria-label={mode === 'change' ? '旧的4位密码' : '4位密码'}
           autoFocus

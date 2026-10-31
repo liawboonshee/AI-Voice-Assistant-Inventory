@@ -27,7 +27,7 @@ export default function Backup() {
     try {
       const backup = createBackup(localStorage)
       const contents = JSON.stringify(backup, null, 2)
-      const fileName = '记账宝备份_' + Date.now() + '.json'
+      const fileName = '员工记账宝备份_' + Date.now() + '.json'
       backupUi.update({text: contents, summary: backupSummary(backup)})
       if (mode === 'copy') {
         const copy = android
