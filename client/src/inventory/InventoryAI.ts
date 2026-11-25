@@ -97,7 +97,8 @@ export function askInventory(input: string): string | null {
 
   if (command.query === 'purchases') {
     const purchases = records.filter((record) => record.type === 'purchase')
-    return `${period}进货${sum(purchases, 'weight').toFixed(2)}克，总成本${sum(purchases, 'amount').toFixed(2)}，共${purchases.length}笔。`
+    const winePurchases = purchases.filter(record => record.product === 'red_wine').reduce((total,record) => total + (record.quantity || 0),0)
+    return `${period}进货${sum(purchases, 'weight').toFixed(2)}克，红酒${winePurchases}粒，总成本${sum(purchases, 'amount').toFixed(2)}，共${purchases.length}笔。`
   }
 
   if (command.query === 'records') {
