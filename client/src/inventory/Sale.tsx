@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { consumeInventoryBatches } from './Batches'
 import { recordLotCycleSale } from './LotCycles'
-import { loadInventory, saveInventory } from './Storage'
+import { loadInventory, saveInventory, redWineStock, RED_WINE_UNIT_COST } from './Storage'
 import { currentRecordDate, saveRecord } from './Records'
 import { calculatePaymentBreakdown, paymentSummary } from './Payments'
 
 type CustomerData = { name: string; phone?: string; debt: number }
-
-const RED_WINE_UNIT_COST = 8.5
 
 const QUICK_SALES = [
   { price: 50, weight: 0.25 },
@@ -127,6 +125,10 @@ export default function Sale() {
     }
 
     const data = loadInventory()
+    if (redWine && redWineStock(data) < quantity) {
+      setMessage(`红酒库存不足，目前只有${redWineStock(data)}粒，请先进货`)
+      return
+    }
     if (!redWine && data.stock < w) {
       setMessage(`库存不足，目前只有${data.stock.toFixed(2)}G`)
       return
@@ -165,6 +167,7 @@ export default function Sale() {
       data.stock = batchResult.stockAfter
       data.totalWeightCost = batchResult.costAfter
     }
+    if (redWine) data.redWineStock = redWineStock(data) - quantity
     data.income = round(data.income + payment.paidAmount + oldDebtPayment)
     data.profit = round(data.profit + profitAmount + oldDebtPayment)
     saveInventory(data)
@@ -200,7 +203,7 @@ export default function Sale() {
       profitAmount,
       paymentMethod: payment.paymentMethod,
       batchAllocations: batchResult?.allocations,
-      ...(redWine ? { product: 'red_wine' as const, quantity, unitCost: RED_WINE_UNIT_COST } : {}),
+      ...(redWine ? { product: 'red_wine' as const, quantity, unitCost: RED_WINE_UNIT_COST, redWineStockAfter: redWineStock(data) } : {}),
       lotCycleId,
       stockAfter: data.stock,
     })
@@ -321,17 +324,17 @@ export default function Sale() {
         ))}
         <button type="button" aria-pressed={redWine} className={`inventory-sale-preset-button${redWine ? ' active' : ''}`} onClick={() => {
           setRedWine(true)
-          setWeight('1')
+          setWeight('')
           setPrice('')
           setTransfer('')
           setDebt('')
           setSelectedPresetPrice(null)
           setMessage('')
         }}>
-          <strong>🍷 红酒</strong><span>本金 RM8.50 / 粒</span>
+          <strong>🍷 红酒</strong>
         </button>
       </div>
-      {redWine && <p>红酒本金：RM{(Math.max(0, Number(weight) || 0) * RED_WINE_UNIT_COST).toFixed(2)}（不扣 G 库存）</p>}
+      {redWine && <p>红酒剩余：{redWineStock(loadInventory())}粒{weight.trim() && Number.isSafeInteger(Number(weight)) && Number(weight) > 0 ? ` · 本次本金 RM${(Number(weight) * RED_WINE_UNIT_COST).toFixed(2)}` : ''}</p>}
       <button className="inventory-save-sale-button" type="button" onClick={addSale}>✅ 保存出货</button>
       {message && <p>{message}</p>}
     </div>
