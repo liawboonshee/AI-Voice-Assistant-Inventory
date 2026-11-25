@@ -10,7 +10,7 @@ type CustomerData = { name: string; phone?: string; debt: number }
 const QUICK_SALES = [
   { price: 50, weight: 0.25 },
   { price: 80, weight: 0.4 },
-  { price: 100, weight: 0.53 },
+  { price: 100, weight: 0.55 },
   { price: 150, weight: 1 },
   { price: 300, weight: 2.5 },
 ] as const
