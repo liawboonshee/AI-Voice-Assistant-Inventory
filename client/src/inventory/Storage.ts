@@ -2,6 +2,8 @@ export type InventoryData = {
 
   stock:number
 
+  redWineStock?:number
+
   income:number
 
   profit:number
@@ -22,6 +24,8 @@ const KEY='inventory_data'
 const defaultData:InventoryData={
 
   stock:0,
+
+  redWineStock:0,
 
   income:0,
 
@@ -44,7 +48,7 @@ const data=localStorage.getItem(KEY)
 
 if(!data){
 
-return defaultData
+return { ...defaultData }
 
 }
 
@@ -63,6 +67,8 @@ result.totalWeightCost=0
 }
 
 
+
+if (!Number.isSafeInteger(result.redWineStock) || result.redWineStock < 0) result.redWineStock = 0
 
 return result
 
@@ -84,4 +90,10 @@ JSON.stringify(data)
 )
 
 
+}
+
+export const RED_WINE_UNIT_COST = 8.5
+
+export function redWineStock(data: InventoryData): number {
+  return data.redWineStock ?? 0
 }
