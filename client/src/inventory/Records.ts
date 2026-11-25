@@ -17,6 +17,10 @@ export type RecordItem = {
 
   weight:number
 
+  product?: 'red_wine'
+
+  quantity?:number
+
   amount:number
 
   // 新版记录会保存付款、欠款和本次成本；旧资料没有这些字段也能继续读取。
@@ -160,6 +164,7 @@ export function deleteSaleAndRestore(index:number):string{
     ? 0
     : saleCashIn(item) - restoredCost
 
+  if(item.product !== 'red_wine') {
   const restoredBatches=restoreInventoryBatchAllocations(
     inventory,
     item.batchAllocations,
@@ -168,10 +173,11 @@ export function deleteSaleAndRestore(index:number):string{
   )
   inventory.stock=restoredBatches.stockAfter
   inventory.totalWeightCost=restoredBatches.costAfter
+  }
   inventory.income=Math.max(0, round(inventory.income - saleCashIn(item)))
   inventory.profit=round(inventory.profit - profit)
   saveInventory(inventory)
-  reverseLotCycleSale(item.lotCycleId, inventory, {
+  if(item.product !== 'red_wine') reverseLotCycleSale(item.lotCycleId, inventory, {
     weight: restoredWeight,
     amount: Math.max(0, item.amount || 0),
     paidAmount: saleCashIn(item),
@@ -200,5 +206,5 @@ export function deleteSaleAndRestore(index:number):string{
 
   records.splice(index,1)
   localStorage.setItem(KEY, JSON.stringify(records))
-  return `✅ 已删除旧出货，库存回补${restoredWeight.toFixed(2)}G`
+  return item.product === 'red_wine' ? '✅ 已删除红酒出货，已撤销收入、利润和欠款' : `✅ 已删除旧出货，库存回补${restoredWeight.toFixed(2)}G`
 }
