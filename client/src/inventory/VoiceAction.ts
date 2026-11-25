@@ -76,7 +76,7 @@ export function getMissingCommandField(command: VoiceCommand): MissingField {
   if (command.type === 'income') return command.amount === undefined ? 'amount' : null
   if (command.type !== 'sale' && command.type !== 'purchase') return null
   if (command.weight === undefined) return 'weight'
-  if (command.type === 'purchase' && command.amount === undefined) return 'amount'
+  if ((command.type === 'purchase' || command.shortcut) && command.amount === undefined) return 'amount'
   if (command.type === 'sale' && getDebtAmount(command) > 0 && !command.customer) {
     return 'customer'
   }
@@ -105,6 +105,7 @@ export function getMissingCommandPrompt(command: VoiceCommand): string | null {
 export function executeParsedVoiceCommand(command: VoiceCommand): string | null {
   if (command.type !== 'sale' && command.type !== 'purchase' && command.type !== 'income') return null
 
+  if (command.error) return command.error
   const missingPrompt = getMissingCommandPrompt(command)
   if (missingPrompt) return missingPrompt
 
@@ -204,7 +205,7 @@ export function executeParsedVoiceCommand(command: VoiceCommand): string | null 
     costAfter: data.totalWeightCost,
   })
 
-  const customer = resolveKnownCustomerName(command.customer || '') || command.customer || '未填写'
+  const customer = command.shortcut ? (command.customer || '未填写') : resolveKnownCustomerName(command.customer || '') || command.customer || '未填写'
   addCustomerDebt(customer, debtAmount)
 
   saveInventory(data)
