@@ -46,7 +46,7 @@ function describeLastRecord(record: RecordItem | undefined): string {
   }
 
   const debtText = (record.debtAmount || 0) > 0 ? `，欠款${record.debtAmount?.toFixed(2)}` : ''
-  return `最近一笔是出货：${record.customer || '未填写'}，${record.weight.toFixed(2)}克，售价${record.amount.toFixed(2)}${debtText}，时间${record.date}。`
+  return `最近一笔是出货：${record.customer || '未填写'}，${record.product === 'red_wine' ? `红酒${record.quantity || 0}粒` : `${record.weight.toFixed(2)}克`}，售价${record.amount.toFixed(2)}${debtText}，时间${record.date}。`
 }
 
 export function askInventory(input: string): string | null {
@@ -89,8 +89,9 @@ export function askInventory(input: string): string | null {
   }
 
   if (command.query === 'sales') {
-    const sales = records.filter((record) => record.type === 'sale' && record.weight > 0)
-    return `${period}出货${sum(sales, 'weight').toFixed(2)}克，销售额${sum(sales, 'amount').toFixed(2)}，共${sales.length}笔。`
+    const sales = records.filter((record) => record.type === 'sale' && (record.weight > 0 || record.product === 'red_wine'))
+    const redWineCount = sales.filter(record => record.product === 'red_wine').reduce((total, record) => total + (record.quantity || 0), 0)
+    return `${period}出货${sum(sales, 'weight').toFixed(2)}克，红酒${redWineCount}粒，销售额${sum(sales, 'amount').toFixed(2)}，共${sales.length}笔。`
   }
 
   if (command.query === 'purchases') {
