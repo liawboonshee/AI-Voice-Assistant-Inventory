@@ -14,7 +14,7 @@ import { deleteSaleAndRestore, loadRecords, type RecordItem } from './Records'
 import { loadInventory } from './Storage'
 
 function recordLabel(item: RecordItem): string {
-  if (item.type === 'purchase') return '📥 进货'
+  if (item.type === 'purchase') return item.product === 'red_wine' ? '🍷 红酒进货' : '📥 进货'
   if (item.type === 'adjustment') return '🧮 库存修正'
   if (item.type === 'debt') return '🧾 新增欠款'
   if (item.type === 'income') return item.note === '客户还款' ? '💳 客户还款' : '💰 收入'
@@ -206,9 +206,10 @@ export default function RecordsPage() {
           {item.type === 'sale' && (item.cashAmount || 0) > 0 && <p>现金：RM{item.cashAmount?.toFixed(2)}</p>}
           {item.type === 'sale' && (item.transferAmount || 0) > 0 && <p>转账：RM{item.transferAmount?.toFixed(2)}</p>}
           {(item.debtAmount || 0) > 0 && <p>欠款：RM{item.debtAmount?.toFixed(2)}</p>}
-          {item.type === 'purchase' && item.unitCost !== undefined && <p>本批成本：RM{item.unitCost.toFixed(2)}/G</p>}
+          {item.type === 'purchase' && item.unitCost !== undefined && <p>本批成本：RM{item.unitCost.toFixed(2)}/{item.product === 'red_wine' ? '粒' : 'G'}</p>}
           {item.averageCostAfter !== undefined && <p>重算平均成本：RM{item.averageCostAfter.toFixed(2)}/G</p>}
-          {item.stockAfter !== undefined && <p>完成后库存：{item.stockAfter.toFixed(2)}G</p>}
+          {item.product !== 'red_wine' && item.stockAfter !== undefined && <p>完成后库存：{item.stockAfter.toFixed(2)}G</p>}
+          {item.redWineStockAfter !== undefined && <p>完成后红酒库存：{item.redWineStockAfter}粒</p>}
           {item.type === 'sale' && (item.weight > 0 || item.product === 'red_wine') && <p>单笔利润：RM{recordProfit(item).toFixed(2)}</p>}
           {item.note && <p>备注：{item.note}</p>}
         </section>
