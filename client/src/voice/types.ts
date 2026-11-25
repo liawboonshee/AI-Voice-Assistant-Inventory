@@ -1,6 +1,7 @@
 export type VoicePhase = 'idle' | 'listening' | 'thinking' | 'speaking' | 'error'
 
 export interface VoiceListenHandlers {
+  rawTranscript?: boolean
   onPartial?: (text: string) => void
   onFinal: (text: string) => void
   onError: (message: string) => void
