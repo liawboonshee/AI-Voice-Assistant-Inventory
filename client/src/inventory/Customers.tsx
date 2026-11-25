@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { currentRecordDate, loadRecords, renameCustomerRecords, saveRecord } from './Records'
 import { formatRecordDate } from './Analytics'
 import { loadInventory, saveInventory } from './Storage'
+import { getVoiceAdapter } from '../voice/voiceAdapter'
+import { matchCustomerAlias, normalizeCustomerAlias } from './VoiceCommand'
 
-type CustomerData = { name: string; phone?: string; debt: number }
+type CustomerData = { name: string; phone?: string; debt: number; voiceAliases?: string[] }
 const KEY = 'customers'
 
 function round(value: number): number {
@@ -36,6 +38,54 @@ export default function Customers() {
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
   const [message, setMessage] = useState('')
+  const [voiceCustomer, setVoiceCustomer] = useState<string | null>(null)
+  const [voiceSample, setVoiceSample] = useState('')
+  const [voiceMessage, setVoiceMessage] = useState('')
+  const [voiceListening, setVoiceListening] = useState(false)
+
+  async function recordPronunciation(customerName: string) {
+    if (voiceListening) return
+    setVoiceCustomer(customerName)
+    setVoiceSample('')
+    setVoiceListening(true)
+    setVoiceMessage('请只说这个顾客的名字，不要说金额。')
+    try {
+      await getVoiceAdapter().start({
+        rawTranscript: true,
+        onPartial: text => setVoiceSample(text),
+        onFinal: text => { setVoiceSample(text); setVoiceListening(false); setVoiceMessage('检查识别结果，确认后保存。') },
+        onError: error => { setVoiceListening(false); setVoiceMessage(error) },
+      })
+    } catch { setVoiceListening(false); setVoiceMessage('语音录制失败，请重试。') }
+  }
+
+  function savePronunciation(customerName: string) {
+    const sample = voiceSample.trim()
+    const key = normalizeCustomerAlias(sample)
+    if (!key || key.length > 80 || /拿|拏/.test(sample)) { setVoiceMessage('请只填写顾客名称的发音识别结果。'); return }
+    const list = loadCustomers()
+    const customer = list.find(item => item.name === customerName)
+    if (!customer) { setVoiceMessage('顾客已更名或不存在，请重新选择。'); return }
+    const other = matchCustomerAlias(sample, list.filter(item => item.name !== customerName))
+    if (other.name || other.ambiguous) { setVoiceMessage('这个发音已用于其他顾客，请录一个不同的叫法。'); return }
+    const aliases = Array.isArray(customer.voiceAliases) ? customer.voiceAliases : []
+    if (aliases.some(alias => normalizeCustomerAlias(alias) === key)) { setVoiceMessage('这个发音已经保存。'); return }
+    if (aliases.length >= 10) { setVoiceMessage('每位顾客最多保存10个发音，请先删除不需要的。'); return }
+    customer.voiceAliases = [...aliases, sample]
+    saveCustomers(list)
+    setCustomers(list)
+    setVoiceSample('')
+    setVoiceMessage('✅ 发音已绑定到该顾客。')
+  }
+
+  function removePronunciation(customerName: string, sample: string) {
+    const list = loadCustomers()
+    const customer = list.find(item => item.name === customerName)
+    if (!customer) return
+    customer.voiceAliases = (customer.voiceAliases || []).filter(alias => alias !== sample)
+    saveCustomers(list)
+    setCustomers(list)
+  }
 
   const searchQuery = search.trim().toLowerCase().replace(/\s+/g, '')
   const visibleCustomers = customers
@@ -61,6 +111,8 @@ export default function Customers() {
       setMessage('请输入客户名字')
       return
     }
+    const collision = matchCustomerAlias(newName, customers.filter(item => item.name !== newName))
+    if (collision.name || collision.ambiguous) { setMessage('这个名称与其他顾客的发音重复，请使用不同名字'); return }
     const list = [...customers]
     const existing = list.find((item) => item.name === newName)
     if (existing) existing.phone = phone.trim() || existing.phone
@@ -93,6 +145,8 @@ export default function Customers() {
       return
     }
 
+    const conflict = matchCustomerAlias(nextName, customers.filter((_, i) => i !== index))
+    if (conflict.name || conflict.ambiguous) { setMessage('这个名称与其他顾客的发音重复，请修改后再保存'); return }
     const previousName = customer.name
     const list = customers.map((item, itemIndex) => itemIndex === index
       ? { ...item, name: nextName, phone: editPhone.trim() || undefined }
@@ -229,7 +283,7 @@ export default function Customers() {
             <summary className="customer-list-summary">
               <span className="customer-list-identity">
                 <strong>👤 {item.name}</strong>
-                <small>{item.phone || '未填电话'}</small>
+                <small>{item.phone || '未填电话'} · {(item.voiceAliases || []).length > 0 ? `已录${item.voiceAliases?.length}个发音` : '未录发音'}</small>
               </span>
               <span className={`customer-list-debt${item.debt > 0 ? ' has-debt' : ''}`}>
                 欠款 RM{item.debt.toFixed(2)}
@@ -237,8 +291,18 @@ export default function Customers() {
             </summary>
             <div className="customer-card-expanded">
               <div className="customer-edit-action-row">
-                <button type="button" onClick={() => startCustomerEdit(index)}>✏️ 修改顾客</button>
+                <button type="button" disabled={voiceListening} onClick={() => startCustomerEdit(index)}>✏️ 修改顾客</button>
+                <button type="button" disabled={voiceListening} onClick={() => void recordPronunciation(item.name)}>🎙️ 录制发音</button>
               </div>
+              <section className="customer-voice-panel">
+                {(item.voiceAliases || []).map(alias => <div key={alias}><span>🗣️ {alias}</span> <button type="button" disabled={voiceListening} onClick={() => removePronunciation(item.name, alias)}>删除</button></div>)}
+                {voiceCustomer === item.name && <div>
+                  <p>{voiceMessage}</p>
+                  <input aria-label="发音识别结果" value={voiceSample} disabled={voiceListening} onChange={event => setVoiceSample(event.target.value)} placeholder="识别结果（可修改）" />
+                  <button type="button" disabled={voiceListening || !voiceSample.trim()} onClick={() => savePronunciation(item.name)}>保存发音</button>
+                  <button type="button" disabled={voiceListening} onClick={() => { setVoiceCustomer(null); setVoiceSample(''); setVoiceMessage('') }}>关闭</button>
+                </div>}
+              </section>
               {editingCustomer === index && (
                 <div className="customer-edit-panel">
                   <input
