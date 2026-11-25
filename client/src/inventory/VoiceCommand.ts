@@ -13,6 +13,8 @@ export type InventoryQuery =
 export type VoiceCommand = {
   type: 'sale' | 'purchase' | 'income' | 'query' | null
   query?: InventoryQuery
+  shortcut?: boolean
+  error?: string
   customer?: string
   weight?: number
   amount?: number
@@ -295,7 +297,8 @@ export function scoreCustomerTranscript(input: string): number {
   const resolvedCustomer = exactCustomer ? undefined : resolveKnownCustomerName(normalized)
   const hasAction = /进货|入货|补货|采购|买入|收货|出货|卖给|销售|出售|卖出|售出/.test(normalized)
   const hasQuery = /库存|利润|收入|欠款|欠多少|交易|记录/.test(normalized)
-  return (exactCustomer ? 100 : resolvedCustomer ? 60 : 0) + (hasAction ? 25 : 0) + (hasQuery ? 10 : 0)
+  const shortcut = parseTakeSale(input)
+  return (exactCustomer ? 100 : resolvedCustomer ? 60 : 0) + (hasAction ? 25 : 0) + (hasQuery ? 10 : 0) + (shortcut && !shortcut.error ? 200 : 0)
 }
 
 function detectQuery(text: string): InventoryQuery | undefined {
@@ -451,6 +454,67 @@ function parseActionDetails(text: string, type: 'sale' | 'purchase'): Omit<Voice
   return result
 }
 
+
+const QUICK_VOICE_WEIGHTS: Readonly<Record<number, number>> = {50:0.25,80:0.4,100:0.55,150:1,300:2.5}
+
+/** Customer IDs are strings, not amounts. Never fuzzy-match a numeric ID. */
+function shortcutCustomerName(raw: string): string {
+  let name = raw.replace(/[\s,，。；;：:]/g,'').replace(/^(?:顾客|客户)/,'')
+  if (/^[零〇一二两三四五六七八九0-9]+$/.test(name)) {
+    name = Array.from(name, c => CHINESE_DIGITS[c] === undefined ? c : String(CHINESE_DIGITS[c])).join('')
+  }
+  return loadKnownCustomerNames().find(n => n.toLowerCase() === name.toLowerCase()) ?? name
+}
+
+function parseTakeSale(input: string): VoiceCommand | undefined {
+  const raw = input.replace(/[０-９]/g, digit => String.fromCharCode(digit.charCodeAt(0)-65248))
+    .replace(/．/g,'.').replace(/点(?=\d)/g,'.').trim()
+  // Preserve customer names before normalizing the transaction portion.
+  const match = /^(.+?)(?:拿|拏)(.*)$/.exec(raw)
+  if (!match) return undefined
+  const customer = shortcutCustomerName(match[1] ?? '')
+  const tail = normalizeText(match[2] ?? '').replace(/[，,。；;：:！？!?]/g, '')
+  const error = (message: string): VoiceCommand => ({type:'sale', shortcut:true, error:message})
+  if (!customer) return error('请先说顾客名字，再说拿多少。')
+  const head = new RegExp('^(半套|' + NUMBER_SOURCE + ')(' + WEIGHT_UNIT_SOURCE + ')?', 'i').exec(tail)
+  if (!head) return error('没有听清出货规格，请重新说，例如0764拿100欠30。')
+  const number = head[1] === '半套' ? 300 : parseSpokenNumber(head[1] ?? '')
+  if (number === null || !Number.isFinite(number) || number <= 0) return error('出货规格无效，请重新说。')
+  const unit = head[2]
+  const preset = !unit ? QUICK_VOICE_WEIGHTS[number] : undefined
+  const weight = preset ?? (unit ? convertWeight(number,unit) : number)
+  if (weight < 0.01 || !Number.isFinite(weight)) return error('出货重量至少0.01G。')
+  const result: VoiceCommand = {type:'sale', shortcut:true, customer, weight}
+  const suffix = tail.slice(head[0].length)
+  const pattern = new RegExp('^(收现金|现金|现收|实收|收到|收了|收|欠款|欠|转账|转帐)(' + NUMBER_SOURCE + ')(?:马币|块钱|块|元|rm)?','i')
+  let rest = suffix
+  while (rest) {
+    const p = pattern.exec(rest)
+    if (!p) return error('收款或欠款没有听清，请重新说完整出货口令。')
+    const value = parseSpokenNumber(p[2] ?? '')
+    if (value === null || !Number.isFinite(value) || value < 0) return error('金额无效，请重新说。')
+    const field = /^欠/.test(p[1] ?? '') ? 'debtAmount' : /^转/.test(p[1] ?? '') ? 'transferAmount' : 'cashAmount'
+    if (result[field] !== undefined) return error('同一收款项目重复，请重新说。')
+    result[field] = value
+    rest = rest.slice(p[0].length)
+  }
+  const paid = (result.cashAmount ?? 0) + (result.transferAmount ?? 0)
+  if (preset !== undefined) {
+    result.amount = number
+    if (result.cashAmount === undefined) result.cashAmount = number - (result.transferAmount ?? 0) - (result.debtAmount ?? 0)
+    else if (result.debtAmount === undefined) result.debtAmount = number - paid
+    const cash = result.cashAmount ?? 0, debt = result.debtAmount ?? 0, transfer = result.transferAmount ?? 0
+    if (cash < -0.00001 || debt < -0.00001 || Math.abs(cash + debt + transfer - number) > 0.005) {
+      return error('收款与欠款合计不等于快捷售价，请重新说。')
+    }
+    result.cashAmount = Math.max(0,Math.round(cash*100)/100)
+    result.debtAmount = Math.max(0,Math.round(debt*100)/100)
+  } else if (suffix) {
+    result.amount = Math.round((paid + (result.debtAmount ?? 0))*100)/100
+  }
+  return result
+}
+
 export function parseVoiceCommand(input: string): VoiceCommand {
   const text = normalizeText(input)
   const query = detectQuery(text)
@@ -465,6 +529,9 @@ export function parseVoiceCommand(input: string): VoiceCommand {
         : undefined,
     }
   }
+
+  const takeSale = parseTakeSale(input)
+  if (takeSale) return takeSale
 
   const isPurchase = /进货|入货|补货|采购|买入|收货/.test(text)
   const isSale = /出货|卖给|卖予|销售|出售|卖出|售出/.test(text)
