@@ -206,6 +206,33 @@ function extractDebtQueryCustomer(text: string): string | undefined {
   return name || undefined
 }
 
+/** Personal pronunciation samples are confirmed speech-to-text aliases, not voiceprints. */
+export function normalizeCustomerAlias(raw: string): string {
+  let value = raw.normalize('NFKC').toLowerCase().replace(/[\s,，。.;；:：!?！？、]/g,'')
+  if (/^[零〇一二两三四五六七八九0-9]+$/.test(value)) {
+    value = Array.from(value, c => CHINESE_DIGITS[c] === undefined ? c : String(CHINESE_DIGITS[c])).join('')
+  }
+  return value
+}
+
+function loadVoiceCustomers(): {name:string; voiceAliases?:string[]}[] {
+  try {
+    if (typeof localStorage === 'undefined') return []
+    const data: unknown = JSON.parse(localStorage.getItem('customers') || '[]')
+    if (!Array.isArray(data)) return []
+    return data.filter(item => typeof item?.name === 'string' && item.name.trim())
+  } catch { return [] }
+}
+
+export function matchCustomerAlias(raw: string, customers = loadVoiceCustomers()): {name?: string; ambiguous: boolean} {
+  const key = normalizeCustomerAlias(raw)
+  if (!key) return {ambiguous:false}
+  const matches = customers.filter(item => normalizeCustomerAlias(item.name) === key ||
+    (Array.isArray(item.voiceAliases) && item.voiceAliases.some(alias => typeof alias === 'string' && normalizeCustomerAlias(alias) === key)))
+  const names = [...new Set(matches.map(item => item.name))]
+  return names.length === 1 ? {name:names[0], ambiguous:false} : {ambiguous:names.length > 1}
+}
+
 function loadKnownCustomerNames(): string[] {
   try {
     if (typeof localStorage === 'undefined') return []
@@ -277,6 +304,9 @@ export function resolveKnownCustomerName(input: string): string | undefined {
   )
   if (!candidate) return undefined
 
+  const learned = matchCustomerAlias(candidate)
+  if (learned.ambiguous) return undefined
+  if (learned.name) return learned.name
   const exact = names.find((name) => normalizeText(name) === candidate)
   if (exact) return exact
 
@@ -298,7 +328,9 @@ export function scoreCustomerTranscript(input: string): number {
   const hasAction = /进货|入货|补货|采购|买入|收货|出货|卖给|销售|出售|卖出|售出/.test(normalized)
   const hasQuery = /库存|利润|收入|欠款|欠多少|交易|记录/.test(normalized)
   const shortcut = parseTakeSale(input)
-  return (exactCustomer ? 100 : resolvedCustomer ? 60 : 0) + (hasAction ? 25 : 0) + (hasQuery ? 10 : 0) + (shortcut && !shortcut.error ? 200 : 0)
+  const spokenName = /^(.+?)(?:拿|拏)/.exec(input)?.[1]
+  const learned = spokenName ? matchCustomerAlias(spokenName) : {ambiguous:false}
+  return (spokenName && !learned.ambiguous && 'name' in learned && learned.name ? 160 : 0) + (exactCustomer ? 100 : resolvedCustomer ? 60 : 0) + (hasAction ? 25 : 0) + (hasQuery ? 10 : 0) + (shortcut && !shortcut.error ? 200 : 0)
 }
 
 function detectQuery(text: string): InventoryQuery | undefined {
@@ -463,7 +495,7 @@ function shortcutCustomerName(raw: string): string {
   if (/^[零〇一二两三四五六七八九0-9]+$/.test(name)) {
     name = Array.from(name, c => CHINESE_DIGITS[c] === undefined ? c : String(CHINESE_DIGITS[c])).join('')
   }
-  return loadKnownCustomerNames().find(n => n.toLowerCase() === name.toLowerCase()) ?? name
+  return name
 }
 
 function shortcutNumber(raw: string): number | null {
@@ -482,7 +514,9 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   // Preserve customer names before normalizing the transaction portion.
   const match = /^(.+?)(?:拿|拏)(.*)$/.exec(raw)
   if (!match) return undefined
-  const customer = shortcutCustomerName(match[1] ?? '')
+  const spokenCustomer = shortcutCustomerName(match[1] ?? '')
+  const learned = matchCustomerAlias(spokenCustomer)
+  const customer = learned.name ?? spokenCustomer
   const tail = normalizeText(match[2] ?? '')
     .replace(/(\d)点(?=\d)/g,'$1.')
     .replace(/(\d+)[点.]([零〇一二两三四五六七八九]+)/g, (_, whole: string, decimal: string) => whole + '.' + Array.from(decimal, c => CHINESE_DIGITS[c]).join(''))
@@ -490,6 +524,7 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
     .replace(/[，,。；;：:！？!?](?=[收欠转现实])/g, '').replace(/[。！？!?]+$/,'').replace(/\.$/,'')
   const error = (message: string): VoiceCommand => ({type:'sale', shortcut:true, error:message})
   if (!customer) return error('请先说顾客名字，再说拿多少。')
+  if (learned.ambiguous) return error('这段发音对应多个顾客，请检查顾客发音设置后重试。')
   const head = new RegExp('^(半套|' + NUMBER_SOURCE + ')(' + WEIGHT_UNIT_SOURCE + ')?', 'i').exec(tail)
   if (!head) return error('没有听清出货规格，请重新说，例如0764拿100欠30。')
   const number = head[1] === '半套' ? 300 : shortcutNumber(head[1] ?? '')
