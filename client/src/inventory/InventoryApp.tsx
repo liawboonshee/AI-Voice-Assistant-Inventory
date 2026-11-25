@@ -76,7 +76,7 @@ function loadProfitSyncedInventory(records: RecordItem[]) {
 }
 
 function recordTitle(item: RecordItem): string {
-  if (item.type === 'purchase') return '📥 进货'
+  if (item.type === 'purchase') return item.product === 'red_wine' ? '🍷 红酒进货' : '📥 进货'
   if (item.type === 'adjustment') return '🧮 库存修正'
   if (item.type === 'debt') return '🧾 新增欠款'
   if (item.type === 'income') return item.note === '客户还款' ? '💳 客户还款' : '💰 收入'
@@ -195,7 +195,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 4.9.4</h1>
+            <h1>📦 库存宝 AI 4.9.5</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
@@ -258,6 +258,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
             <div className="inventory-stat-card stat-purple">
               <span>当前库存</span>
               <strong>{data.stock.toFixed(2)}G</strong>
+              <small>红酒 {data.redWineStock ?? 0}粒</small>
             </div>
             <div className="inventory-stat-card stat-red">
               <span>欠款总额</span>
