@@ -81,6 +81,7 @@ function recordTitle(item: RecordItem): string {
   if (item.type === 'debt') return '🧾 新增欠款'
   if (item.type === 'income') return item.note === '客户还款' ? '💳 客户还款' : '💰 收入'
   if (item.type === 'expense') return '💸 消费'
+  if (item.product === 'red_wine') return '🍷 红酒出货'
   if (item.weight === 0 && (item.paidAmount || 0) > 0) return '💳 客户还款'
   return '📤 出货'
 }
@@ -142,6 +143,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
   const todayTransfer = todayRecords.reduce((sum, item) => sum + recordTransferAmount(item), 0)
   const todayProfit = todayRecords.reduce((sum, item) => sum + recordProfit(item), 0)
   const totalIncome = records.reduce((sum, item) => sum + recordCashIn(item), 0)
+  const todayRedWine = todayRecords.filter(item => item.type === 'sale' && item.product === 'red_wine').reduce((sum, item) => sum + (item.quantity || 0), 0)
   const todayShipment = todayRecords
     .filter((item) => item.type === 'sale' && item.weight > 0)
     .reduce((sum, item) => sum + item.weight, 0)
@@ -264,6 +266,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
             <div className="inventory-stat-card stat-cyan">
               <span>今日出货</span>
               <strong>{todayShipment.toFixed(2)}G</strong>
+              {todayRedWine > 0 && <small>红酒 {todayRedWine}粒</small>}
             </div>
           </section>
 
@@ -303,8 +306,8 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
                     </span>
                   </div>
                   <div className="inventory-recent-amount">
-                    <strong className={item.type === 'sale' && item.weight > 0 ? 'sale-record-weight' : undefined}>
-                      {item.weight > 0 ? `${item.weight.toFixed(2)}G` : item.note || '收入'}
+                    <strong className={item.type === 'sale' && (item.weight > 0 || item.product === 'red_wine') ? 'sale-record-weight' : undefined}>
+                      {item.product === 'red_wine' ? `${item.quantity || 0}粒` : item.weight > 0 ? `${item.weight.toFixed(2)}G` : item.note || '收入'}
                     </strong>
                     <span className={item.type === 'sale' ? 'sale-record-amount' : undefined}>
                       {formatMoney(Math.abs(item.amount))}
