@@ -118,7 +118,7 @@ export function recordProfit(record: RecordItem): number {
       ? record.profitAmount
       : Math.max(0, record.amount || 0)
   }
-  if ((record.weight || 0) <= 0) return 0
+  if ((record.weight || 0) <= 0 && !(record.product === 'red_wine' && (record.quantity || 0) > 0)) return 0
   if (record.paymentMethod === 'none' || ((record.amount || 0) <= 0 && recordCashIn(record) <= 0)) {
     return 0
   }
