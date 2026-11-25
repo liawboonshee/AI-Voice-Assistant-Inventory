@@ -7,6 +7,8 @@ import { calculatePaymentBreakdown, paymentSummary } from './Payments'
 
 type CustomerData = { name: string; phone?: string; debt: number }
 
+const RED_WINE_UNIT_COST = 8.5
+
 const QUICK_SALES = [
   { price: 50, weight: 0.25 },
   { price: 80, weight: 0.4 },
@@ -50,6 +52,7 @@ export default function Sale() {
   const [customer, setCustomer] = useState('')
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
   const [weight, setWeight] = useState('')
+  const [redWine, setRedWine] = useState(false)
   const [price, setPrice] = useState('')
   const [transfer, setTransfer] = useState('')
   const [debt, setDebt] = useState('')
@@ -62,6 +65,7 @@ export default function Sale() {
     .slice(0, 6)
 
   function selectQuickSale(priceValue: number, weightValue: number) {
+    setRedWine(false)
     setPrice(String(priceValue))
     setWeight(String(weightValue))
     setSelectedPresetPrice(priceValue)
@@ -69,13 +73,22 @@ export default function Sale() {
   }
 
   const addSale = () => {
-    const w = round(Number(weight))
-    if (!Number.isFinite(w) || w < 0.01) {
+    const quantity = redWine ? Number(weight) : 0
+    if (redWine && (!Number.isSafeInteger(quantity) || quantity < 1 || !Number.isFinite(quantity * RED_WINE_UNIT_COST))) {
+      setMessage('请输入红酒粒数（正整数）')
+      return
+    }
+    const w = redWine ? 0 : round(Number(weight))
+    if (!redWine && (!Number.isFinite(w) || w < 0.01)) {
       setMessage('请输入至少0.01G的重量；售价可以留空')
       return
     }
 
     const totalValue = price.trim() === '' ? undefined : Number(price)
+    if (redWine && (totalValue === undefined || !Number.isFinite(totalValue) || totalValue <= 0)) {
+      setMessage('请填写红酒总售价')
+      return
+    }
     const transferValue = transfer.trim() === '' ? undefined : Number(transfer)
     const debtValue = debt.trim() === '' ? undefined : Number(debt)
     let saleTransferValue = transferValue
@@ -114,7 +127,7 @@ export default function Sale() {
     }
 
     const data = loadInventory()
-    if (data.stock < w) {
+    if (!redWine && data.stock < w) {
       setMessage(`库存不足，目前只有${data.stock.toFixed(2)}G`)
       return
     }
@@ -138,24 +151,26 @@ export default function Sale() {
     }
 
     const inventoryBeforeSale = { ...data }
-    const batchResult = consumeInventoryBatches(data, w)
-    if (!batchResult) {
+    const batchResult = redWine ? null : consumeInventoryBatches(data, w)
+    if (!redWine && !batchResult) {
       setMessage('批次库存不足，请先到库存页面盘点修正')
       return
     }
-    const saleCost = batchResult.saleCost
+    const saleCost = redWine ? round(quantity * RED_WINE_UNIT_COST) : batchResult!.saleCost
     const hasAmount = payment.total > 0
     // 欠款暂不计利润；只按实际收到的现金与转账确认利润。
     const profitAmount = hasAmount ? round(payment.paidAmount - saleCost) : 0
 
-    data.stock = batchResult.stockAfter
-    data.totalWeightCost = batchResult.costAfter
+    if (batchResult) {
+      data.stock = batchResult.stockAfter
+      data.totalWeightCost = batchResult.costAfter
+    }
     data.income = round(data.income + payment.paidAmount + oldDebtPayment)
     data.profit = round(data.profit + profitAmount + oldDebtPayment)
     saveInventory(data)
 
     const date = currentRecordDate()
-    const lotCycleId = recordLotCycleSale(inventoryBeforeSale, {
+    const lotCycleId = redWine ? undefined : recordLotCycleSale(inventoryBeforeSale, {
       date,
       weight: w,
       amount: payment.total,
@@ -184,7 +199,8 @@ export default function Sale() {
       costAmount: saleCost,
       profitAmount,
       paymentMethod: payment.paymentMethod,
-      batchAllocations: batchResult.allocations,
+      batchAllocations: batchResult?.allocations,
+      ...(redWine ? { product: 'red_wine' as const, quantity, unitCost: RED_WINE_UNIT_COST } : {}),
       lotCycleId,
       stockAfter: data.stock,
     })
@@ -205,6 +221,7 @@ export default function Sale() {
     }
 
     setCustomer('')
+    setRedWine(false)
     setWeight('')
     setPrice('')
     setTransfer('')
@@ -214,7 +231,7 @@ export default function Sale() {
       hasAmount
         ? `✅ 出货成功：${paymentSummary(payment)}${
           oldDebtPayment > 0 ? `；多余转账RM${oldDebtPayment.toFixed(2)}已扣旧账` : ''
-        }；本批成本RM${saleCost.toFixed(2)}，单笔利润RM${profitAmount.toFixed(2)}`
+        }；${redWine ? `红酒${quantity}粒，本金` : '本批成本'}RM${saleCost.toFixed(2)}，单笔利润RM${profitAmount.toFixed(2)}`
         : '✅ 出货成功，未填写金额，已扣除库存',
     )
   }
@@ -266,11 +283,11 @@ export default function Sale() {
       </div>
       <div className="inventory-sale-fields-grid">
         <label className="inventory-sale-unit-field inventory-sale-weight-field">
-          <input aria-label="重量（G）" value={weight} onChange={(event) => {
+          <input aria-label={redWine ? "红酒粒数" : "重量（G）"} value={weight} onChange={(event) => {
             setWeight(event.target.value)
             setSelectedPresetPrice(null)
-          }} placeholder="重量（G）" type="number" step="0.01" />
-          <strong>G</strong>
+          }} placeholder={redWine ? "粒数" : "重量（G）"} type="number" min={redWine ? 1 : 0.01} step={redWine ? 1 : 0.01} />
+          <strong>{redWine ? "粒" : "G"}</strong>
         </label>
         <label className="inventory-sale-unit-field inventory-sale-price-field">
           <input aria-label="总售价（RM）" value={price} onChange={(event) => {
@@ -302,7 +319,19 @@ export default function Sale() {
             <span>{item.weight.toFixed(2)}G</span>
           </button>
         ))}
+        <button type="button" aria-pressed={redWine} className={`inventory-sale-preset-button${redWine ? ' active' : ''}`} onClick={() => {
+          setRedWine(true)
+          setWeight('1')
+          setPrice('')
+          setTransfer('')
+          setDebt('')
+          setSelectedPresetPrice(null)
+          setMessage('')
+        }}>
+          <strong>🍷 红酒</strong><span>本金 RM8.50 / 粒</span>
+        </button>
       </div>
+      {redWine && <p>红酒本金：RM{(Math.max(0, Number(weight) || 0) * RED_WINE_UNIT_COST).toFixed(2)}（不扣 G 库存）</p>}
       <button className="inventory-save-sale-button" type="button" onClick={addSale}>✅ 保存出货</button>
       {message && <p>{message}</p>}
     </div>
