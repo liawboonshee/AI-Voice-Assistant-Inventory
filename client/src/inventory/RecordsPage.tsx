@@ -107,7 +107,7 @@ export default function RecordsPage() {
 
   function removeSale(originalIndex: number, item: RecordItem) {
     const confirmed = window.confirm(
-      `确定删除这笔旧出货吗？\n${item.customer || '未填写顾客'} · ${item.product === 'red_wine' ? `红酒 ${item.quantity || 0}粒` : `${item.weight.toFixed(2)}G`} · RM${item.amount.toFixed(2)}\n\n删除后${item.product === 'red_wine' ? '不改变G库存' : '会回补库存'}，并撤销这笔收入、利润和欠款。`,
+      `确定删除这笔旧出货吗？\n${item.customer || '未填写顾客'} · ${item.product === 'red_wine' ? `红酒 ${item.quantity || 0}粒` : `${item.weight.toFixed(2)}G`} · RM${item.amount.toFixed(2)}\n\n删除后${item.product === 'red_wine' ? (item.redWineStockAfter !== undefined ? '会回补红酒库存，不改变G库存' : '不改变G库存') : '会回补库存'}，并撤销这笔收入、利润和欠款。`,
     )
     if (!confirmed) return
     setMessage(deleteSaleAndRestore(originalIndex))
