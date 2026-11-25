@@ -154,7 +154,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
   const startInventoryVoice = async () => {
     if (isListening) return
     setIsListening(true)
-    setVoiceText('正在聆听，请说话…')
+    setVoiceText('正在聆听，例如：0764拿100欠30')
 
     try {
       await getVoiceAdapter().start({
@@ -195,7 +195,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 4.9.3</h1>
+            <h1>📦 库存宝 AI 4.9.4</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
