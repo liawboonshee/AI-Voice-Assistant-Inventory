@@ -69,7 +69,8 @@ export default function Stock() {
       <h1>📦 库存详情</h1>
       <section className="inventory-stock-summary">
         <p>剩余库存：<strong>{data.stock.toFixed(2)}G</strong></p>
-        <p>库存本金：<strong>RM{data.totalWeightCost.toFixed(2)}</strong></p>
+        <p>红酒剩余：<strong>{data.redWineStock ?? 0}粒</strong></p>
+        <p>库存本金（G）：<strong>RM{data.totalWeightCost.toFixed(2)}</strong></p>
         <p>平均成本：<strong>RM{avgCost.toFixed(2)}/G</strong></p>
         <p>累计进货成本：<strong>RM{data.cost.toFixed(2)}</strong></p>
         <p>收入：<strong>RM{data.income.toFixed(2)}</strong></p>
