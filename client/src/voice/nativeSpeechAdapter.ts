@@ -121,7 +121,7 @@ export function createNativeSpeechAdapter(): VoiceAdapter {
         prompt: '请说话…',
       })
 
-      const text = pickBestTranscript(result.matches)
+      const text = nextHandlers.rawTranscript ? (result.matches ?? []).find(item => item.trim())?.trim() ?? '' : pickBestTranscript(result.matches)
       if (!text) {
         nextHandlers.onError('未识别到语音，请靠近麦克风清晰说话后重试')
         return
@@ -143,11 +143,10 @@ export function createNativeSpeechAdapter(): VoiceAdapter {
    * Source: Cap-go/capacitor-speech-recognition PR #2 — stop/destroy 间隔避免竞态
    */
   const startAndroidInline = async (nextHandlers: VoiceListenHandlers) => {
+    await cleanupInlineRecognizer()
     handlers = nextHandlers
     latestPartial = ''
     finalized = false
-
-    await cleanupInlineRecognizer()
     await delay(INLINE_RESTART_DELAY_MS)
 
     partialHandle = await SpeechRecognition.addListener('partialResults', (event) => {
@@ -180,11 +179,10 @@ export function createNativeSpeechAdapter(): VoiceAdapter {
 
   /** iOS：内联 partialResults */
   const startIosInline = async (nextHandlers: VoiceListenHandlers) => {
+    await cleanupInlineRecognizer()
     handlers = nextHandlers
     latestPartial = ''
     finalized = false
-
-    await cleanupInlineRecognizer()
 
     partialHandle = await SpeechRecognition.addListener('partialResults', (event) => {
       const text = event.matches?.[0] ?? ''
