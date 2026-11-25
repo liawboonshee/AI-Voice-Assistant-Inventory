@@ -466,19 +466,32 @@ function shortcutCustomerName(raw: string): string {
   return loadKnownCustomerNames().find(n => n.toLowerCase() === name.toLowerCase()) ?? name
 }
 
+function shortcutNumber(raw: string): number | null {
+  // Colloquial Mandarin: 一百五 = 150, 六百五 = 650; explicit 零 keeps its meaning.
+  const short = /^([一二两三四五六七八九])([百千])([一二两三四五六七八九])$/.exec(raw)
+  if (short) {
+    const scale = short[2] === '百' ? 100 : 1000
+    return CHINESE_DIGITS[short[1] ?? '']! * scale + CHINESE_DIGITS[short[3] ?? '']! * scale / 10
+  }
+  return parseSpokenNumber(raw)
+}
+
 function parseTakeSale(input: string): VoiceCommand | undefined {
   const raw = input.replace(/[０-９]/g, digit => String.fromCharCode(digit.charCodeAt(0)-65248))
-    .replace(/．/g,'.').replace(/点(?=\d)/g,'.').trim()
+    .replace(/．/g,'.').trim()
   // Preserve customer names before normalizing the transaction portion.
   const match = /^(.+?)(?:拿|拏)(.*)$/.exec(raw)
   if (!match) return undefined
   const customer = shortcutCustomerName(match[1] ?? '')
-  const tail = normalizeText(match[2] ?? '').replace(/[，,。；;：:！？!?]/g, '')
+  const tail = normalizeText(match[2] ?? '')
+    .replace(/(\d+)[点.]([零〇一二两三四五六七八九]+)/g, (_, whole: string, decimal: string) => whole + '.' + Array.from(decimal, c => CHINESE_DIGITS[c]).join(''))
+    .replace(/([零〇一二两三四五六七八九十百千万]+)[点.](\d+)/g, (_, whole: string, decimal: string) => String(parseChineseInteger(whole)) + '.' + decimal)
+    .replace(/[，,。；;：:！？!?]/g, '').replace(/\.$/,'')
   const error = (message: string): VoiceCommand => ({type:'sale', shortcut:true, error:message})
   if (!customer) return error('请先说顾客名字，再说拿多少。')
   const head = new RegExp('^(半套|' + NUMBER_SOURCE + ')(' + WEIGHT_UNIT_SOURCE + ')?', 'i').exec(tail)
   if (!head) return error('没有听清出货规格，请重新说，例如0764拿100欠30。')
-  const number = head[1] === '半套' ? 300 : parseSpokenNumber(head[1] ?? '')
+  const number = head[1] === '半套' ? 300 : shortcutNumber(head[1] ?? '')
   if (number === null || !Number.isFinite(number) || number <= 0) return error('出货规格无效，请重新说。')
   const unit = head[2]
   const preset = !unit ? QUICK_VOICE_WEIGHTS[number] : undefined
@@ -491,7 +504,7 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   while (rest) {
     const p = pattern.exec(rest)
     if (!p) return error('收款或欠款没有听清，请重新说完整出货口令。')
-    const value = parseSpokenNumber(p[2] ?? '')
+    const value = shortcutNumber(p[2] ?? '')
     if (value === null || !Number.isFinite(value) || value < 0) return error('金额无效，请重新说。')
     const field = /^欠/.test(p[1] ?? '') ? 'debtAmount' : /^转/.test(p[1] ?? '') ? 'transferAmount' : 'cashAmount'
     if (result[field] !== undefined) return error('同一收款项目重复，请重新说。')
