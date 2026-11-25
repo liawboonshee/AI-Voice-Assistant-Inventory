@@ -1,3 +1,5 @@
+import { parseVoiceCommand } from '../src/inventory/VoiceCommand.ts'
+import { calculatePaymentBreakdown } from '../src/inventory/Payments.ts'
 import { recordProfit, recordCashIn } from '../src/inventory/Analytics.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -156,4 +158,42 @@ test('red wine sale profit and quantity survive backup without gram stock change
   const parsed = parseBackup(JSON.stringify(backup));
   assert.deepEqual(JSON.parse(parsed.records), [record]);
   assert.equal(JSON.parse(parsed.inventory).stock, 12.34);
+});
+
+
+test('voice take shortcut keeps customer IDs, weights, cash and debt correct', () => {
+  const samples = [
+    ['0764拿100欠30','0764',0.55,100,70,30],
+    ['8829拿150欠50','8829',1,150,100,50],
+    ['铁山朋友拿100','铁山朋友',0.55,100,100,0],
+    ['uk拿6.25收650','uk',6.25,650,650,0],
+    ['小明拿半套','小明',2.5,300,300,0],
+    ['零七六四拿一百欠三十','0764',0.55,100,70,30],
+    ['8829拿一百五欠五十','8829',1,150,100,50],
+    ['uk拿六点二五收六百五','uk',6.25,650,650,0],
+    ['uk拿6点25收650','uk',6.25,650,650,0],
+    ['阿明拿50','阿明',0.25,50,50,0],
+    ['阿明拿80','阿明',0.4,80,80,0],
+    ['阿明拿300','阿明',2.5,300,300,0],
+    ['阿明拿100收70欠30','阿明',0.55,100,70,30],
+    ['阿明拿100克收650','阿明',100,650,650,0],
+    ['阿明拿100收70','阿明',0.55,100,70,30],
+    ['0764拿100，欠30。','0764',0.55,100,70,30],
+  ];
+  for (const [utterance,customer,weight,total,cash,debt] of samples) {
+    const cmd = parseVoiceCommand(utterance);
+    assert.equal(cmd.error,undefined,utterance);
+    assert.equal(cmd.type,'sale',utterance);
+    assert.equal(cmd.customer,customer,utterance);
+    assert.equal(cmd.weight,weight,utterance);
+    const payment = calculatePaymentBreakdown({total:cmd.amount,cashAmount:cmd.cashAmount,transferAmount:cmd.transferAmount,debtAmount:cmd.debtAmount});
+    assert.equal(payment.total,total,utterance);
+    assert.equal(payment.cashAmount,cash,utterance);
+    assert.equal(payment.debtAmount,debt,utterance);
+  }
+  assert.equal(parseVoiceCommand('uk拿6.25').amount,undefined);
+  for (const input of ['0764拿100欠130','0764拿100欠','0764拿100收80欠30','0764拿100 30']) {
+    assert.ok(parseVoiceCommand(input).error,input);
+  }
+  assert.equal(parseVoiceCommand('进货125克4500').type,'purchase');
 });
