@@ -1,4 +1,4 @@
-import { parseVoiceCommand } from '../src/inventory/VoiceCommand.ts'
+import { parseVoiceCommand, matchCustomerAlias, scoreCustomerTranscript } from '../src/inventory/VoiceCommand.ts'
 import { calculatePaymentBreakdown } from '../src/inventory/Payments.ts'
 import { recordProfit, recordCashIn } from '../src/inventory/Analytics.ts'
 import assert from 'node:assert/strict'
@@ -209,4 +209,32 @@ test('red wine inventory and purchase survive backup', () => {
   assert.equal(JSON.parse(parsed.inventory).stock,data.stock);
   assert.deepEqual(JSON.parse(parsed.records),[purchase]);
   assert.throws(() => parseBackup(JSON.stringify({...backup,inventory:JSON.stringify({...data,redWineStock:-1})})));
+});
+
+
+test('customer pronunciation aliases map to the confirmed name, preserve IDs and reject conflicts', () => {
+  const list = [{name:'0764',voiceAliases:['零七六四','零七六死']},{name:'铁山朋友',voiceAliases:['铁三朋友']},{name:'uk',voiceAliases:['优凯']}];
+  assert.equal(matchCustomerAlias('零七六四',list).name,'0764');
+  assert.equal(matchCustomerAlias('铁三朋友',list).name,'铁山朋友');
+  assert.equal(matchCustomerAlias('优凯',list).name,'uk');
+  assert.equal(matchCustomerAlias('0765',list).name,undefined);
+  assert.equal(matchCustomerAlias('优凯',[...list,{name:'优凯'}]).ambiguous,true);
+  const old = Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:new MemoryStorage({customers:JSON.stringify(list)})});
+  try {
+    const sale = parseVoiceCommand('铁三朋友拿100欠30');
+    assert.equal(sale.customer,'铁山朋友');
+    assert.equal(sale.cashAmount,70);
+    assert.equal(sale.weight,0.55);
+    assert.equal(parseVoiceCommand('零七六死拿150').customer,'0764');
+    assert.equal(parseVoiceCommand('优凯拿6.25收650').customer,'uk');
+    assert.ok(scoreCustomerTranscript('优凯拿100') > scoreCustomerTranscript('优开拿100'));
+    globalThis.localStorage.setItem('customers',JSON.stringify([...list,{name:'优凯'}]));
+    assert.ok(parseVoiceCommand('优凯拿100').error);
+    const source = new MemoryStorage({...original,customers:JSON.stringify(list)});
+    assert.deepEqual(JSON.parse(parseBackup(JSON.stringify(createBackup(source))).customers),list);
+  } finally {
+    if(old) Object.defineProperty(globalThis,'localStorage',old);
+    else delete globalThis.localStorage;
+  }
 });
