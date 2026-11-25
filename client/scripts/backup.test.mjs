@@ -197,3 +197,16 @@ test('voice take shortcut keeps customer IDs, weights, cash and debt correct', (
   }
   assert.equal(parseVoiceCommand('进货125克4500').type,'purchase');
 });
+
+
+test('red wine inventory and purchase survive backup', () => {
+  const data = {...JSON.parse(original.inventory_data), redWineStock:20};
+  const purchase = {type:'purchase',product:'red_wine',quantity:20,weight:0,amount:170,costAmount:170,unitCost:8.5,redWineStockAfter:20,date:'2026-11-25T00:00:00Z'};
+  const source = new MemoryStorage({...original, inventory_data:JSON.stringify(data), inventory_records:JSON.stringify([purchase])});
+  const backup = createBackup(source);
+  const parsed = parseBackup(JSON.stringify(backup));
+  assert.equal(JSON.parse(parsed.inventory).redWineStock,20);
+  assert.equal(JSON.parse(parsed.inventory).stock,data.stock);
+  assert.deepEqual(JSON.parse(parsed.records),[purchase]);
+  assert.throws(() => parseBackup(JSON.stringify({...backup,inventory:JSON.stringify({...data,redWineStock:-1})})));
+});
