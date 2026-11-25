@@ -296,8 +296,9 @@ export function resolveKnownCustomerName(input: string): string | undefined {
   if (names.length === 0) return undefined
 
   const normalizedInput = normalizeText(input)
-  const embedded = names.find((name) => normalizedInput.includes(normalizeText(name)))
-  if (embedded) return embedded
+  const direct = matchCustomerAlias(input)
+  if (direct.ambiguous) return undefined
+  if (direct.name) return direct.name
 
   const candidate = cleanCustomerCandidate(
     extractCustomer(normalizedInput) ?? extractDebtQueryCustomer(normalizedInput) ?? normalizedInput,
@@ -307,6 +308,8 @@ export function resolveKnownCustomerName(input: string): string | undefined {
   const learned = matchCustomerAlias(candidate)
   if (learned.ambiguous) return undefined
   if (learned.name) return learned.name
+  const embedded = names.find((name) => normalizedInput.includes(normalizeText(name)))
+  if (embedded) return embedded
   const exact = names.find((name) => normalizeText(name) === candidate)
   if (exact) return exact
 
@@ -329,8 +332,9 @@ export function scoreCustomerTranscript(input: string): number {
   const hasQuery = /库存|利润|收入|欠款|欠多少|交易|记录/.test(normalized)
   const shortcut = parseTakeSale(input)
   const spokenName = /^(.+?)(?:拿|拏)/.exec(input)?.[1]
-  const learned = spokenName ? matchCustomerAlias(spokenName) : {ambiguous:false}
-  return (spokenName && !learned.ambiguous && 'name' in learned && learned.name ? 160 : 0) + (exactCustomer ? 100 : resolvedCustomer ? 60 : 0) + (hasAction ? 25 : 0) + (hasQuery ? 10 : 0) + (shortcut && !shortcut.error ? 200 : 0)
+  const learned = spokenName ? matchCustomerAlias(spokenName) : {name:undefined, ambiguous:false}
+  if (shortcut) return shortcut.error ? 0 : 200 + (learned.name && !learned.ambiguous ? 160 : 0)
+  return (exactCustomer ? 100 : resolvedCustomer ? 60 : 0) + (hasAction ? 25 : 0) + (hasQuery ? 10 : 0)
 }
 
 function detectQuery(text: string): InventoryQuery | undefined {
