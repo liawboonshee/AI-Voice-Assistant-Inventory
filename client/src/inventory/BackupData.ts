@@ -79,6 +79,7 @@ export function parseBackup(text: string): InventoryBackup {
       if (!isObject(value) ||
           !['stock', 'income', 'profit', 'cost'].every(key =>
             typeof value[key] === 'number' && Number.isFinite(value[key])) ||
+          (value.redWineStock !== undefined && (typeof value.redWineStock !== 'number' || !Number.isSafeInteger(value.redWineStock) || value.redWineStock < 0)) ||
           (value.totalWeightCost !== undefined &&
             (typeof value.totalWeightCost !== 'number' || !Number.isFinite(value.totalWeightCost)))) {
         throw new Error('备份里的库存数据格式错误')
