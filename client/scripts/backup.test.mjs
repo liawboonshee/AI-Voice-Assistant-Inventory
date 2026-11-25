@@ -1,3 +1,4 @@
+import { recordProfit, recordCashIn } from '../src/inventory/Analytics.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createBackup, parseBackup, restoreBackup, backupSummary } from '../src/inventory/BackupData.ts'
@@ -143,3 +144,16 @@ test('return from native picker resumes the backup page once after unlocking', (
   assert.equal(consumeBackupResume(), false)
   globalThis.sessionStorage = previous
 })
+
+
+test('red wine sale profit and quantity survive backup without gram stock changes', () => {
+  const record = {type:'sale', product:'red_wine', quantity:2, weight:0, date:'2026-11-25T00:00:00Z', amount:30, costAmount:17, cashAmount:20, transferAmount:0, debtAmount:10, paidAmount:20, profitAmount:3};
+  assert.equal(recordProfit(record), 3);
+  assert.equal(recordCashIn(record), 20);
+  assert.equal(recordProfit({...record, cashAmount:0, paidAmount:0, debtAmount:30}), -17);
+  const source = new MemoryStorage({...original, inventory_records:JSON.stringify([record])});
+  const backup = createBackup(source);
+  const parsed = parseBackup(JSON.stringify(backup));
+  assert.deepEqual(JSON.parse(parsed.records), [record]);
+  assert.equal(JSON.parse(parsed.inventory).stock, 12.34);
+});
