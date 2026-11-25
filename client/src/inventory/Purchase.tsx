@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { addInventoryBatch } from './Batches'
 import { beginNewLotCycle } from './LotCycles'
 import { currentRecordDate, saveRecord } from './Records'
-import { loadInventory, saveInventory } from './Storage'
+import { loadInventory, saveInventory, redWineStock, RED_WINE_UNIT_COST } from './Storage'
 
 function round(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100
@@ -13,6 +13,27 @@ export default function Purchase() {
   const [cost, setCost] = useState('')
   const [source, setSource] = useState('')
   const [message, setMessage] = useState('')
+  const [wineQuantity, setWineQuantity] = useState('')
+  const [wineSource, setWineSource] = useState('')
+  const [wineMessage, setWineMessage] = useState('')
+
+  function addWinePurchase() {
+    const quantity = Number(wineQuantity)
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      setWineMessage('请输入正确的红酒进货粒数')
+      return
+    }
+    const data = loadInventory()
+    const next = redWineStock(data) + quantity
+    if (!Number.isSafeInteger(next)) { setWineMessage('粒数过大，请重新输入'); return }
+    const total = round(quantity * RED_WINE_UNIT_COST)
+    data.redWineStock = next
+    saveInventory(data)
+    saveRecord({ type: 'purchase', product: 'red_wine', quantity, date: currentRecordDate(), source: wineSource.trim() || '未填写', weight: 0, amount: total, costAmount: total, unitCost: RED_WINE_UNIT_COST, profitAmount: 0, redWineStockAfter: next })
+    setWineQuantity('')
+    setWineSource('')
+    setWineMessage(`✅ 红酒进货${quantity}粒，总本金RM${total.toFixed(2)}，剩余${next}粒`)
+  }
 
   const addPurchase = () => {
     const w = round(Number(weight))
@@ -78,6 +99,16 @@ export default function Purchase() {
       <button type="button" onClick={addPurchase}>保存进货</button>
       <small>每次进货都会封存上一批，并开启新的批次包；上一批结余库存和本金会带入本批。</small>
       {message && <p>{message}</p>}
+      <hr />
+      <section>
+        <h2>🍷 红酒进货</h2>
+        <p>现有库存：{redWineStock(loadInventory())}粒</p>
+        <input aria-label="红酒供应来源" value={wineSource} onChange={event => setWineSource(event.target.value)} placeholder="供应来源（可选）" />
+        <input aria-label="红酒进货粒数" value={wineQuantity} onChange={event => setWineQuantity(event.target.value)} placeholder="进货粒数" type="number" min="1" step="1" />
+        {wineQuantity.trim() && Number.isSafeInteger(Number(wineQuantity)) && Number(wineQuantity) > 0 && <p>进货总本金：RM{(Number(wineQuantity) * RED_WINE_UNIT_COST).toFixed(2)}</p>}
+        <button type="button" onClick={addWinePurchase}>保存红酒进货</button>
+        {wineMessage && <p>{wineMessage}</p>}
+      </section>
     </div>
   )
 }
