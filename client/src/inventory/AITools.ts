@@ -36,7 +36,14 @@ function mergeFollowUp(command: VoiceCommand, text: string): VoiceCommand {
   if (number === null) return next
 
   if (missing === 'weight') next.weight = number
-  if (missing === 'amount') next.amount = number
+  if (missing === 'amount') {
+    next.amount = number
+    if (next.shortcut) {
+      if (/欠/.test(text)) next.debtAmount = number
+      else if (/转账|转帐/.test(text)) next.transferAmount = number
+      else next.cashAmount = number
+    }
+  }
   return next
 }
 
@@ -51,6 +58,11 @@ export function runInventoryTool(input: string): string | null {
   }
 
   const command = parseVoiceCommand(text)
+
+  if (command.error) {
+    pendingCommand = null
+    return command.error
+  }
 
   if (command.type === 'query') {
     pendingCommand = null
