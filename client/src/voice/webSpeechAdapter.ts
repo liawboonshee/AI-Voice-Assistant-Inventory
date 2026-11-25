@@ -306,7 +306,7 @@ sendTimer=setTimeout(()=>{
 
 
 const result=
-fixVoiceText(finalText.trim())
+handlers?.rawTranscript ? finalText.trim() : fixVoiceText(finalText.trim())
 
 
 
