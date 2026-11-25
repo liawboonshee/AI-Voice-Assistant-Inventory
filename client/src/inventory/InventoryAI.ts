@@ -25,6 +25,7 @@ function sum(records: RecordItem[], field: 'weight' | 'amount'): number {
 function describeLastRecord(record: RecordItem | undefined): string {
   if (!record) return '目前还没有交易记录。'
 
+  if (record.type === 'purchase' && record.product === 'red_wine') return `最近一笔红酒进货${record.quantity || 0}粒，成本${record.amount.toFixed(2)}。`
   if (record.type === 'purchase') {
     return `最近一笔是进货：${record.weight.toFixed(2)}克，成本${record.amount.toFixed(2)}，时间${record.date}。`
   }
@@ -69,7 +70,7 @@ export function askInventory(input: string): string | null {
     const avgCost = data.stock > 0 ? data.totalWeightCost / data.stock : 0
     const active = getActiveLotCycle(data)
     const batchText = active ? `，当前是第${active.sequence}批` : ''
-    return `目前库存${data.stock.toFixed(2)}克${batchText}，库存本金${data.totalWeightCost.toFixed(2)}，平均成本${avgCost.toFixed(2)}每克。`
+    return `目前库存${data.stock.toFixed(2)}克，红酒${data.redWineStock ?? 0}粒${batchText}，库存本金${data.totalWeightCost.toFixed(2)}，平均成本${avgCost.toFixed(2)}每克。`
   }
 
   if (command.query === 'income') {
