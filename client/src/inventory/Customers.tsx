@@ -201,14 +201,14 @@ export default function Customers() {
 
       {visibleCustomers.map(({ item, index }) => {
         const purchaseHistory = records.filter(
-          (record) => record.type === 'sale' && record.customer === item.name && record.weight > 0,
+          (record) => record.type === 'sale' && record.customer === item.name && (record.weight > 0 || record.product === 'red_wine'),
         )
         const repaymentHistory = records.filter(
           (record) => record.type === 'income' && record.note === '客户还款' && record.customer === item.name,
         )
         const history = records.filter(
           (record) => record.customer === item.name && (
-            (record.type === 'sale' && record.weight > 0) ||
+            (record.type === 'sale' && (record.weight > 0 || record.product === 'red_wine')) ||
             (record.type === 'income' && record.note === '客户还款')
           ),
         )
@@ -216,6 +216,7 @@ export default function Customers() {
         const historyLimit = historyLimits[item.name] || 8
         const visibleHistory = newestHistory.slice(0, historyLimit)
         const totalWeight = purchaseHistory.reduce((sum, record) => sum + record.weight, 0)
+        const totalRedWine = purchaseHistory.filter(record => record.product === 'red_wine').reduce((sum, record) => sum + (record.quantity || 0), 0)
         const totalSpend = purchaseHistory.reduce((sum, record) => sum + record.amount, 0)
         const salePaid = purchaseHistory.reduce(
           (sum, record) => sum + (record.paidAmount ?? Math.max(0, record.amount - (record.debtAmount || 0))),
@@ -258,7 +259,7 @@ export default function Customers() {
                 </div>
               )}
               <div className="customer-summary-grid">
-                <span><small>购买</small>{totalWeight.toFixed(2)}G</span>
+                <span><small>购买</small>{totalWeight.toFixed(2)}G{totalRedWine > 0 ? ` · 红酒${totalRedWine}粒` : ''}</span>
                 <span><small>消费</small>RM{totalSpend.toFixed(2)}</span>
                 <span><small>已付</small>RM{totalPaid.toFixed(2)}</span>
                 <strong><small>欠款</small>RM{item.debt.toFixed(2)}</strong>
@@ -301,7 +302,7 @@ export default function Customers() {
                             <span className="customer-history-main">
                               {isRepayment
                                 ? `💳 还款 RM${record.amount.toFixed(2)}`
-                                : `${record.weight.toFixed(2)}G · RM${record.amount.toFixed(2)}`}
+                                : `${record.product === 'red_wine' ? `红酒 ${record.quantity || 0}粒` : `${record.weight.toFixed(2)}G`} · RM${record.amount.toFixed(2)}`}
                             </span>
                             {!isRepayment && (
                               <small className="customer-history-status">
