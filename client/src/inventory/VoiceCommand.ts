@@ -484,9 +484,10 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   if (!match) return undefined
   const customer = shortcutCustomerName(match[1] ?? '')
   const tail = normalizeText(match[2] ?? '')
+    .replace(/(\d)点(?=\d)/g,'$1.')
     .replace(/(\d+)[点.]([零〇一二两三四五六七八九]+)/g, (_, whole: string, decimal: string) => whole + '.' + Array.from(decimal, c => CHINESE_DIGITS[c]).join(''))
     .replace(/([零〇一二两三四五六七八九十百千万]+)[点.](\d+)/g, (_, whole: string, decimal: string) => String(parseChineseInteger(whole)) + '.' + decimal)
-    .replace(/[，,。；;：:！？!?]/g, '').replace(/\.$/,'')
+    .replace(/[，,。；;：:！？!?](?=[收欠转现实])/g, '').replace(/[。！？!?]+$/,'').replace(/\.$/,'')
   const error = (message: string): VoiceCommand => ({type:'sale', shortcut:true, error:message})
   if (!customer) return error('请先说顾客名字，再说拿多少。')
   const head = new RegExp('^(半套|' + NUMBER_SOURCE + ')(' + WEIGHT_UNIT_SOURCE + ')?', 'i').exec(tail)
