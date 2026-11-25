@@ -1,7 +1,7 @@
 import type { PaymentMethod } from './Payments'
 import { restoreInventoryBatchAllocations, type BatchAllocation } from './Batches'
 import { reverseLotCycleSale } from './LotCycles'
-import { loadInventory, saveInventory } from './Storage'
+import { loadInventory, saveInventory, redWineStock } from './Storage'
 
 export type RecordItem = {
 
@@ -20,6 +20,8 @@ export type RecordItem = {
   product?: 'red_wine'
 
   quantity?:number
+
+  redWineStockAfter?:number
 
   amount:number
 
@@ -173,6 +175,8 @@ export function deleteSaleAndRestore(index:number):string{
   )
   inventory.stock=restoredBatches.stockAfter
   inventory.totalWeightCost=restoredBatches.costAfter
+  } else if (item.redWineStockAfter !== undefined) {
+    inventory.redWineStock = redWineStock(inventory) + (item.quantity || 0)
   }
   inventory.income=Math.max(0, round(inventory.income - saleCashIn(item)))
   inventory.profit=round(inventory.profit - profit)
@@ -206,5 +210,5 @@ export function deleteSaleAndRestore(index:number):string{
 
   records.splice(index,1)
   localStorage.setItem(KEY, JSON.stringify(records))
-  return item.product === 'red_wine' ? '✅ 已删除红酒出货，已撤销收入、利润和欠款' : `✅ 已删除旧出货，库存回补${restoredWeight.toFixed(2)}G`
+  return item.product === 'red_wine' ? `✅ 已删除红酒出货${item.redWineStockAfter !== undefined ? '，已回补红酒库存' : ''}，已撤销收入、利润和欠款` : `✅ 已删除旧出货，库存回补${restoredWeight.toFixed(2)}G`
 }
