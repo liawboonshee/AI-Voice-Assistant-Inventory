@@ -19,7 +19,7 @@ function recordLabel(item: RecordItem): string {
   if (item.type === 'debt') return '🧾 新增欠款'
   if (item.type === 'income') return item.note === '客户还款' ? '💳 客户还款' : '💰 收入'
   if (item.type === 'expense') return '💸 消费'
-  return '📤 出货'
+  return item.product === 'red_wine' ? '🍷 红酒出货' : '📤 出货'
 }
 
 function paymentLabel(item: RecordItem): string {
@@ -61,15 +61,16 @@ export default function RecordsPage() {
     const todayCash = todayRecords.reduce((sum, item) => sum + recordCashAmount(item), 0)
     const todayTransfer = todayRecords.reduce((sum, item) => sum + recordTransferAmount(item), 0)
     const todayCost = todayRecords
-      .filter((item) => item.type === 'sale' && item.weight > 0)
+      .filter((item) => item.type === 'sale' && (item.weight > 0 || item.product === 'red_wine'))
       .reduce((sum, item) => sum + (item.costAmount || 0), 0)
     const todayProfit = todayRecords.reduce((sum, item) => sum + recordProfit(item), 0)
     const monthSales = monthRecords
-      .filter((item) => item.type === 'sale' && item.weight > 0)
+      .filter((item) => item.type === 'sale' && (item.weight > 0 || item.product === 'red_wine'))
       .reduce((sum, item) => sum + item.amount, 0)
     const monthShipment = monthRecords
       .filter((item) => item.type === 'sale' && item.weight > 0)
       .reduce((sum, item) => sum + item.weight, 0)
+    const monthRedWine = monthRecords.filter(item => item.type === 'sale' && item.product === 'red_wine').reduce((sum, item) => sum + (item.quantity || 0), 0)
     const monthProfit = monthRecords.reduce((sum, item) => sum + recordProfit(item), 0)
     const cashIn = records.reduce((sum, item) => sum + recordCashIn(item), 0)
     const cashOut = records.reduce((sum, item) => sum + recordCashOut(item), 0)
@@ -84,6 +85,7 @@ export default function RecordsPage() {
       todayProfit,
       monthSales,
       monthShipment,
+      monthRedWine,
       monthProfit,
       cashIn,
       cashOut,
@@ -105,7 +107,7 @@ export default function RecordsPage() {
 
   function removeSale(originalIndex: number, item: RecordItem) {
     const confirmed = window.confirm(
-      `确定删除这笔旧出货吗？\n${item.customer || '未填写顾客'} · ${item.weight.toFixed(2)}G · RM${item.amount.toFixed(2)}\n\n删除后会回补库存，并撤销这笔收入、利润和欠款。`,
+      `确定删除这笔旧出货吗？\n${item.customer || '未填写顾客'} · ${item.product === 'red_wine' ? `红酒 ${item.quantity || 0}粒` : `${item.weight.toFixed(2)}G`} · RM${item.amount.toFixed(2)}\n\n删除后${item.product === 'red_wine' ? '不改变G库存' : '会回补库存'}，并撤销这笔收入、利润和欠款。`,
     )
     if (!confirmed) return
     setMessage(deleteSaleAndRestore(originalIndex))
@@ -125,6 +127,7 @@ export default function RecordsPage() {
         <div><span>本月销售</span><strong>RM{summary.monthSales.toFixed(2)}</strong></div>
         <div><span>本月利润</span><strong>RM{summary.monthProfit.toFixed(2)}</strong></div>
         <div><span>本月出货</span><strong>{summary.monthShipment.toFixed(2)}G</strong></div>
+        <div><span>本月红酒</span><strong>{summary.monthRedWine}粒</strong></div>
         <div><span>总收入</span><strong>RM{summary.cashIn.toFixed(2)}</strong></div>
         <div><span>总消费</span><strong>RM{summary.totalExpense.toFixed(2)}</strong></div>
         <div><span>总利润</span><strong>RM{inventory.profit.toFixed(2)}</strong></div>
@@ -197,6 +200,7 @@ export default function RecordsPage() {
           {item.type !== 'adjustment' && item.weight > 0 && (
             <p>重量：<strong className={item.type === 'sale' ? 'sale-record-weight' : undefined}>{item.weight.toFixed(2)}G</strong></p>
           )}
+          {item.product === 'red_wine' && <p>红酒：<strong className="sale-record-weight">{item.quantity || 0}粒</strong> · 本金 RM{(item.costAmount || 0).toFixed(2)}</p>}
           <p>金额：<strong className={item.type === 'sale' ? 'sale-record-amount' : undefined}>RM{Math.abs(item.amount).toFixed(2)}</strong></p>
           {item.type === 'sale' && <p>收款方式：{paymentLabel(item)}</p>}
           {item.type === 'sale' && (item.cashAmount || 0) > 0 && <p>现金：RM{item.cashAmount?.toFixed(2)}</p>}
@@ -205,7 +209,7 @@ export default function RecordsPage() {
           {item.type === 'purchase' && item.unitCost !== undefined && <p>本批成本：RM{item.unitCost.toFixed(2)}/G</p>}
           {item.averageCostAfter !== undefined && <p>重算平均成本：RM{item.averageCostAfter.toFixed(2)}/G</p>}
           {item.stockAfter !== undefined && <p>完成后库存：{item.stockAfter.toFixed(2)}G</p>}
-          {item.type === 'sale' && item.weight > 0 && <p>单笔利润：RM{recordProfit(item).toFixed(2)}</p>}
+          {item.type === 'sale' && (item.weight > 0 || item.product === 'red_wine') && <p>单笔利润：RM{recordProfit(item).toFixed(2)}</p>}
           {item.note && <p>备注：{item.note}</p>}
         </section>
       ))}
