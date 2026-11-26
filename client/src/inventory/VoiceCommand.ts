@@ -572,6 +572,11 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   parsedWeight = weight
   let suffix = tail.slice((head[0] ?? '').length)
   if (preset !== undefined) suffix = suffix.replace(new RegExp('^(?:' + CURRENCY_WORDS + ')','i'),'')
+  // Accept "1G 160" / "625 650" as explicit cash, but never concatenate the numbers.
+  if (preset === undefined && (oneGram || weight === 6.25)) {
+    const barePrice = new RegExp('^(?:[；;,，])?(' + NUMBER_SOURCE + ')(?:' + CURRENCY_WORDS + ')?$','i').exec(suffix)
+    if (barePrice) suffix = '收' + (barePrice[1] ?? '')
+  }
   paymentSpoken = suffix.length > 0
   const result: VoiceCommand = {type:'sale', shortcut:true, customer, weight, paymentSpoken}
   // Homophones are interpreted only in a known-price shortcut payment suffix.
