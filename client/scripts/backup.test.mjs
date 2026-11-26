@@ -1,4 +1,4 @@
-import { parseVoiceCommand, matchCustomerAlias, scoreCustomerTranscript } from '../src/inventory/VoiceCommand.ts'
+import { parseVoiceCommand, matchCustomerAlias, scoreCustomerTranscript, selectInventoryTranscript } from '../src/inventory/VoiceCommand.ts'
 import { calculatePaymentBreakdown } from '../src/inventory/Payments.ts'
 import { recordProfit, recordCashIn } from '../src/inventory/Analytics.ts'
 import assert from 'node:assert/strict'
@@ -237,4 +237,28 @@ test('customer pronunciation aliases map to the confirmed name, preserve IDs and
     if(old) Object.defineProperty(globalThis,'localStorage',old);
     else delete globalThis.localStorage;
   }
+});
+
+
+test('debt speech homophones and incomplete payment alternatives', () => {
+  for (const text of ['0764拿100欠款30','0764拿100钱30','0764拿100签30','0764拿100千30','0764拿一百千三十','0764拿一百钱三十','0764拿100欠了30','0764拿100还欠30','0764拿100块欠30','0764拿100，欠：30','0764拿100欠钱30','0764拿100欠三十块']) {
+    const command = parseVoiceCommand(text);
+    assert.equal(command.error,undefined,text);
+    assert.equal(command.customer,'0764',text);
+    assert.equal(command.amount,100,text);
+    assert.equal(command.weight,0.55,text);
+    assert.equal(command.cashAmount,70,text);
+    assert.equal(command.debtAmount,30,text);
+  }
+  assert.equal(parseVoiceCommand('0764拿100块钱').cashAmount,100);
+  assert.equal(parseVoiceCommand('0764拿100').cashAmount,100);
+  assert.equal(parseVoiceCommand('0764拿100收100').cashAmount,100);
+  assert.ok(parseVoiceCommand('0764拿100签130').error);
+  assert.ok(parseVoiceCommand('0764拿100欠').error);
+  assert.equal(parseVoiceCommand('0764拿6.25收650').cashAmount,650);
+  assert.equal(selectInventoryTranscript(['0764拿100','0764拿100欠30']).text,'0764拿100欠30');
+  assert.ok(selectInventoryTranscript(['0764拿100','0764拿100欠']).warning);
+  assert.ok(selectInventoryTranscript(['0764拿100欠30','0764拿100欠50']).warning);
+  assert.ok(selectInventoryTranscript(['0764拿100欠30','0764拿100收100']).warning);
+  assert.equal(selectInventoryTranscript(['0764拿100']).text,'0764拿100');
 });
