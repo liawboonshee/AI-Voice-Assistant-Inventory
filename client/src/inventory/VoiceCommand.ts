@@ -57,7 +57,7 @@ const CHINESE_UNITS: Record<string, number> = {
 }
 
 const NUMBER_SOURCE =
-  String.raw`(?:\d+(?:,\d{3})*(?:\.\d+)?|[零〇一二两三四五六七八九十百千万]+(?:点[零〇一二两三四五六七八九]+)?|半)`
+  String.raw`(?:(?:[1-9一二两三四五六七八九]?[百千][1-9](?![\d百千万十点.])|[1-9][百千][一二两三四五六七八九](?![零〇一二两三四五六七八九十百千万点]))|\d+(?:,\d{3})*(?:\.\d+)?|[零〇一二两三四五六七八九十百千万]+(?:点[零〇一二两三四五六七八九]+)?|半)`
 
 const WEIGHT_UNIT_SOURCE = '公斤|千克|kg|斤|公克|克|grams?|gram|g|毫克|mg'
 
@@ -121,10 +121,24 @@ function parseChineseInteger(text: string): number | null {
   return total + section + current
 }
 
+// Malaysian Mandarin commonly omits the initial 一 in 百五 / 千五.
+const VAGUE_AMOUNT = /(?:[一二两三四五六七八九1-9]?[百千](?:几多|几|多|来|余)|(?:\d+|[零〇一二两三四五六七八九十百千万]+)多(?:块|元|马币)?)/
+
+function colloquialNumber(text: string): number | null {
+  const short = /^([1-9一二两三四五六七八九]?)([百千])([1-9一二两三四五六七八九])$/.exec(text)
+  if (!short) return null
+  const digit = (value: string) => CHINESE_DIGITS[value] ?? Number(value)
+  const scale = short[2] === '百' ? 100 : 1000
+  return (short[1] ? digit(short[1]) : 1) * scale + digit(short[3] ?? '') * scale / 10
+}
+
 export function parseSpokenNumber(raw: string): number | null {
   const text = raw.trim().replace(/，/g, ',')
   if (!text) return null
   if (text === '半') return 0.5
+  if (VAGUE_AMOUNT.test(text)) return null
+  const colloquial = colloquialNumber(text)
+  if (colloquial !== null) return colloquial
 
   if (/^\d+(?:,\d{3})*(?:\.\d+)?$/.test(text)) {
     const value = Number(text.replace(/,/g, ''))
@@ -162,7 +176,9 @@ function extractNumberTokens(text: string): NumberToken[] {
 }
 
 export function extractFirstSpokenNumber(text: string): number | null {
-  return extractNumberTokens(normalizeText(text))[0]?.value ?? null
+  const normalized = normalizeText(text)
+  if (VAGUE_AMOUNT.test(normalized)) return null
+  return extractNumberTokens(normalized)[0]?.value ?? null
 }
 
 function convertWeight(value: number, unit: string): number {
@@ -509,12 +525,6 @@ function shortcutCustomerName(raw: string): string {
 }
 
 function shortcutNumber(raw: string): number | null {
-  // Colloquial Mandarin: 一百五 = 150, 六百五 = 650; explicit 零 keeps its meaning.
-  const short = /^([一二两三四五六七八九])([百千])([一二两三四五六七八九])$/.exec(raw)
-  if (short) {
-    const scale = short[2] === '百' ? 100 : 1000
-    return CHINESE_DIGITS[short[1] ?? '']! * scale + CHINESE_DIGITS[short[3] ?? '']! * scale / 10
-  }
   return parseSpokenNumber(raw)
 }
 
@@ -539,6 +549,7 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   const error = (message: string): VoiceCommand => ({type:'sale', shortcut:true, customer, weight:parsedWeight, paymentSpoken, error:message})
   if (!customer) return error('请先说顾客名字，再说拿多少。')
   if (learned.ambiguous) return error('这段发音对应多个顾客，请检查顾客发音设置后重试。')
+  if (VAGUE_AMOUNT.test(tail)) return error('百几或一百多不是明确金额，未记账。请说具体数目，例如百五（一百五十）。')
   // 千 can be an actual numeral. Split only after an exact shortcut denomination.
   const thousandDebt = /^(.+?)千(?=[0-9零〇一二两三四五六七八九十百])/u.exec(tail)
   const beforeThousand = thousandDebt ? shortcutNumber(thousandDebt[1] ?? '') : null
@@ -551,6 +562,9 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   if (number === null || !Number.isFinite(number) || number <= 0) return error('出货规格无效，请重新说。')
   const unit = head[2]
   const preset = !unit ? QUICK_VOICE_WEIGHTS[number] : undefined
+  if (!unit && preset === undefined && colloquialNumber(head[1] ?? '') !== null) {
+    return error('听到金额RM' + number + '，但没有对应快捷规格。请说实际重量和售价。')
+  }
   const weight = preset ?? (unit ? convertWeight(number,unit) : number)
   if (weight < 0.01 || !Number.isFinite(weight)) return error('出货重量至少0.01G。')
   parsedWeight = weight
@@ -632,6 +646,8 @@ export function parseVoiceCommand(input: string): VoiceCommand {
   const isPurchase = /进货|入货|补货|采购|买入|收货/.test(text)
   const isSale = /出货|卖给|卖予|销售|出售|卖出|售出/.test(text)
   const isIncome = /记录收入|现金收入|其他收入|收入|收款/.test(text)
+
+  if ((isPurchase || isSale || isIncome) && VAGUE_AMOUNT.test(text)) return {type: isPurchase ? 'purchase' : isSale ? 'sale' : 'income', error:'金额不明确，未记账，请说具体数字。'}
 
   if (isPurchase) {
     return { type: 'purchase', ...parseActionDetails(text, 'purchase') }
