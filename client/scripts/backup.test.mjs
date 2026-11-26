@@ -1,4 +1,4 @@
-import { parseVoiceCommand, matchCustomerAlias, scoreCustomerTranscript, selectInventoryTranscript } from '../src/inventory/VoiceCommand.ts'
+import { parseVoiceCommand, parseSpokenNumber, extractFirstSpokenNumber, matchCustomerAlias, scoreCustomerTranscript, selectInventoryTranscript } from '../src/inventory/VoiceCommand.ts'
 import { calculatePaymentBreakdown } from '../src/inventory/Payments.ts'
 import { recordProfit, recordCashIn } from '../src/inventory/Analytics.ts'
 import assert from 'node:assert/strict'
@@ -261,4 +261,39 @@ test('debt speech homophones and incomplete payment alternatives', () => {
   assert.ok(selectInventoryTranscript(['0764拿100欠30','0764拿100欠50']).warning);
   assert.ok(selectInventoryTranscript(['0764拿100欠30','0764拿100收100']).warning);
   assert.equal(selectInventoryTranscript(['0764拿100']).text,'0764拿100');
+});
+
+
+test('colloquial Malaysian Mandarin hundreds resolve to tens, not ones', () => {
+  for (const [spoken,expected] of [
+    ['百一',110],['百二',120],['百三',130],['百四',140],['百五',150],
+    ['百六',160],['百七',170],['百八',180],['百九',190],
+    ['一百五',150],['一百五十',150],['百零五',105],['一百零五',105],
+    ['百5',150],['1百5',150],['1百五',150],['六百五',650],
+    ['千五',1500],['一千零五',1005],
+  ]) {
+    assert.equal(parseSpokenNumber(spoken),expected,spoken);
+    assert.equal(extractFirstSpokenNumber(spoken),expected,spoken);
+  }
+  const sale = parseVoiceCommand('8829拿百五欠五十');
+  assert.equal(sale.error,undefined);
+  assert.equal(sale.customer,'8829');
+  assert.equal(sale.weight,1);
+  assert.equal(sale.amount,150);
+  assert.equal(sale.cashAmount,100);
+  assert.equal(sale.debtAmount,50);
+  const mixed = parseVoiceCommand('8829拿300欠百五');
+  assert.equal(mixed.debtAmount,150);
+  assert.equal(mixed.cashAmount,150);
+  const direct = parseVoiceCommand('uk拿6.25收百五');
+  assert.equal(direct.cashAmount,150);
+  assert.equal(direct.amount,150);
+  assert.equal(parseVoiceCommand('百五拿100').customer,'百五');
+  assert.equal(parseVoiceCommand('8829拿百五').cashAmount,150);
+  assert.equal(parseVoiceCommand('8829拿1百5').weight,1);
+  assert.ok(parseVoiceCommand('8829拿百二').error);
+  for (const text of ['8829拿百几','8829拿一百多','8829拿300欠百几','uk拿6.25收一百多','8829拿百五欠百多']) {
+    assert.ok(parseVoiceCommand(text).error,text);
+  }
+  assert.equal(extractFirstSpokenNumber('百几'),null);
 });
