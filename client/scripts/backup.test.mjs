@@ -297,3 +297,38 @@ test('colloquial Malaysian Mandarin hundreds resolve to tens, not ones', () => {
   }
   assert.equal(extractFirstSpokenNumber('百几'),null);
 });
+
+
+test('1G default price, explicit price overrides and 625 weight shorthand', () => {
+  const cases = [
+    ['8829拿1g',1,150,150,0],
+    ['8829拿一克',1,150,150,0],
+    ['8829拿1',1,150,150,0],
+    ['8829拿1G收160',1,160,160,0],
+    ['8829拿1g 160',1,160,160,0],
+    ['8829拿一克收百二',1,120,120,0],
+    ['8829拿1g欠30',1,150,120,30],
+    ['8829拿1g收160欠30',1,190,160,30],
+    ['8829拿150欠30',1,150,120,30],
+    ['uk拿625收650',6.25,650,650,0],
+    ['uk拿625 650',6.25,650,650,0],
+    ['uk拿六二五收650',6.25,650,650,0],
+    ['uk拿六百二十五收650',6.25,650,650,0],
+    ['uk拿6.25收625',6.25,625,625,0],
+    ['625拿100',0.55,100,100,0],
+  ];
+  for (const [text,weight,total,cash,debt] of cases) {
+    const c = parseVoiceCommand(text);
+    assert.equal(c.error,undefined,text);
+    assert.equal(c.weight,weight,text);
+    assert.equal(c.amount,total,text);
+    const p = calculatePaymentBreakdown({total:c.amount,cashAmount:c.cashAmount,transferAmount:c.transferAmount,debtAmount:c.debtAmount});
+    assert.equal(p.cashAmount,cash,text);
+    assert.equal(p.debtAmount,debt,text);
+  }
+  assert.equal(parseVoiceCommand('625拿100').customer,'625');
+  assert.equal(parseVoiceCommand('uk拿625').weight,6.25);
+  assert.equal(parseVoiceCommand('uk拿625').amount,undefined);
+  assert.equal(parseVoiceCommand('uk拿625g收650').weight,625);
+  assert.ok(parseVoiceCommand('8829拿1g欠180').error);
+});
