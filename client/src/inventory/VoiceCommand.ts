@@ -14,6 +14,7 @@ export type VoiceCommand = {
   type: 'sale' | 'purchase' | 'income' | 'query' | null
   query?: InventoryQuery
   shortcut?: boolean
+  paymentSpoken?: boolean
   error?: string
   customer?: string
   weight?: number
@@ -492,6 +493,11 @@ function parseActionDetails(text: string, type: 'sale' | 'purchase'): Omit<Voice
 
 
 const QUICK_VOICE_WEIGHTS: Readonly<Record<number, number>> = {50:0.25,80:0.4,100:0.55,150:1,300:2.5}
+const DEBT_WORDS = '还欠款|还欠|剩下欠|剩欠|欠款|欠账|欠帐|欠钱|欠了|欠|赊账|挂账|未付|没付'
+const DEBT_HOMOPHONES = '钱款|钱|签|千|牵|谦|前|歉|芡|迁|铅|钎'
+const CASH_WORDS = '收现金|现金|现收|实收|收到|收了|收'
+const TRANSFER_WORDS = '转账|转帐'
+const CURRENCY_WORDS = '马币|块钱|块|元|rm'
 
 /** Customer IDs are strings, not amounts. Never fuzzy-match a numeric ID. */
 function shortcutCustomerName(raw: string): string {
@@ -525,11 +531,21 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
     .replace(/(\d)点(?=\d)/g,'$1.')
     .replace(/(\d+)[点.]([零〇一二两三四五六七八九]+)/g, (_, whole: string, decimal: string) => whole + '.' + Array.from(decimal, c => CHINESE_DIGITS[c]).join(''))
     .replace(/([零〇一二两三四五六七八九十百千万]+)[点.](\d+)/g, (_, whole: string, decimal: string) => String(parseChineseInteger(whole)) + '.' + decimal)
-    .replace(/[，,。；;：:！？!?](?=[收欠转现实])/g, '').replace(/[。！？!?]+$/,'').replace(/\.$/,'')
-  const error = (message: string): VoiceCommand => ({type:'sale', shortcut:true, error:message})
+    .replace(/[，,。；;：:！？!?](?=[收欠转现实还剩钱签千牵谦前歉芡迁铅钎赊挂未没])/g, '')
+    .replace(/[：:](?=[0-9零〇一二两三四五六七八九十百千万])/g,'')
+    .replace(/[。！？!?]+$/,'').replace(/\.$/,'')
+  let parsedWeight: number | undefined
+  let paymentSpoken = false
+  const error = (message: string): VoiceCommand => ({type:'sale', shortcut:true, customer, weight:parsedWeight, paymentSpoken, error:message})
   if (!customer) return error('请先说顾客名字，再说拿多少。')
   if (learned.ambiguous) return error('这段发音对应多个顾客，请检查顾客发音设置后重试。')
-  const head = new RegExp('^(半套|' + NUMBER_SOURCE + ')(' + WEIGHT_UNIT_SOURCE + ')?', 'i').exec(tail)
+  // 千 can be an actual numeral. Split only after an exact shortcut denomination.
+  const thousandDebt = /^(.+?)千(?=[0-9零〇一二两三四五六七八九十百])/u.exec(tail)
+  const beforeThousand = thousandDebt ? shortcutNumber(thousandDebt[1] ?? '') : null
+  const shortcutThousand = beforeThousand !== null && QUICK_VOICE_WEIGHTS[beforeThousand] !== undefined
+  const head = shortcutThousand && thousandDebt
+    ? [thousandDebt[1] ?? '', thousandDebt[1] ?? '', undefined]
+    : new RegExp('^(半套|' + NUMBER_SOURCE + ')(' + WEIGHT_UNIT_SOURCE + ')?', 'i').exec(tail)
   if (!head) return error('没有听清出货规格，请重新说，例如0764拿100欠30。')
   const number = head[1] === '半套' ? 300 : shortcutNumber(head[1] ?? '')
   if (number === null || !Number.isFinite(number) || number <= 0) return error('出货规格无效，请重新说。')
@@ -537,16 +553,22 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   const preset = !unit ? QUICK_VOICE_WEIGHTS[number] : undefined
   const weight = preset ?? (unit ? convertWeight(number,unit) : number)
   if (weight < 0.01 || !Number.isFinite(weight)) return error('出货重量至少0.01G。')
-  const result: VoiceCommand = {type:'sale', shortcut:true, customer, weight}
-  const suffix = tail.slice(head[0].length)
-  const pattern = new RegExp('^(收现金|现金|现收|实收|收到|收了|收|欠款|欠|转账|转帐)(' + NUMBER_SOURCE + ')(?:马币|块钱|块|元|rm)?','i')
+  parsedWeight = weight
+  let suffix = tail.slice((head[0] ?? '').length)
+  if (preset !== undefined) suffix = suffix.replace(new RegExp('^(?:' + CURRENCY_WORDS + ')','i'),'')
+  paymentSpoken = suffix.length > 0
+  const result: VoiceCommand = {type:'sale', shortcut:true, customer, weight, paymentSpoken}
+  // Homophones are interpreted only in a known-price shortcut payment suffix.
+  const debtWords = DEBT_WORDS + (preset !== undefined ? '|' + DEBT_HOMOPHONES : '')
+  const pattern = new RegExp('^(' + CASH_WORDS + '|' + debtWords + '|' + TRANSFER_WORDS + ')(' + NUMBER_SOURCE + ')(?:' + CURRENCY_WORDS + ')?','i')
   let rest = suffix
   while (rest) {
     const p = pattern.exec(rest)
-    if (!p) return error('收款或欠款没有听清，请重新说完整出货口令。')
+    if (!p) return error('收款或欠款没有听清，没有记账。请重说，例如0764拿100欠款30。')
     const value = shortcutNumber(p[2] ?? '')
     if (value === null || !Number.isFinite(value) || value < 0) return error('金额无效，请重新说。')
-    const field = /^欠/.test(p[1] ?? '') ? 'debtAmount' : /^转/.test(p[1] ?? '') ? 'transferAmount' : 'cashAmount'
+    const word = p[1] ?? ''
+    const field = new RegExp('^(?:' + debtWords + ')$').test(word) ? 'debtAmount' : /^转/.test(word) ? 'transferAmount' : 'cashAmount'
     if (result[field] !== undefined) return error('同一收款项目重复，请重新说。')
     result[field] = value
     rest = rest.slice(p[0].length)
@@ -566,6 +588,27 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
     result.amount = Math.round((paid + (result.debtAmount ?? 0))*100)/100
   }
   return result
+}
+
+/** Never silently drop a payment suffix when recognition returns several candidates. */
+export function selectInventoryTranscript(matches: string[]): {text:string; warning?:string} {
+  const ranked = matches.map((text,index) => ({
+    text:text.trim(), index, command:parseVoiceCommand(text), score:scoreCustomerTranscript(text),
+  })).filter(item => item.text).sort((a,b) => b.score-a.score || a.index-b.index)
+  const best = ranked[0]
+  if (!best) return {text:''}
+  const cmd = best.command
+  if (!cmd.shortcut || cmd.error) return {text:best.text}
+  const related = ranked.filter(item => item.command.shortcut &&
+    item.command.customer === cmd.customer && item.command.weight === cmd.weight)
+  const paid = related.filter(item => !item.command.error && item.command.paymentSpoken)
+  const breakdowns = new Set(paid.map(item => JSON.stringify([
+    item.command.amount ?? null, item.command.cashAmount ?? 0, item.command.debtAmount ?? 0, item.command.transferAmount ?? 0,
+  ])))
+  if (breakdowns.size > 1 || (paid.length === 0 && related.some(item => item.command.error && item.command.paymentSpoken))) {
+    return {text:best.text, warning:'收款或欠款听得不一致，未记账。请重新说完整口令，例如0764拿100欠款30。'}
+  }
+  return {text:paid[0]?.text ?? best.text}
 }
 
 export function parseVoiceCommand(input: string): VoiceCommand {
