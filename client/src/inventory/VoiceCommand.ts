@@ -565,7 +565,9 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   if (!unit && preset === undefined && colloquialNumber(head[1] ?? '') !== null) {
     return error('听到金额RM' + number + '，但没有对应快捷规格。请说实际重量和售价。')
   }
-  const weight = preset ?? (unit ? convertWeight(number,unit) : number)
+  // 625 is the user's shorthand for 6.25G, only in the bare weight slot.
+  const weight = preset ?? (!unit && number === 625 ? 6.25 : unit ? convertWeight(number,unit) : number)
+  const oneGram = preset === undefined && weight === 1
   if (weight < 0.01 || !Number.isFinite(weight)) return error('出货重量至少0.01G。')
   parsedWeight = weight
   let suffix = tail.slice((head[0] ?? '').length)
@@ -573,7 +575,7 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
   paymentSpoken = suffix.length > 0
   const result: VoiceCommand = {type:'sale', shortcut:true, customer, weight, paymentSpoken}
   // Homophones are interpreted only in a known-price shortcut payment suffix.
-  const debtWords = DEBT_WORDS + (preset !== undefined ? '|' + DEBT_HOMOPHONES : '')
+  const debtWords = DEBT_WORDS + (preset !== undefined || oneGram ? '|' + DEBT_HOMOPHONES : '')
   const pattern = new RegExp('^(' + CASH_WORDS + '|' + debtWords + '|' + TRANSFER_WORDS + ')(' + NUMBER_SOURCE + ')(?:' + CURRENCY_WORDS + ')?','i')
   let rest = suffix
   while (rest) {
@@ -598,7 +600,15 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
     }
     result.cashAmount = Math.max(0,Math.round(cash*100)/100)
     result.debtAmount = Math.max(0,Math.round(debt*100)/100)
+  } else if (oneGram && result.cashAmount === undefined && result.transferAmount === undefined) {
+    // Unspecified price: 1G costs RM150. A debt-only suffix is a split of that price.
+    const debt = result.debtAmount ?? 0
+    if (debt > 150) return error('1G默认售价RM150，欠款超过售价，请说实际收款和欠款。')
+    result.amount = 150
+    result.cashAmount = Math.round((150 - debt)*100)/100
+    result.debtAmount = debt
   } else if (suffix) {
+    // For explicit weight sales the spoken payment determines the actual price.
     result.amount = Math.round((paid + (result.debtAmount ?? 0))*100)/100
   }
   return result
