@@ -15,6 +15,8 @@ export type VoiceCommand = {
   query?: InventoryQuery
   shortcut?: boolean
   paymentSpoken?: boolean
+  needsCustomer?: boolean
+  spokenCustomer?: string
   error?: string
   customer?: string
   weight?: number
@@ -348,9 +350,7 @@ export function scoreCustomerTranscript(input: string): number {
   const hasAction = /进货|入货|补货|采购|买入|收货|出货|卖给|销售|出售|卖出|售出/.test(normalized)
   const hasQuery = /库存|利润|收入|欠款|欠多少|交易|记录/.test(normalized)
   const shortcut = parseTakeSale(input)
-  const spokenName = /^(.+?)(?:拿|拏)/.exec(input)?.[1]
-  const learned = spokenName ? matchCustomerAlias(spokenName) : {name:undefined, ambiguous:false}
-  if (shortcut) return shortcut.error ? 0 : 200 + (learned.name && !learned.ambiguous ? 160 : 0)
+  if (shortcut) return shortcut.error ? 0 : 200 + (!shortcut.needsCustomer ? 160 : 0) + (shortcut.paymentSpoken ? 15 : 0)
   return (exactCustomer ? 100 : resolvedCustomer ? 60 : 0) + (hasAction ? 25 : 0) + (hasQuery ? 10 : 0)
 }
 
@@ -511,7 +511,7 @@ function parseActionDetails(text: string, type: 'sale' | 'purchase'): Omit<Voice
 const QUICK_VOICE_WEIGHTS: Readonly<Record<number, number>> = {50:0.25,80:0.4,100:0.55,150:1,300:2.5}
 const DEBT_WORDS = '还欠款|还欠|剩下欠|剩欠|欠款|欠账|欠帐|欠钱|欠了|欠|赊账|挂账|未付|没付'
 const DEBT_HOMOPHONES = '钱款|钱|签|千|牵|谦|前|歉|芡|迁|铅|钎'
-const CASH_WORDS = '收现金|现金|现收|实收|收到|收了|收'
+const CASH_WORDS = '收现金|收款|收钱|现金|现收|实收|收到|收了|收|首|手|守'
 const TRANSFER_WORDS = '转账|转帐'
 const CURRENCY_WORDS = '马币|块钱|块|元|rm'
 
@@ -528,27 +528,64 @@ function shortcutNumber(raw: string): number | null {
   return parseSpokenNumber(raw)
 }
 
+/** Only propose names; similar numeric IDs must never be auto-corrected. */
+export function suggestVoiceCustomers(raw: string): string[] {
+  const key = normalizeCustomerAlias(raw)
+  if (!key) return []
+  return loadVoiceCustomers().map(item => ({
+    name:item.name,
+    distance:Math.min(...[item.name,...(Array.isArray(item.voiceAliases) ? item.voiceAliases.filter(alias => typeof alias === 'string') : [])]
+      .map(alias => nameDistance(normalizeCustomerAlias(alias),key))),
+  })).filter(item => item.distance <= Math.max(1, Math.floor(key.length/3)))
+    .sort((a,b) => a.distance-b.distance || a.name.localeCompare(b.name)).slice(0,8).map(item => item.name)
+}
+
+/** Split a name and an explicit gram phrase even when 拿 was omitted or misheard. */
+function splitTakeSale(raw: string): {name:string; tail:string} | undefined {
+  const direct = /^(.*?)(?:拿|拏)(.*)$/.exec(raw)
+  if (direct) return {name:direct[1] ?? '',tail:direct[2] ?? ''}
+  if (/^(?:进货|入货|补货|采购|买入|收货|出货|卖给|卖予|销售|出售|卖出|售出|收入|收款|记录收入|其他收入|现金收入)/.test(normalizeText(raw))) return undefined
+  const head = new RegExp('^\\s*(?:' + NUMBER_SOURCE + ')\\s*(?:' + WEIGHT_UNIT_SOURCE + ')(?=\\s|收|首|手|守|欠|转|钱|签|[，,。；;：:！？!?0-9零〇一二两三四五六七八九十百千万]|$)','i')
+  const homophone = /^\s*(?:1|一)\s*[鸡機机季基积级个](?=\s*(?:收|首|手|守|欠|转))/i
+  const isWeight = (value:string) => head.test(value) || homophone.test(value)
+  // Prefer a known name/alias prefix, including contiguous numeric IDs.
+  for (let i=raw.length-1;i>0;i--) {
+    const name = raw.slice(0,i).replace(/[，,。；;：:\s]+$/,'')
+    const tail = raw.slice(i).replace(/^[，,。；;：:\s]+/,'').replace(/^(?:那|哪|呐|纳|要)\s*/,'')
+    if (name && matchCustomerAlias(name).name && isWeight(tail)) return {name,tail}
+  }
+  if (isWeight(raw)) return {name:'',tail:raw}
+  // For unknown names, only split at a clear non-numeric boundary.
+  for (let i=1;i<raw.length;i++) {
+    if (/[0-9零〇一二两三四五六七八九十百千万.点]/.test(raw[i-1] ?? '')) continue
+    const name = raw.slice(0,i).replace(/[，,。；;：:\s]+$/,'').replace(/(?:那|哪|呐|纳|要)$/,'')
+    const tail = raw.slice(i).replace(/^[，,。；;：:\s]+/,'')
+    if (name && isWeight(tail)) return {name,tail}
+  }
+  return undefined
+}
+
 function parseTakeSale(input: string): VoiceCommand | undefined {
   const raw = input.replace(/[０-９]/g, digit => String.fromCharCode(digit.charCodeAt(0)-65248))
     .replace(/．/g,'.').trim()
   // Preserve customer names before normalizing the transaction portion.
-  const match = /^(.+?)(?:拿|拏)(.*)$/.exec(raw)
+  const match = splitTakeSale(raw)
   if (!match) return undefined
-  const spokenCustomer = shortcutCustomerName(match[1] ?? '')
+  const spokenCustomer = shortcutCustomerName(match.name)
   const learned = matchCustomerAlias(spokenCustomer)
   const customer = learned.name ?? spokenCustomer
-  const tail = normalizeText(match[2] ?? '')
+  const tail = normalizeText(match.tail)
+    .replace(/^(1|一)[鸡機机季基积级个](?=(?:收|首|手|守|欠|转))/, '$1g')
     .replace(/(\d)点(?=\d)/g,'$1.')
     .replace(/(\d+)[点.]([零〇一二两三四五六七八九]+)/g, (_, whole: string, decimal: string) => whole + '.' + Array.from(decimal, c => CHINESE_DIGITS[c]).join(''))
     .replace(/([零〇一二两三四五六七八九十百千万]+)[点.](\d+)/g, (_, whole: string, decimal: string) => String(parseChineseInteger(whole)) + '.' + decimal)
-    .replace(/[，,。；;：:！？!?](?=[收欠转现实还剩钱签千牵谦前歉芡迁铅钎赊挂未没])/g, '')
+    .replace(/[，,。；;：:！？!?](?=[收首手守欠转现实还剩钱签千牵谦前歉芡迁铅钎赊挂未没])/g, '')
     .replace(/[：:](?=[0-9零〇一二两三四五六七八九十百千万])/g,'')
     .replace(/[。！？!?]+$/,'').replace(/\.$/,'')
   let parsedWeight: number | undefined
   let paymentSpoken = false
   const error = (message: string): VoiceCommand => ({type:'sale', shortcut:true, customer, weight:parsedWeight, paymentSpoken, error:message})
-  if (!customer) return error('请先说顾客名字，再说拿多少。')
-  if (learned.ambiguous) return error('这段发音对应多个顾客，请检查顾客发音设置后重试。')
+  const needsCustomer = !learned.name || learned.ambiguous
   if (VAGUE_AMOUNT.test(tail)) return error('百几或一百多不是明确金额，未记账。请说具体数目，例如百五（一百五十）。')
   // 千 can be an actual numeral. Split only after an exact shortcut denomination.
   const thousandDebt = /^(.+?)千(?=[0-9零〇一二两三四五六七八九十百])/u.exec(tail)
@@ -578,7 +615,7 @@ function parseTakeSale(input: string): VoiceCommand | undefined {
     if (barePrice) suffix = '收' + (barePrice[1] ?? '')
   }
   paymentSpoken = suffix.length > 0
-  const result: VoiceCommand = {type:'sale', shortcut:true, customer, weight, paymentSpoken}
+  const result: VoiceCommand = {type:'sale', shortcut:true, customer, weight, paymentSpoken, needsCustomer, spokenCustomer}
   // Homophones are interpreted only in a known-price shortcut payment suffix.
   const debtWords = DEBT_WORDS + (preset !== undefined || oneGram ? '|' + DEBT_HOMOPHONES : '')
   const pattern = new RegExp('^(' + CASH_WORDS + '|' + debtWords + '|' + TRANSFER_WORDS + ')(' + NUMBER_SOURCE + ')(?:' + CURRENCY_WORDS + ')?','i')
@@ -629,7 +666,7 @@ export function selectInventoryTranscript(matches: string[]): {text:string; warn
   const cmd = best.command
   if (!cmd.shortcut || cmd.error) return {text:best.text}
   const related = ranked.filter(item => item.command.shortcut &&
-    item.command.customer === cmd.customer && item.command.weight === cmd.weight)
+    item.command.weight === cmd.weight && (item.command.customer === cmd.customer || item.command.needsCustomer || cmd.needsCustomer))
   const paid = related.filter(item => !item.command.error && item.command.paymentSpoken)
   const breakdowns = new Set(paid.map(item => JSON.stringify([
     item.command.amount ?? null, item.command.cashAmount ?? 0, item.command.debtAmount ?? 0, item.command.transferAmount ?? 0,
@@ -637,7 +674,13 @@ export function selectInventoryTranscript(matches: string[]): {text:string; warn
   if (breakdowns.size > 1 || (paid.length === 0 && related.some(item => item.command.error && item.command.paymentSpoken))) {
     return {text:best.text, warning:'收款或欠款听得不一致，未记账。请重新说完整口令，例如0764拿100欠款30。'}
   }
-  return {text:paid[0]?.text ?? best.text}
+  const complete = paid.find(item => !item.command.needsCustomer) ?? paid[0]
+  if (complete && cmd.customer && !cmd.needsCustomer && complete.command.needsCustomer) {
+    // Keep the known customer while recovering a payment suffix from another candidate.
+    const split = splitTakeSale(complete.text)
+    if (split) return {text:cmd.customer + '拿' + split.tail}
+  }
+  return {text:complete?.text ?? best.text}
 }
 
 export function parseVoiceCommand(input: string): VoiceCommand {
