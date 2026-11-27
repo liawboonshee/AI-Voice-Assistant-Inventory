@@ -231,7 +231,7 @@ test('customer pronunciation aliases map to the confirmed name, preserve IDs and
     assert.equal(parseVoiceCommand('优凯拿6.25收650').customer,'uk');
     assert.ok(scoreCustomerTranscript('优凯拿100') > scoreCustomerTranscript('优开拿100'));
     globalThis.localStorage.setItem('customers',JSON.stringify([...list,{name:'优凯'}]));
-    assert.ok(parseVoiceCommand('优凯拿100').error);
+    assert.equal(parseVoiceCommand('优凯拿100').needsCustomer,true);
     const source = new MemoryStorage({...original,customers:JSON.stringify(list)});
     assert.deepEqual(JSON.parse(parseBackup(JSON.stringify(createBackup(source))).customers),list);
   } finally {
@@ -351,4 +351,41 @@ test('customer deletion preserves ledger and refuses outstanding debt', () => {
   failed.failOnce='customers';
   assert.equal(deleteCustomerProfile(failed,'0764').ok,false);
   assert.deepEqual(failed.snapshot(),before);
+});
+
+
+test('voice sale accepts 1G payment despite omitted 拿 or missing customer', () => {
+  const old = Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+  const list = [{name:'0764',debt:0,voiceAliases:['零七六四']},{name:'铁山朋友',debt:0,voiceAliases:['铁三朋友']},{name:'8829',debt:0}];
+  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:new MemoryStorage({customers:JSON.stringify(list)})});
+  try {
+    for (const text of ['0764拿1g收 100','0764 1G收100','0764那1g收100','铁三朋友一克收一百','铁山朋友拿一鸡收100','铁山朋友拿一级收100','铁山朋友拿1G收款100','铁山朋友拿1G首100']) {
+      const cmd = parseVoiceCommand(text);
+      assert.equal(cmd.error,undefined,text);
+      assert.equal(cmd.type,'sale',text);
+      assert.equal(cmd.weight,1,text);
+      assert.equal(cmd.amount,100,text);
+      assert.equal(cmd.cashAmount,100,text);
+      assert.equal(cmd.debtAmount ?? 0,0,text);
+      assert.equal(cmd.needsCustomer,false,text);
+    }
+    for (const text of ['1g收 100','拿1g收100','陌生顾客拿1g收100','铁三朋有1G收100']) {
+      const cmd = parseVoiceCommand(text);
+      assert.equal(cmd.error,undefined,text);
+      assert.equal(cmd.weight,1,text);
+      assert.equal(cmd.amount,100,text);
+      assert.equal(cmd.needsCustomer,true,text);
+    }
+    assert.equal(parseVoiceCommand('0765拿100').needsCustomer,true);
+    assert.equal(parseVoiceCommand('0764拿100').weight,0.55);
+    assert.equal(parseVoiceCommand('0764拿1G').amount,150);
+    assert.equal(parseVoiceCommand('进货125克4500').type,'purchase');
+    assert.equal(parseVoiceCommand('0764拿625收650').weight,6.25);
+    assert.equal(selectInventoryTranscript(['0764拿1G','0764拿1G收100']).text,'0764拿1G收100');
+    assert.equal(parseVoiceCommand(selectInventoryTranscript(['0764拿1G收100','8829拿1G收100']).text).needsCustomer,true);
+    assert.ok(selectInventoryTranscript(['0764拿1G收100','8829拿1G收120']).warning);
+  } finally {
+    if(old) Object.defineProperty(globalThis,'localStorage',old);
+    else delete globalThis.localStorage;
+  }
 });
