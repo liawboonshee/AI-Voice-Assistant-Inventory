@@ -77,7 +77,7 @@ export function getMissingCommandField(command: VoiceCommand): MissingField {
   if (command.type !== 'sale' && command.type !== 'purchase') return null
   if (command.weight === undefined) return 'weight'
   if ((command.type === 'purchase' || command.shortcut) && command.amount === undefined) return 'amount'
-  if (command.type === 'sale' && getDebtAmount(command) > 0 && !command.customer) {
+  if (command.type === 'sale' && (command.needsCustomer || (getDebtAmount(command) > 0 && !command.customer))) {
     return 'customer'
   }
   return null
@@ -99,6 +99,7 @@ export function getMissingCommandPrompt(command: VoiceCommand): string | null {
       : `${weight}克已听到，总售价多少钱？`
   }
 
+  if (command.needsCustomer) return `重量${command.weight?.toFixed(2)}G，售价RM${command.amount?.toFixed(2)}已识别。顾客未确认，请选择或重新说顾客名字。尚未记账。`
   return '这笔有欠款，请告诉我客户名字。'
 }
 
