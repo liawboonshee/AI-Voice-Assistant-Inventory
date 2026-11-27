@@ -674,13 +674,12 @@ export function selectInventoryTranscript(matches: string[]): {text:string; warn
   if (breakdowns.size > 1 || (paid.length === 0 && related.some(item => item.command.error && item.command.paymentSpoken))) {
     return {text:best.text, warning:'收款或欠款听得不一致，未记账。请重新说完整口令，例如0764拿100欠款30。'}
   }
-  const complete = paid.find(item => !item.command.needsCustomer) ?? paid[0]
-  if (complete && cmd.customer && !cmd.needsCustomer && complete.command.needsCustomer) {
-    // Keep the known customer while recovering a payment suffix from another candidate.
-    const split = splitTakeSale(complete.text)
-    if (split) return {text:cmd.customer + '拿' + split.tail}
+  const complete = paid.find(item => !item.command.needsCustomer) ?? paid[0] ?? best
+  const competing = ranked.some(item => !item.command.error && item.command.shortcut && !item.command.needsCustomer && item.command.customer !== cmd.customer && !cmd.needsCustomer)
+  if (competing) {
+    return {text:best.text, warning:'听到多个不同顾客名称，未记账。请重新说或用顾客选择。'}
   }
-  return {text:complete?.text ?? best.text}
+  return {text:complete.text}
 }
 
 export function parseVoiceCommand(input: string): VoiceCommand {
