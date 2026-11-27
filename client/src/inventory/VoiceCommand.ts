@@ -677,7 +677,11 @@ export function selectInventoryTranscript(matches: string[]): {text:string; warn
   const complete = paid.find(item => !item.command.needsCustomer) ?? paid[0] ?? best
   const competing = ranked.some(item => !item.command.error && item.command.shortcut && !item.command.needsCustomer && item.command.customer !== cmd.customer && !cmd.needsCustomer)
   if (competing) {
-    return {text:best.text, warning:'听到多个不同顾客名称，未记账。请重新说或用顾客选择。'}
+    const sameSale = ranked.filter(item => !item.command.error && item.command.shortcut && !item.command.needsCustomer)
+      .every(item => item.command.weight === complete.command.weight && item.command.amount === complete.command.amount && (item.command.cashAmount ?? 0) === (complete.command.cashAmount ?? 0) && (item.command.debtAmount ?? 0) === (complete.command.debtAmount ?? 0) && (item.command.transferAmount ?? 0) === (complete.command.transferAmount ?? 0))
+    const split = splitTakeSale(complete.text)
+    if (sameSale && split) return {text:'拿' + split.tail}
+    return {text:best.text, warning:'听到不同顾客或金额，未记账。请重新说完整口令。'}
   }
   return {text:complete.text}
 }
