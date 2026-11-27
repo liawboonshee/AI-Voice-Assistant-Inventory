@@ -4,6 +4,7 @@ import { formatRecordDate } from './Analytics'
 import { loadInventory, saveInventory } from './Storage'
 import { getVoiceAdapter } from '../voice/voiceAdapter'
 import { matchCustomerAlias, normalizeCustomerAlias } from './VoiceCommand'
+import { deleteCustomerProfile } from './CustomerDeletion'
 
 type CustomerData = { name: string; phone?: string; debt: number; voiceAliases?: string[] }
 const KEY = 'customers'
@@ -42,6 +43,28 @@ export default function Customers() {
   const [voiceSample, setVoiceSample] = useState('')
   const [voiceMessage, setVoiceMessage] = useState('')
   const [voiceListening, setVoiceListening] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [deleteMessage, setDeleteMessage] = useState('')
+
+  function confirmDeleteCustomer(customerName: string) {
+    if (voiceListening) return
+    const result = deleteCustomerProfile<CustomerData>(localStorage, customerName)
+    if (!result.ok) { setDeleteMessage(result.message); return }
+    setCustomers(result.customers)
+    // Index-keyed inputs must be cleared after the list changes.
+    setPay({})
+    setNewDebt({})
+    setEditingCustomer(null)
+    setEditName('')
+    setEditPhone('')
+    setVoiceCustomer(null)
+    setVoiceSample('')
+    setVoiceMessage('')
+    setHistoryLimits(limits => { const next = {...limits}; delete next[customerName]; return next })
+    setDeleteTarget(null)
+    setDeleteMessage('')
+    setMessage('✅ 已删除顾客 ' + customerName + '，历史交易及库存金额不变。')
+  }
 
   async function recordPronunciation(customerName: string) {
     if (voiceListening) return
@@ -293,7 +316,14 @@ export default function Customers() {
               <div className="customer-edit-action-row">
                 <button type="button" disabled={voiceListening} onClick={() => startCustomerEdit(index)}>✏️ 修改顾客</button>
                 <button type="button" disabled={voiceListening} onClick={() => void recordPronunciation(item.name)}>🎙️ 录制发音</button>
+                <button type="button" disabled={voiceListening} style={{background:'#b91c1c',color:'#fff'}} onClick={() => { setDeleteTarget(item.name); setDeleteMessage('') }}>🗑️ 删除顾客</button>
               </div>
+              {deleteTarget === item.name && <section className="customer-edit-panel">
+                <p>确定删除顾客「{item.name}」？电话号码及专属发音将删除，历史交易和库存金额保留。</p>
+                {item.debt !== 0 ? <p>当前欠款 RM{item.debt.toFixed(2)}，请先结清再删除。</p> : <button type="button" disabled={voiceListening} style={{background:'#b91c1c',color:'#fff'}} onClick={() => confirmDeleteCustomer(item.name)}>确认删除</button>}
+                <button type="button" onClick={() => { setDeleteTarget(null); setDeleteMessage('') }}>取消</button>
+                {deleteMessage && <p>{deleteMessage}</p>}
+              </section>}
               <section className="customer-voice-panel">
                 {(item.voiceAliases || []).map(alias => <div key={alias}><span>🗣️ {alias}</span> <button type="button" disabled={voiceListening} onClick={() => removePronunciation(item.name, alias)}>删除</button></div>)}
                 {voiceCustomer === item.name && <div>
