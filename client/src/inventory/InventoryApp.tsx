@@ -10,7 +10,8 @@ import {
   recordProfit,
   recordTransferAmount,
 } from './Analytics'
-import { runInventoryTool } from './AITools'
+import { runInventoryTool, getPendingCustomerCommand, confirmPendingCustomer, cancelPendingVoiceCommand } from './AITools'
+import { suggestVoiceCustomers, type VoiceCommand } from './VoiceCommand'
 import Backup from './Backup'
 import { consumeBackupResume } from './BackupUi'
 import Customers from './Customers'
@@ -118,6 +119,10 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
   const [customers, setCustomers] = useState(loadCustomers())
   const [isListening, setIsListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
+  const [pendingVoice, setPendingVoice] = useState<VoiceCommand | null>(null)
+  const [voiceCustomerName, setVoiceCustomerName] = useState('')
+  const [voiceCustomerSearch, setVoiceCustomerSearch] = useState('')
+  const [rememberVoiceName, setRememberVoiceName] = useState(false)
 
   useEffect(() => {
     if (consumeBackupResume()) setPage('backup')
@@ -162,6 +167,10 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
         onFinal: (text) => {
           const answer = runInventoryTool(text) || '我还不明白，请换一种说法。'
           setVoiceText(`你说：${text}\n${answer}`)
+          setPendingVoice(getPendingCustomerCommand())
+          setVoiceCustomerName('')
+          setVoiceCustomerSearch('')
+          setRememberVoiceName(false)
           setIsListening(false)
           refresh()
           void speak(answer).catch(() => undefined)
@@ -176,6 +185,20 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       setIsListening(false)
     }
   }
+
+  const finishVoiceCustomer = () => {
+    if (!voiceCustomerName || isListening) return
+    const answer = confirmPendingCustomer(voiceCustomerName, rememberVoiceName)
+    setVoiceText(answer)
+    setPendingVoice(getPendingCustomerCommand())
+    setVoiceCustomerName('')
+    refresh()
+    void speak(answer).catch(() => undefined)
+  }
+
+  const voiceSuggestions = pendingVoice ? suggestVoiceCustomers(pendingVoice.spokenCustomer || '') : []
+  const filteredVoiceCustomers = customers.filter(item => item.name.toLowerCase().includes(voiceCustomerSearch.trim().toLowerCase()))
+    .sort((a,b) => (voiceSuggestions.includes(b.name) ? 1 : 0) - (voiceSuggestions.includes(a.name) ? 1 : 0))
 
   const pageContent = () => {
     if (page === 'purchase') return <Purchase />
@@ -195,7 +218,7 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
       <header className="inventory-pro-header">
         <div className="inventory-title-row">
           <div>
-            <h1>📦 库存宝 AI 4.9.10</h1>
+            <h1>📦 库存宝 AI 4.9.11</h1>
             <p>今天：{formatBusinessDate()}</p>
           </div>
           <div className="inventory-header-actions">
@@ -280,6 +303,20 @@ export default function InventoryApp({ onLock, onOpenVoice }: Props) {
           </button>
 
           {voiceText && <div className="inventory-voice-result">{voiceText}</div>}
+          {pendingVoice && <section className="inventory-recent-card">
+            <h2>👤 确认顾客（尚未记账）</h2>
+            <p>听到：{pendingVoice.spokenCustomer || '未听到姓名'}</p>
+            <p>重量 {pendingVoice.weight?.toFixed(2)}G · 总售价 RM{pendingVoice.amount?.toFixed(2)}</p>
+            <p>现金 RM{(pendingVoice.cashAmount ?? 0).toFixed(2)} · 欠款 RM{(pendingVoice.debtAmount ?? 0).toFixed(2)} · 转账 RM{(pendingVoice.transferAmount ?? 0).toFixed(2)}</p>
+            <input aria-label="搜索待确认顾客" value={voiceCustomerSearch} onChange={e => {setVoiceCustomerSearch(e.target.value);setVoiceCustomerName('')}} placeholder="搜索顾客名字" />
+            <select aria-label="选择正确顾客" value={voiceCustomerName} onChange={e => setVoiceCustomerName(e.target.value)}>
+              <option value="">请选择顾客</option>
+              {filteredVoiceCustomers.map(item => <option key={item.name} value={item.name}>{item.name}{voiceSuggestions.includes(item.name) ? '（可能匹配）' : ''}</option>)}
+            </select>
+            {pendingVoice.spokenCustomer && <label><input type="checkbox" checked={rememberVoiceName} onChange={e => setRememberVoiceName(e.target.checked)} /> 记住这次识别到的顾客叫法</label>}
+            <button type="button" disabled={!voiceCustomerName || isListening} onClick={finishVoiceCustomer}>确认并保存出货</button>
+            <button type="button" disabled={isListening} onClick={() => {cancelPendingVoiceCommand();setPendingVoice(null);setVoiceText('已取消，未记账。')}}>取消</button>
+          </section>}
 
           <section className="inventory-quick-grid">
             <button type="button" onClick={() => setPage('sale')}>📤 出货</button>
