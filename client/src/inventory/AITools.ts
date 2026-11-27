@@ -25,8 +25,10 @@ export function cancelPendingVoiceCommand(): void { pendingCommand = null }
 export function confirmPendingCustomer(name: string, remember = false): string {
   const command = getPendingCustomerCommand()
   if (!command) return '没有待确认的交易。'
-  const selected = matchCustomerAlias(name)
-  if (selected.name !== name || selected.ambiguous) return '顾客不存在或名称重复，请重新选择。'
+  try {
+    const list = JSON.parse(localStorage.getItem('customers') || '[]')
+    if (!Array.isArray(list) || list.filter(item => item.name === name).length !== 1) return '顾客不存在或名称重复，请重新选择。'
+  } catch { return '顾客资料无法读取。' }
   pendingCommand = null
   const result = executeParsedVoiceCommand({...command, customer:name, needsCustomer:false}) || '未能保存交易。'
   if (remember && result.startsWith('✅') && command.spokenCustomer) {
