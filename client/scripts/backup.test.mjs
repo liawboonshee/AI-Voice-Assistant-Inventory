@@ -1,3 +1,4 @@
+import { deleteCustomerProfile } from '../src/inventory/CustomerDeletion.ts'
 import { parseVoiceCommand, parseSpokenNumber, extractFirstSpokenNumber, matchCustomerAlias, scoreCustomerTranscript, selectInventoryTranscript } from '../src/inventory/VoiceCommand.ts'
 import { calculatePaymentBreakdown } from '../src/inventory/Payments.ts'
 import { recordProfit, recordCashIn } from '../src/inventory/Analytics.ts'
@@ -331,4 +332,23 @@ test('1G default price, explicit price overrides and 625 weight shorthand', () =
   assert.equal(parseVoiceCommand('uk拿625').amount,undefined);
   assert.equal(parseVoiceCommand('uk拿625g收650').weight,625);
   assert.ok(parseVoiceCommand('8829拿1g欠180').error);
+});
+
+
+test('customer deletion preserves ledger and refuses outstanding debt', () => {
+  const list = [{name:'0764',debt:0,phone:'123',voiceAliases:['零七六四']},{name:'阿明',debt:100}];
+  const source = new MemoryStorage({...original,customers:JSON.stringify(list)});
+  const before = source.snapshot();
+  assert.equal(deleteCustomerProfile(source,'阿明').ok,false);
+  assert.deepEqual(source.snapshot(),before);
+  assert.equal(deleteCustomerProfile(source,'不存在').ok,false);
+  assert.equal(deleteCustomerProfile(source,'0764').ok,true);
+  assert.deepEqual(source.snapshot(),{...before,customers:JSON.stringify([list[1]])});
+  assert.equal(deleteCustomerProfile(source,'0764').ok,false);
+  const invalid = new MemoryStorage({customers:'invalid'});
+  assert.equal(deleteCustomerProfile(invalid,'0764').ok,false);
+  const failed = new MemoryStorage({...before});
+  failed.failOnce='customers';
+  assert.equal(deleteCustomerProfile(failed,'0764').ok,false);
+  assert.deepEqual(failed.snapshot(),before);
 });
